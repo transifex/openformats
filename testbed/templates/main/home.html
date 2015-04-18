@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transifex formats testbed</title>
+</head>
+<body>
+  Handler:
+  <select name="handler">
+    <option value="">Please select</option>
+    {% for handler in handlers %}
+      <option value="{{ handler }}">{{ handler }}</option>
+    {% endfor %}
+  </select>
+</body>
+</html>
