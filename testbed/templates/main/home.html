@@ -1,8 +1,23 @@
+{% load staticfiles %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Transifex formats testbed</title>
+
+  <!-- Bootstrap -->
+    <link rel="stylesheet" href="{% static "libraries/css/bootstrap.css" %}" />
+    <script src="{% static "libraries/js/bootstrap.js" %}"></script>
+
+  <!-- Standard Javascript stack (jQuery, Underscore, Backbone, Marionette) -->
+    <script src="{% static "libraries/js/jquery.js" %}"></script>
+    <script src="{% static "libraries/js/underscore.js" %}"></script>
+    <script src="{% static "libraries/js/backbone.js" %}"></script>
+    <script src="{% static "libraries/js/json2.js" %}"></script>
+    <script src="{% static "libraries/js/backbone.babysitter.js" %}"></script>
+    <script src="{% static "libraries/js/backbone.wreqr.js" %}"></script>
+    <script src="{% static "libraries/js/backbone.marionette.js" %}"></script>
 </head>
 <body>
   Handler:
