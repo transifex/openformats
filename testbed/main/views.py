@@ -1,20 +1,15 @@
 import inspect
+import json
 import os
 from importlib import import_module
 
-from django.views.generic.base import TemplateView
+from django.http import HttpResponse
+from django.views.generic.base import TemplateView, View
 
 from txformats.handler import Handler
 
 
-class MainView(TemplateView):
-    template_name = "main/home.html"
-
-    def get_context_data(self, **kwargs):
-        context = super(MainView, self).get_context_data(**kwargs)
-        context['handlers'] = sorted(self.handlers.keys())
-        return context
-
+class HandlerMixin(object):
     @property
     def handlers(self):
         if not hasattr(self, "_handlers"):
@@ -36,3 +31,33 @@ class MainView(TemplateView):
                     if each.name not in handlers:
                         handlers[each.name] = each
         return handlers
+
+
+class MainView(HandlerMixin, TemplateView):
+    template_name = "main/home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(MainView, self).get_context_data(**kwargs)
+        context['handlers'] = sorted(self.handlers.keys())
+        return context
+
+
+class ApiView(HandlerMixin, View):
+    def post(self, request):
+        payload = json.loads(request.body)
+        if payload['action'] == "parse":
+            return self._parse(payload)
+
+    def _parse(self, payload):
+        handler_name = payload['handler']
+        handler_class = self.handlers[handler_name]
+        source = payload['source']
+
+        handler = handler_class()
+        stringset = list(handler.feed_content(source))
+        template = handler.template
+        del payload['action']
+        payload['stringset'] = [str(string) for string in stringset]
+        payload['template'] = template
+
+        return HttpResponse(json.dumps(payload), mimetype="application/json")
