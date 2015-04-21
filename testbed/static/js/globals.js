@@ -30,6 +30,7 @@ $(document).ready(function() {
   var String = Backbone.Model.extend({});
   var Stringset = Backbone.Collection.extend({
     model: String,
+    comparator: 'order',
   });
 
   var Payload = Backbone.Model.extend({
