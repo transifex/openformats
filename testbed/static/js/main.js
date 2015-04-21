@@ -9,6 +9,7 @@ $(document).ready(function() {
     var panel = this;
     new Views.Panel({ el: panel });
   });
+  new Views.SaveForm({ el: '#save-form' });
 
   // Source
   new Views.SourceForm({ el: '#source-form' });

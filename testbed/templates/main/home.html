@@ -83,31 +83,40 @@
           Transifex
         </a>
       </div>
-
-      <div class="collapse navbar-collapse">
-        <ul class="nav navbar-nav navbar-right">
-          <li>
-            <p class="navbar-text">Panels:</p>
-          </li>
-          <li>
-            <div id="panel-toggles" class="btn-group" role="group"
-                 aria-label="...">
-              <button data-value="source" type="button"
-                      class="js-source navbar-btn btn btn-default btn-primary">
-                Source
-              </button>
-              <button data-value="parsed" type="button"
-                      class="js-parsed navbar-btn btn btn-default">
-                Parsed
-              </button>
-              <button data-value="compiled" type="button"
-                      class="js-compiled navbar-btn btn btn-default">
-                Compiled
-              </button>
-            </div>
-          </li>
-        </ul>
-      </div>
+      <ul class="nav navbar-nav">
+        <li><p class="navbar-text">formats testbed</p></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="https://github.com/transifex/txformats" target="_blank">
+          Fork me on GitHub
+        </a></li>
+      </ul>
+      <form id="save-form" action="/save" method="post"
+            class="navbar-form navbar-right">
+        {% csrf_token %}
+        <input name="payload" type="hidden" />
+        <button type="submit" class="btn btn-default">Save</button>
+      </form>
+      <ul class="nav navbar-nav navbar-right">
+        <li><p class="navbar-text">Panels:</p></li>
+        <li>
+          <div id="panel-toggles" class="btn-group" role="group"
+               aria-label="...">
+            <button data-value="source" type="button"
+                    class="js-source navbar-btn btn btn-default btn-primary">
+              Source
+            </button>
+            <button data-value="parsed" type="button"
+                    class="js-parsed navbar-btn btn btn-default">
+              Parsed
+            </button>
+            <button data-value="compiled" type="button"
+                    class="js-compiled navbar-btn btn btn-default">
+              Compiled
+            </button>
+          </div>
+        </li>
+      </ul>
     </div>
   </nav>
 

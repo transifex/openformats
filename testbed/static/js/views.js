@@ -277,4 +277,15 @@ $(function() {
       });
     },
   });
+
+  Views.SaveForm = Backbone.View.extend({
+    events: { 'submit': "submit_payload" },
+    initialize: function() {
+      this.ui = { payload: this.$('input[name="payload"]') };
+    },
+    submit_payload: function() {
+      this.ui.payload.val(JSON.stringify(Globals.payload.toJSON()));
+      return true;
+    },
+  });
 });
