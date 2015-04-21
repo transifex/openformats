@@ -57,12 +57,16 @@ $(function() {
   Views.SourceForm = Backbone.View.extend({
     events: {
       'change select[name="handler"]': "validate_handler",
+      'keydown select[name="handler"]': "blur_handler",
       'submit': "submit_source",
       'keydown textarea[name="source"]': "source_keypress",
     },
     initialize: function() {
       this.ui = { handler: this.$('select[name="handler"]'),
                   source: this.$('textarea[name="source"]') };
+    },
+    blur_handler: function(event) {
+      if(event.which == 17) { this.ui.handler.blur(); }
     },
     submit_source: function(event) {
       if(event) { event.preventDefault(); }
@@ -150,6 +154,7 @@ $(function() {
       'click': "select_string",
       'keyup textarea': "capture_string",
       'blur textarea': "capture_string",
+      'focus textarea': "select_all_string",
     },
     template: _.template($('#string-template').html()),
     initialize: function() {
@@ -179,6 +184,7 @@ $(function() {
       {
         this.ui.simple.addClass('hidden');
         this.ui.expanded.removeClass('hidden');
+        this.$('textarea:first').focus();
       } else {
         this.render();
       }
@@ -190,6 +196,9 @@ $(function() {
       var strings = _.clone(this.model.get('strings'));
       strings[rule] = value;
       this.model.set({ strings: strings }, {silent: true});
+    },
+    select_all_string: function(event) {
+      $(event.currentTarget).trigger('select');
     },
   });
 

@@ -33,12 +33,34 @@ $(document).ready(function() {
     Globals.ui_state.set({ selected_string: null });
   });
   $('body').on('keyup', function(event) {
-    var key_code = event.which;
     if(event.target.type == 'input' || event.target.type == 'textarea' ||
-       key_code < 49 || key_code > 51) { return; }
-    key_code -= 48;
-    var panels = {1: 'source', 2: 'parsed', 3: 'compiled'};
-    Globals.ui_state.toggle_panel(panels[key_code]);
+       ('' + event.target.type).indexOf('select') != -1) { return; }
+    var keys = {49: '1', 50: '2', 51: '3', 72: 'h', 83: 's', 80: 'p', 84: 't',
+                67: 'c'};
+    var key_code = event.which;
+    var key = keys[event.which];
+    if((key == '1' || key == '2' || key == '3')) {
+      var panels = {1: 'source', 2: 'parsed', 3: 'compiled'};
+      Globals.ui_state.toggle_panel(panels[key]);
+    }
+    if(key == 'h') {
+      Globals.ui_state.set({ source_panel: true });
+      $('select[name="handler"]').focus();
+    }
+    if(key == 's') {
+      Globals.ui_state.set({ source_panel: true });
+      $('textarea[name="source"]').focus(); 
+      $('textarea[name="source"]').trigger('select'); 
+    }
+    if(key == 'p') {
+      Globals.ui_state.set({ source_panel: true });
+      $('#source-form').submit(); 
+    }
+    if(key == 't') {
+      Globals.ui_state.set({ parsed_panel: true });
+      $('#stringset a:first').click(); 
+    }
+    if(key == 'c') { $('#compile-button').click(); }
   });
 
   // Last bit of bootstraping
