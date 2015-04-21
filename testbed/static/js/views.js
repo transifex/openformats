@@ -245,6 +245,28 @@ $(function() {
     },
   });
 
+  Views.CompiledComparison = Backbone.View.extend({
+    initialize: function() {
+      this.messages = { same: this.$el.data('same'),
+                        different: this.$el.data('different') };
+      this.listenTo(Globals.payload, 'change:source change:compiled',
+                    this.render);
+    },
+    render: function() {
+      if(Globals.payload.get('compiled')) {
+        this.$el.removeClass('hidden');
+        if(Globals.payload.get('source') == Globals.payload.get('compiled')) {
+          this.$el.text(this.messages.same);
+        } else {
+          this.$el.text(this.messages.different);
+        }
+      } else {
+        this.$el.addClass('hidden');
+      }
+      return this;
+    },
+  });
+
   Views.Compiled = Backbone.View.extend({
     initialize: function() {
       this.listenTo(Globals.payload, 'change:compiled', this.render);

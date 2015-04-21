@@ -25,6 +25,7 @@ $(document).ready(function() {
   // Compiled
   new Views.CompileButton({ el: '#compile-button' });
   new Views.CompiledLoading({ el: '#compiled-loading' });
+  new Views.CompiledComparison({ el: '#compiled-comparison' });
   new Views.Compiled({ el: '#compiled' });
   new Views.CompiledMain({ el: '#compiled-main' });
   new Views.CompiledError({ el: '#compiled-error' });

@@ -15,19 +15,21 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
         except ValueError:
             # No newlines present
             newline_sequence = ""
-            line_generator = ((0, content), )
+            lines = (content, )
         else:
             if position == 0 or content[position - 1] != '\r':
                 newline_sequence = "\n"
             else:
                 newline_sequence = "\r\n"
-            line_generator = enumerate(content.split(newline_sequence))
+            lines = content.split(newline_sequence)
 
         template = ""
-        for order, line in line_generator:
+        order = 0
+        for line in lines:
             stripped_line = line.strip()
             if stripped_line:
                 string = String(str(order), stripped_line, order=order)
+                order += 1
                 yield string
 
                 template_line = line.replace(stripped_line,

@@ -13,7 +13,7 @@ class Payload(models.Model):
     last_viewed = models.DateTimeField(blank=True, null=True)
 
     def _presave(self):
-        self.payload_hash = md5(self.payload).hexdigest()
+        self.payload_hash = md5(self.payload.encode('utf-8')).hexdigest()
 
     def save(self):
         self._presave()

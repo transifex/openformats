@@ -97,7 +97,9 @@
         </a>
       </div>
       <ul class="nav navbar-nav">
-        <li><p class="navbar-text">formats testbed</p></li>
+        <li><p class="navbar-text"><a href="{% url "testbed_home" %}">
+          formats testbed
+        </a></p></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li><a href="https://github.com/transifex/txformats" target="_blank">
@@ -198,6 +200,10 @@
           <div class="panel-heading"><h3 class="panel-title">
             Compiled
             <small id="compiled-loading" class="hidden">loading...</small>
+            <small id="compiled-comparison" class="hidden"
+              data-same="The compiled file is the same as the source file"
+              data-different="The compiled file is not the same as the source file"
+            ></small>
           </h3></div>
           <div id="compiled-main"
                class="mycss-panel-body mycss-scroll panel-body">
