@@ -18,8 +18,21 @@
   <!-- CSS -->
     <link rel="stylesheet" href="{% static "css/home.css" %}" />
 
-  <!-- Testbed code -->
+  <!-- Namespaces -->
     <script src="{% static "js/namespace.js" %}"></script>
+
+  <!-- Template data -->
+    <script>
+      var Testbed = window.Testbed;
+      var TemplateData = Testbed.namespace('template_data');
+      {% if payload_json %}
+        TemplateData.payload_json = JSON.parse('{{ payload_json|escapejs }}');
+      {% else %}
+        TemplateData.payload_json = null;
+      {% endif %}
+    </script>
+
+  <!-- Testbed code -->
     <script src="{% static "js/globals.js" %}"></script>
     <script src="{% static "js/views.js" %}"></script>
     <script src="{% static "js/main.js" %}"></script>
@@ -91,7 +104,7 @@
           Fork me on GitHub
         </a></li>
       </ul>
-      <form id="save-form" action="/save" method="post"
+      <form id="save-form" action="{% url "testbed_save" %}" method="post"
             class="navbar-form navbar-right">
         {% csrf_token %}
         <input name="payload" type="hidden" />

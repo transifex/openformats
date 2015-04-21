@@ -2,6 +2,7 @@ $(document).ready(function() {
   var Testbed = window.Testbed;
   var Views = Testbed.namespace('views');
   var Globals = Testbed.namespace('globals');
+  var TemplateData = Testbed.namespace('template_data');
 
   // Header
   new Views.PanelButtons({ el: '#panel-toggles' });
@@ -37,7 +38,7 @@ $(document).ready(function() {
     if(event.target.type == 'input' || event.target.type == 'textarea' ||
        ('' + event.target.type).indexOf('select') != -1) { return; }
     var keys = {49: '1', 50: '2', 51: '3', 72: 'h', 83: 's', 80: 'p', 84: 't',
-                67: 'c'};
+                67: 'c', 87: 'w'};
     var key_code = event.which;
     var key = keys[event.which];
     if((key == '1' || key == '2' || key == '3')) {
@@ -62,8 +63,16 @@ $(document).ready(function() {
       $('#stringset a:first').click(); 
     }
     if(key == 'c') { $('#compile-button').click(); }
+    if(key == 'w') { $('#save-form').submit(); }
   });
 
   // Last bit of bootstraping
   $('select[name="handler"]').focus();
+
+  // Load Payload if one was retrieved from database
+  if(TemplateData.payload_json !== null) {
+    Globals.payload.set(TemplateData.payload_json);
+    Globals.ui_state.set({ source_panel: true, parsed_panel: true,
+                           compiled_panel: true });
+  }
 });

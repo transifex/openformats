@@ -64,6 +64,8 @@ $(function() {
     initialize: function() {
       this.ui = { handler: this.$('select[name="handler"]'),
                   source: this.$('textarea[name="source"]') };
+      this.listenTo(Globals.payload, 'change:handler change:source',
+                    this.render);
     },
     blur_handler: function(event) {
       if(event.which == 17) { this.ui.handler.blur(); }
@@ -97,6 +99,11 @@ $(function() {
     },
     validate_source: function() {
       return this._validate_input('source');
+    },
+    render: function() {
+      this.ui.handler.val(Globals.payload.get('handler'));
+      this.ui.source.val(Globals.payload.get('source'));
+      return this;
     },
   });
 
@@ -281,7 +288,8 @@ $(function() {
   Views.SaveForm = Backbone.View.extend({
     events: { 'submit': "submit_payload" },
     initialize: function() {
-      this.ui = { payload: this.$('input[name="payload"]') };
+      this.ui = { payload: this.$('input[name="payload"]'),
+                  submit: this.$('button[type="submit"]') };
     },
     submit_payload: function() {
       this.ui.payload.val(JSON.stringify(Globals.payload.toJSON()));

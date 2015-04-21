@@ -1,12 +1,19 @@
+from __future__ import absolute_import
+
+import datetime
 import inspect
 import json
 import os
 from importlib import import_module
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.views.generic.base import TemplateView, View
+from django.views.generic.edit import CreateView
 
 from txformats.handler import Handler, String
+
+from .models import Payload
 
 
 class HandlerMixin(object):
@@ -34,11 +41,22 @@ class HandlerMixin(object):
 
 
 class MainView(HandlerMixin, TemplateView):
+    http_method_names = ['get']
     template_name = "main/home.html"
+
+    def get(self, request, payload_hash=""):
+        self.payload_hash = payload_hash
+        return super(MainView, self).get(request, payload_hash=payload_hash)
 
     def get_context_data(self, **kwargs):
         context = super(MainView, self).get_context_data(**kwargs)
         context['handlers'] = sorted(self.handlers.keys())
+        if self.payload_hash:
+            payload_row = get_object_or_404(Payload,
+                                            payload_hash=self.payload_hash)
+            payload_row.last_viewed = datetime.datetime.now()
+            payload_row.save()
+            context['payload_json'] = payload_row.payload
         return context
 
 
@@ -110,3 +128,17 @@ class ApiView(HandlerMixin, View):
             payload = {'action': None, 'compiled': compiled,
                        'compile_error': ""}
         return HttpResponse(json.dumps(payload), mimetype="application/json")
+
+
+class SaveView(CreateView):
+    http_method_names = ['post']
+    model = Payload
+
+    def form_valid(self, form):
+        try:
+            return super(SaveView, self).form_valid(form)
+        except Exception:
+            return HttpResponseRedirect(form.instance.get_absolute_url())
+
+    def form_invalid(self, form):
+        return HttpResponseRedirect(form.instance.get_absolute_url())
