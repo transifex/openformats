@@ -55,14 +55,17 @@ $(function() {
   });
 
   Views.SourceForm = Backbone.View.extend({
-    events: { 'change select[name="handler"]': "validate_handler",
-              'submit': "submit_source" },
+    events: {
+      'change select[name="handler"]': "validate_handler",
+      'submit': "submit_source",
+      'keydown textarea[name="source"]': "source_keypress",
+    },
     initialize: function() {
       this.ui = { handler: this.$('select[name="handler"]'),
                   source: this.$('textarea[name="source"]') };
     },
     submit_source: function(event) {
-      event.preventDefault();
+      if(event) { event.preventDefault(); }
       var handler_valid = this.validate_handler();
       var source_valid = this.validate_source();
       if(handler_valid && source_valid) {
@@ -71,6 +74,10 @@ $(function() {
                               action: 'parse' });
         Globals.payload.send();
       }
+    },
+    source_keypress: function(event) {
+      if(event.which == 17) { this.ui.source.blur(); }
+      if(event.metaKey && event.which == 13) { this.submit_source(); }
     },
     _validate_input: function(what) {
       var value = this.ui[what].val();
@@ -138,15 +145,51 @@ $(function() {
   });
 
   Views.String = Backbone.View.extend({
+    tagName: 'a',
+    events: {
+      'click': "select_string",
+      'keyup textarea': "capture_string",
+      'blur textarea': "capture_string",
+    },
     template: _.template($('#string-template').html()),
     initialize: function() {
       this.listenTo(this.model, 'destroy remove', this.remove);
       this.listenTo(this.model, 'change', this.render);
+      this.listenTo(Globals.ui_state, 'change:selected_string',
+                    this.switch_to_detailed);
     },
     render: function() {
       this.$el.html(this.template({ string: this.model.toJSON() }));
       this.$el.addClass('list-group-item');
+      this.$el.attr('href', '#');
+      this.ui = {simple: this.$('.js-simple'),
+                 expanded: this.$('.js-expanded')};
       return this;
+    },
+    select_string: function(event) {
+      event.preventDefault();
+      Globals.ui_state.set({
+        selected_string: this.model.get('template_replacement')
+      });
+      event.stopPropagation();
+    },
+    switch_to_detailed: function() {
+      if(Globals.ui_state.get('selected_string') ==
+         this.model.get('template_replacement'))
+      {
+        this.ui.simple.addClass('hidden');
+        this.ui.expanded.removeClass('hidden');
+      } else {
+        this.render();
+      }
+    },
+    capture_string: function(event) {
+      var $textarea = $(event.currentTarget);
+      var rule = $textarea.data('rule');
+      var value = $textarea.val();
+      var strings = _.clone(this.model.get('strings'));
+      strings[rule] = value;
+      this.model.set({ strings: strings }, {silent: true});
     },
   });
 
