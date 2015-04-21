@@ -1,0 +1,6 @@
+html, body, .mycss-panel, #mycss-row, .mycss-panel-column,
+.mycss-panel { height: 100% }
+
+#mycss-container { height: 92% }
+
+.mycss-panel-body { height: 94% }

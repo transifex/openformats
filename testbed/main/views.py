@@ -56,8 +56,11 @@ class ApiView(HandlerMixin, View):
         handler = handler_class()
         stringset = list(handler.feed_content(source))
         template = handler.template
-        del payload['action']
-        payload['stringset'] = [str(string) for string in stringset]
-        payload['template'] = template
 
-        return HttpResponse(json.dumps(payload), mimetype="application/json")
+        payload = {'action': None,
+                   'stringset': [self._to_json(string)
+                                 for string in stringset],
+                   'template': template}
+
+        return HttpResponse(json.dumps({'success': True, 'payload': payload}),
+                            mimetype="application/json")

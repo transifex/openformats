@@ -6,7 +6,7 @@
   <meta charset="UTF-8" />
   <title>Transifex formats testbed</title>
 
-  <!-- Standard Javascript stack (jQuery, Underscore, Backbone, Marionette) -->
+  <!-- Standard Javascript stack (jQuery, Underscore, Backbone) -->
     <script src="{% static "libraries/js/jquery.js" %}"></script>
     <script src="{% static "libraries/js/underscore.js" %}"></script>
     <script src="{% static "libraries/js/backbone.js" %}"></script>
@@ -14,6 +14,9 @@
   <!-- Bootstrap -->
     <link rel="stylesheet" href="{% static "libraries/css/bootstrap.css" %}" />
     <script src="{% static "libraries/js/bootstrap.js" %}"></script>
+
+  <!-- CSS -->
+    <link rel="stylesheet" href="{% static "css/home.css" %}" />
 
   <!-- Testbed code -->
     <script src="{% static "js/namespace.js" %}"></script>
@@ -57,12 +60,12 @@
     </div><!-- /.container-fluid -->
   </nav>
 
-  <div class="container-fluid">
-    <div class="row">
-      <div id="source-panel" data-value="source" class="js-panel col-xs-4">
-        <div class="panel panel-default">
+  <div id="mycss-container" class="container-fluid">
+    <div id="mycss-row" class="row">
+      <div id="source-panel" data-value="source" class="js-panel mycss-panel-column col-xs-6">
+        <div class="mycss-panel panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">Source</h3></div>
-          <div class="panel-body">
+          <div class="mycss-panel-body panel-body">
             <form id="source-form">
               <div class="form-group">
                 Handler:
@@ -83,21 +86,34 @@
           </div>
         </div>
       </div>
-      <div id="parsed-panel" data-value="parsed" class="js-panel col-xs-4">
-        <div class="panel panel-default">
+      <div id="parsed-panel" data-value="parsed" class="js-panel mycss-panel-column col-xs-6">
+        <div class="mycss-panel panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">Parsed</h3></div>
-          <div class="panel-body">
-            parsed
+          <div class="mycss-panel-body panel-body">
+            <div class="panel panel-default" style="height: 50%">
+              <div class="panel-heading">
+                <h3 class="panel-title">Stringset</h3>
+              </div>
+              <div class="panel-body">
+                stringset
+              </div>
+            </div>
+            <div class="panel panel-default" style="height: 50%">
+              <div class="panel-heading">
+                <h3 class="panel-title">Template</h3>
+              </div>
+              <div class="panel-body">
+                template
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div id="compiled-panel" data-value="compiled"
-           class="js-panel col-xs-4 hidden">
-        <div class="panel panel-default">
-          <div class="panel-heading">
-            <h3 class="panel-title">Compiled</h3>
-          </div>
-          <div class="panel-body">
+           class="js-panel mycss-panel-column col-xs-6 hidden">
+        <div class="mycss-panel panel panel-default">
+          <div class="panel-heading"><h3 class="panel-title">Compiled</h3></div>
+          <div class="mycss-panel-body panel-body">
             compiled
           </div>
         </div>

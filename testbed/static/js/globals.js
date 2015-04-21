@@ -10,7 +10,7 @@ $(document).ready(function() {
       return this.get('source_panel') + this.get('parsed_panel') +
           this.get('compiled_panel');
     },
-    toggle: function(what) {
+    toggle_panel: function(what) {
       var selected = this.get(what + '_panel');
       var to_set;
       if(selected === false) {
@@ -28,6 +28,7 @@ $(document).ready(function() {
   });
 
   var Payload = Backbone.Model.extend({
+   defaults: { action: null },
     send: function() {
       var _this = this;
       $.ajax({
@@ -35,7 +36,9 @@ $(document).ready(function() {
         url: '/api/',
         data: JSON.stringify(this.toJSON()),
         dataType: 'json',
-        success: function(data) { _this.set(data); },
+        success: function(data) {
+          if(data.success) { _this.set(data.payload); }
+        },
         error: function() {},
       });
     },
