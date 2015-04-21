@@ -112,6 +112,7 @@ $(function() {
       });
     },
   });
+
   Views.ParsedError = Backbone.View.extend({
     initialize: function() {
       this.$pre = this.$('pre');
@@ -161,6 +162,67 @@ $(function() {
         this.$el.addClass('hidden');
       }
       return this;
+    },
+  });
+
+  Views.CompileButton = Backbone.View.extend({
+    events: { 'click': "submit_stringset" },
+    submit_stringset: function(event) {
+      event.preventDefault();
+      Globals.payload.set({ action: 'compile' });
+      Globals.payload.send();
+    },
+  });
+
+  Views.CompiledLoading = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload, 'change:action', function() {
+        if(Globals.payload.get('action') == 'compile') {
+          this.$el.removeClass('hidden');
+        } else {
+          this.$el.addClass('hidden');
+        }
+      });
+    },
+  });
+
+  Views.Compiled = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload, 'change:compiled', this.render);
+    },
+    render: function() {
+      if(Globals.payload.get('compiled')) {
+        this.$el.text(Globals.payload.get('compiled'));
+        this.$el.removeClass('hidden');
+      } else {
+        this.$el.addClass('hidden');
+      }
+    },
+  });
+
+  Views.CompiledMain = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload, 'change:compile_error', function() {
+        if(Globals.payload.get('compile_error')) {
+          this.$el.addClass('hidden');
+        } else {
+          this.$el.removeClass('hidden');
+        }
+      });
+    },
+  });
+
+  Views.CompiledError = Backbone.View.extend({
+    initialize: function() {
+      this.$pre = this.$('pre');
+      this.listenTo(Globals.payload, 'change:compile_error', function() {
+        if(Globals.payload.get('compile_error')) {
+          this.$el.removeClass('hidden');
+        } else {
+          this.$el.addClass('hidden');
+        }
+        this.$pre.html(Globals.payload.get('compile_error'));
+      });
     },
   });
 });

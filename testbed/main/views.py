@@ -47,6 +47,8 @@ class ApiView(HandlerMixin, View):
         payload = json.loads(request.body)
         if payload['action'] == "parse":
             return self._parse(payload)
+        elif payload['action'] == "compile":
+            return self._compile(payload)
 
     def _parse(self, payload):
         handler_name = payload['handler']
@@ -54,20 +56,24 @@ class ApiView(HandlerMixin, View):
         source = payload['source']
 
         handler = handler_class()
+        returned_payload = {'action': None, 'compiled': "",
+                            'compile_error': ""}
         try:
             stringset = list(handler.feed_content(source))
         except Exception, e:
-            payload = {'action': None, 'stringset': [], 'template': "",
-                       'parse_error': str(e)}
+            returned_payload.update({'stringset': [], 'template': "",
+                                     'parse_error': str(e)})
         else:
             template = handler.template
-            payload = {'action': None,
-                       'stringset': [self._string_to_json(string)
-                                     for string in stringset],
-                       'template': template,
-                       'parse_error': ""}
+            returned_payload.update({
+                'stringset': [self._string_to_json(string)
+                              for string in stringset],
+                'template': template,
+                'parse_error': "",
+            })
 
-        return HttpResponse(json.dumps(payload), mimetype="application/json")
+        return HttpResponse(json.dumps(returned_payload),
+                            mimetype="application/json")
 
     def _string_to_json(self, string):
         return_value = {'id': string.template_replacement,
@@ -78,3 +84,29 @@ class ApiView(HandlerMixin, View):
         for key in String.DEFAULTS:
             return_value[key] = getattr(string, key)
         return return_value
+
+    def _compile(self, payload):
+        handler_name = payload['handler']
+        handler_class = self.handlers[handler_name]
+        stringset_json = payload['stringset']
+        template = payload['template']
+
+        stringset = []
+        for string_json in stringset_json:
+            key = string_json.pop('key')
+            strings = {int(key): value
+                       for key, value in string_json.pop('strings').items()}
+            del string_json['pluralized']
+            del string_json['template_replacement']
+            stringset.append(String(key, strings, **string_json))
+
+        handler = handler_class()
+        handler.template = template
+        try:
+            compiled = handler.compile(stringset)
+        except Exception, e:
+            payload = {'action': None, 'compiled': "", 'compile_error': str(e)}
+        else:
+            payload = {'action': None, 'compiled': compiled,
+                       'compile_error': ""}
+        return HttpResponse(json.dumps(payload), mimetype="application/json")

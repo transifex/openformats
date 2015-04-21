@@ -48,6 +48,8 @@ $(document).ready(function() {
     send: function() {
       if(this.get('action') == 'parse') {
         Globals.ui_state.set({ parsed_panel: true });
+      } else if(this.get('action') == 'compile') {
+        Globals.ui_state.set({ compiled_panel: true });
       }
       var _this = this;
       $.ajax({

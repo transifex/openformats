@@ -67,8 +67,7 @@
 
   <div id="mycss-container" class="container-fluid">
     <div id="mycss-row" class="row">
-      <div id="source-panel" data-value="source"
-           class="js-panel mycss-panel-column col-xs-12">
+      <div data-value="source" class="js-panel mycss-panel-column col-xs-12">
         <div class="mycss-panel panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">Source</h3></div>
           <div class="mycss-panel-body panel-body">
@@ -87,34 +86,37 @@
                 <textarea name="source" class="form-control"
                           rows="32"></textarea>
               </div>
-              <button type="submit" class="btn btn-default">Submit</button>
+              <button type="submit" class="btn btn-default">Parse</button>
             </form>
           </div>
         </div>
       </div>
-      <div id="parsed-panel" data-value="parsed"
+      <div data-value="parsed"
            class="js-panel mycss-panel-column col-xs-12 hidden">
         <div class="mycss-panel panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">
             Parsed <small id="parsed-loading" class="hidden">loading...</small>
           </h3></div>
           <div id="parsed-main" class="mycss-panel-body panel-body">
-            <div class="panel panel-default" style="height: 50%">
+            <div class="mycss-half-panel panel panel-default">
               <div class="panel-heading">
                 <h3 class="panel-title">Stringset</h3>
               </div>
-              <div class="mycss-half-panel panel-body">
+              <div class="mycss-half-panel-body panel-body">
                 <div id="stringset" class="list-group"></div>
               </div>
             </div>
-            <div class="panel panel-default" style="height: 50%">
+            <div class="mycss-half-panel panel panel-default">
               <div class="panel-heading">
                 <h3 class="panel-title">Template</h3>
               </div>
-              <div class="mycss-half-panel panel-body">
+              <div class="mycss-half-panel-body panel-body">
                 <pre id="template" class="hidden"></pre>
               </div>
             </div>
+            <button id="compile-button" type="submit" class="btn btn-default">
+              Compile
+            </button>
           </div>
           <div id="parsed-error" class="mycss-panel-body panel-body hidden">
             <span class="label label-danger">Parse error:</span>
@@ -122,14 +124,20 @@
           </div>
         </div>
       </div>
-      <div id="compiled-panel" data-value="compiled"
+      <div data-value="compiled"
            class="js-panel mycss-panel-column col-xs-12 hidden">
         <div class="mycss-panel panel panel-default">
-          <div class="panel-heading">
-            <h3 class="panel-title">Compiled</h3>
+          <div class="panel-heading"><h3 class="panel-title">
+            Compiled
+            <small id="compiled-loading" class="hidden">loading...</small>
+          </h3></div>
+          <div id="compiled-main"
+               class="mycss-panel-body mycss-scroll panel-body">
+            <pre id="compiled" class="hidden"></pre>
           </div>
-          <div class="mycss-panel-body panel-body">
-            compiled
+          <div id="compiled-error" class="mycss-panel-body panel-body hidden">
+            <span class="label label-danger">Compile error:</span>
+            <pre></pre>
           </div>
         </div>
       </div>
