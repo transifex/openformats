@@ -100,6 +100,12 @@
         <li><p class="navbar-text"><a href="{% url "testbed_home" %}">
           formats testbed
         </a></p></li>
+        <li><p class="navbar-text">
+          <a id="keyboard-shortcuts-toggle" href="#" data-toggle="modal"
+             data-target="#keyboard-shortcuts">
+            Keyboard shortcuts
+          </a>
+        </p></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li><a href="https://github.com/transifex/txformats" target="_blank">
@@ -213,6 +219,65 @@
             <span class="label label-danger">Compile error:</span>
             <pre></pre>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="keyboard-shortcuts" tabindex="-1" role="dialog"
+       aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">Keyboard shortcuts</h4>
+        </div>
+        <div class="modal-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>1, 2, 3</th>
+                <td>Toggles the main panels (source, parsed, compiled)</td>
+              </tr>
+              <tr>
+                <th>h</th>
+                <td>Focuses the handler selection dropdown</td>
+              </tr>
+              <tr>
+                <th>s</th>
+                <td>Focuses the source content textarea</td>
+              </tr>
+              <tr>
+                <th>p</th>
+                <td>Parses the source content</td>
+              </tr>
+              <tr>
+                <th>t</th>
+                <td>Focuses the first string (translation) in edit mode</td>
+              </tr>
+              <tr>
+                <th>c</th>
+                <td>Compiles the template against the stringset</td>
+              </tr>
+              <tr>
+                <th>w</th>
+                <td>Saves (writes) the current test</td>
+              </tr>
+              <tr>
+                <th>?</th>
+                <td>Opens this dialog</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
       </div>
     </div>

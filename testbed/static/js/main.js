@@ -39,7 +39,7 @@ $(document).ready(function() {
     if(event.target.type == 'input' || event.target.type == 'textarea' ||
        ('' + event.target.type).indexOf('select') != -1) { return; }
     var keys = {49: '1', 50: '2', 51: '3', 72: 'h', 83: 's', 80: 'p', 84: 't',
-                67: 'c', 87: 'w'};
+                67: 'c', 87: 'w', 191: '?'};
     var key_code = event.which;
     var key = keys[event.which];
     if((key == '1' || key == '2' || key == '3')) {
@@ -65,6 +65,7 @@ $(document).ready(function() {
     }
     if(key == 'c') { $('#compile-button').click(); }
     if(key == 'w') { $('#save-form').submit(); }
+    if(key == '?') { $('#keyboard-shortcuts-toggle').click(); }
   });
 
   // Last bit of bootstraping
