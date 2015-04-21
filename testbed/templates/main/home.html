@@ -23,6 +23,11 @@
     <script src="{% static "js/globals.js" %}"></script>
     <script src="{% static "js/views.js" %}"></script>
     <script src="{% static "js/main.js" %}"></script>
+
+  <!-- Templates -->
+    <script id="string-template" type="text/template">
+      <%- string.key %>: <%- string.strings[5] %>
+    </script>
 </head>
 <body>
   <nav class="navbar navbar-default">
@@ -46,7 +51,7 @@
                 Source
               </button>
               <button data-value="parsed" type="button"
-                      class="js-parsed navbar-btn btn btn-default btn-primary">
+                      class="js-parsed navbar-btn btn btn-default">
                 Parsed
               </button>
               <button data-value="compiled" type="button"
@@ -56,13 +61,14 @@
             </div>
           </li>
         </ul>
-      </div><!-- /.navbar-collapse -->
-    </div><!-- /.container-fluid -->
+      </div>
+    </div>
   </nav>
 
   <div id="mycss-container" class="container-fluid">
     <div id="mycss-row" class="row">
-      <div id="source-panel" data-value="source" class="js-panel mycss-panel-column col-xs-6">
+      <div id="source-panel" data-value="source"
+           class="js-panel mycss-panel-column col-xs-12">
         <div class="mycss-panel panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">Source</h3></div>
           <div class="mycss-panel-body panel-body">
@@ -86,33 +92,42 @@
           </div>
         </div>
       </div>
-      <div id="parsed-panel" data-value="parsed" class="js-panel mycss-panel-column col-xs-6">
+      <div id="parsed-panel" data-value="parsed"
+           class="js-panel mycss-panel-column col-xs-12 hidden">
         <div class="mycss-panel panel panel-default">
-          <div class="panel-heading"><h3 class="panel-title">Parsed</h3></div>
-          <div class="mycss-panel-body panel-body">
+          <div class="panel-heading"><h3 class="panel-title">
+            Parsed <small id="parsed-loading" class="hidden">loading...</small>
+          </h3></div>
+          <div id="parsed-main" class="mycss-panel-body panel-body">
             <div class="panel panel-default" style="height: 50%">
               <div class="panel-heading">
                 <h3 class="panel-title">Stringset</h3>
               </div>
-              <div class="panel-body">
-                stringset
+              <div class="mycss-half-panel panel-body">
+                <div id="stringset" class="list-group"></div>
               </div>
             </div>
             <div class="panel panel-default" style="height: 50%">
               <div class="panel-heading">
                 <h3 class="panel-title">Template</h3>
               </div>
-              <div class="panel-body">
-                template
+              <div class="mycss-half-panel panel-body">
+                <pre id="template" class="hidden"></pre>
               </div>
             </div>
+          </div>
+          <div id="parsed-error" class="mycss-panel-body panel-body hidden">
+            <span class="label label-danger">Parse error:</span>
+            <pre></pre>
           </div>
         </div>
       </div>
       <div id="compiled-panel" data-value="compiled"
-           class="js-panel mycss-panel-column col-xs-6 hidden">
+           class="js-panel mycss-panel-column col-xs-12 hidden">
         <div class="mycss-panel panel panel-default">
-          <div class="panel-heading"><h3 class="panel-title">Compiled</h3></div>
+          <div class="panel-heading">
+            <h3 class="panel-title">Compiled</h3>
+          </div>
           <div class="mycss-panel-body panel-body">
             compiled
           </div>
@@ -120,6 +135,5 @@
       </div>
     </div>
   </div>
-
 </body>
 </html>

@@ -1,5 +1,6 @@
 html, body, .mycss-panel, #mycss-row, .mycss-panel-column,
 .mycss-panel { height: 100% }
+.mycss-half-panel { height: 90%; overflow-y: scroll }
 
 #mycss-container { height: 92% }
 

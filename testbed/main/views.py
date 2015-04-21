@@ -6,7 +6,7 @@ from importlib import import_module
 from django.http import HttpResponse
 from django.views.generic.base import TemplateView, View
 
-from txformats.handler import Handler
+from txformats.handler import Handler, String
 
 
 class HandlerMixin(object):
@@ -54,13 +54,27 @@ class ApiView(HandlerMixin, View):
         source = payload['source']
 
         handler = handler_class()
-        stringset = list(handler.feed_content(source))
-        template = handler.template
+        try:
+            stringset = list(handler.feed_content(source))
+        except Exception, e:
+            payload = {'action': None, 'stringset': [], 'template': "",
+                       'parse_error': str(e)}
+        else:
+            template = handler.template
+            payload = {'action': None,
+                       'stringset': [self._string_to_json(string)
+                                     for string in stringset],
+                       'template': template,
+                       'parse_error': ""}
 
-        payload = {'action': None,
-                   'stringset': [self._to_json(string)
-                                 for string in stringset],
-                   'template': template}
+        return HttpResponse(json.dumps(payload), mimetype="application/json")
 
-        return HttpResponse(json.dumps({'success': True, 'payload': payload}),
-                            mimetype="application/json")
+    def _string_to_json(self, string):
+        return_value = {'id': string.template_replacement,
+                        'key': string.key,
+                        'strings': string._strings,
+                        'pluralized': string.pluralized,
+                        'template_replacement': string.template_replacement}
+        for key in String.DEFAULTS:
+            return_value[key] = getattr(string, key)
+        return return_value

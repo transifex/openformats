@@ -8,4 +8,9 @@ $(document).ready(function() {
     new Views.Panel({ el: panel });
   });
   new Views.SourceForm({ el: '#source-form' });
+  new Views.ParsedLoading({ el: '#parsed-loading' });
+  new Views.ParsedMain({ el: '#parsed-main' });
+  new Views.ParsedError({ el: '#parsed-error' });
+  new Views.Stringset({ el: '#stringset' });
+  new Views.Template({ el: '#template' });
 });

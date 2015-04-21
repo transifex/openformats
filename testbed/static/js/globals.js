@@ -4,7 +4,7 @@ $(document).ready(function() {
 
   var UiState = Backbone.Model.extend({
     defaults: {
-      source_panel: true, parsed_panel: true, compiled_panel: false,
+      source_panel: true, parsed_panel: false, compiled_panel: false,
     },
     count_panels: function() {
       return this.get('source_panel') + this.get('parsed_panel') +
@@ -27,20 +27,42 @@ $(document).ready(function() {
     },
   });
 
+  var String = Backbone.Model.extend({});
+  var Stringset = Backbone.Collection.extend({
+    model: String,
+  });
+
   var Payload = Backbone.Model.extend({
-   defaults: { action: null },
+    defaults: { action: null },
+    initialize: function() {
+      this.stringset = new Stringset();
+    },
+    set: function(data) {
+      if('stringset' in data) {
+        var stringset = data.stringset;
+        delete data.stringset;
+        this.stringset.set(stringset);
+      }
+      Backbone.Model.prototype.set.call(this, data);
+    },
     send: function() {
+      if(this.get('action') == 'parse') {
+        Globals.ui_state.set({ parsed_panel: true });
+      }
       var _this = this;
       $.ajax({
         type: 'POST',
         url: '/api/',
         data: JSON.stringify(this.toJSON()),
         dataType: 'json',
-        success: function(data) {
-          if(data.success) { _this.set(data.payload); }
-        },
+        success: function(data) { _this.set(data); },
         error: function() {},
       });
+    },
+    toJSON: function() {
+      var return_value = Backbone.Model.prototype.toJSON.call(this);
+      return_value.stringset = this.stringset.toJSON();
+      return return_value;
     },
   });
 

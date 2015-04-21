@@ -88,4 +88,79 @@ $(function() {
       return this._validate_input('source');
     },
   });
+
+  Views.ParsedLoading = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload, 'change:action', function() {
+        if(Globals.payload.get('action') == 'parse') {
+          this.$el.removeClass('hidden');
+        } else {
+          this.$el.addClass('hidden');
+        }
+      });
+    },
+  });
+
+  Views.ParsedMain = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload, 'change:parse_error', function() {
+        if(Globals.payload.get('parse_error')) {
+          this.$el.addClass('hidden');
+        } else {
+          this.$el.removeClass('hidden');
+        }
+      });
+    },
+  });
+  Views.ParsedError = Backbone.View.extend({
+    initialize: function() {
+      this.$pre = this.$('pre');
+      this.listenTo(Globals.payload, 'change:parse_error', function() {
+        if(Globals.payload.get('parse_error')) {
+          this.$el.removeClass('hidden');
+        } else {
+          this.$el.addClass('hidden');
+        }
+        this.$pre.html(Globals.payload.get('parse_error'));
+      });
+    },
+  });
+
+  Views.Stringset = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload.stringset, 'add', this.render_new);
+    },
+    render_new: function(new_string) {
+      var new_string_view = new Views.String({ model: new_string });
+      new_string_view.render().$el.appendTo(this.$el);
+    },
+  });
+
+  Views.String = Backbone.View.extend({
+    template: _.template($('#string-template').html()),
+    initialize: function() {
+      this.listenTo(this.model, 'destroy remove', this.remove);
+      this.listenTo(this.model, 'change', this.render);
+    },
+    render: function() {
+      this.$el.html(this.template({ string: this.model.toJSON() }));
+      this.$el.addClass('list-group-item');
+      return this;
+    },
+  });
+
+  Views.Template = Backbone.View.extend({
+    initialize: function() {
+      this.listenTo(Globals.payload, 'change:template', this.render);
+    },
+    render: function() {
+      if(Globals.payload.get('template')) {
+        this.$el.text(Globals.payload.get('template'));
+        this.$el.removeClass('hidden');
+      } else {
+        this.$el.addClass('hidden');
+      }
+      return this;
+    },
+  });
 });
