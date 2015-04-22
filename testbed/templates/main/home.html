@@ -51,23 +51,31 @@
             <td><%- string.key %></td>
           </tr>
           <tr>
+            <th>Template replacement</th>
+            <td><%- string.template_replacement %></td>
+          </tr>
+          <tr>
             <th>Strings</th>
             <td>
               <table class="table-condensed">
-                <tr>
-                  <th>Rule</th>
-                  <th>String</th>
-                </tr>
-                <% for(var rule in string.strings) { %>
-                  <% var value = string.strings[rule] %>
+                <thead>
                   <tr>
-                    <th><%- rule %></th>
-                    <td>
-                      <textarea data-rule="<%- rule %>" class="form-control"
-                                rows="1" ><%- value %></textarea>
-                    </td>
+                    <th>Rule</th>
+                    <th>String</th>
                   </tr>
-                <% } %>
+                </thead>
+                <tbody>
+                  <% for(var rule in string.strings) { %>
+                    <% var value = string.strings[rule] %>
+                    <tr>
+                      <th><%- rule %></th>
+                      <td>
+                        <textarea data-rule="<%- rule %>" class="form-control"
+                                  rows="1"><%- value %></textarea>
+                      </td>
+                    </tr>
+                  <% } %>
+                </tbody>
               </table>
             </td>
           </tr>
@@ -84,6 +92,14 @@
               Obsolete: <strong><%- string.obsolete || 'none' %></strong>
             </td>
           </tr>
+          <tr>
+            <td colspan="2">
+              <a class="js-remove text-danger" href="#">
+                <span class="glyphicon glyphicon-remove"></span>
+                delete
+              </a>
+            </td>
+          </tr>
         </table>
       </div>
     </script>
@@ -92,7 +108,8 @@
   <nav class="navbar navbar-default">
     <div class="container-fluid">
       <div class="navbar-header">
-        <a class="navbar-brand" href="https://www.transifex.com/home">
+        <a class="navbar-brand" href="https://www.transifex.com/home"
+           target="_blank">
           Transifex
         </a>
       </div>
@@ -223,6 +240,26 @@
       </div>
     </div>
   </div>
+
+  {% if payload_json %}
+    <div id="saved-modal" class="modal fade">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-body">
+            <p>
+              Your test has been saved, use the current browser address to
+              replay it
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <div class="modal fade" id="keyboard-shortcuts" tabindex="-1" role="dialog"
        aria-labelledby="myModalLabel" aria-hidden="true">

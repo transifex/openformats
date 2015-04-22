@@ -162,6 +162,7 @@ $(function() {
       'keyup textarea': "capture_string",
       'blur textarea': "capture_string",
       'focus textarea': "select_all_string",
+      'click .js-remove': "remove_string",
     },
     template: _.template($('#string-template').html()),
     initialize: function() {
@@ -206,6 +207,10 @@ $(function() {
     },
     select_all_string: function(event) {
       $(event.currentTarget).trigger('select');
+    },
+    remove_string: function(event) {
+      event.preventDefault();
+      this.model.collection.remove(this.model);
     },
   });
 

@@ -76,5 +76,6 @@ $(document).ready(function() {
     Globals.payload.set(TemplateData.payload_json);
     Globals.ui_state.set({ source_panel: true, parsed_panel: true,
                            compiled_panel: true });
+    $('#saved-modal').modal();
   }
 });
