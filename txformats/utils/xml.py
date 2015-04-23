@@ -32,7 +32,6 @@ class DumbXml(object):
             * inner_offset: the place of the character where the inner content
                 of the tag starts, aka the length of the opening tag
             * inner: the inner content of the tag
-
         """
 
         self.content = content

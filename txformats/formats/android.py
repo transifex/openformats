@@ -10,7 +10,7 @@ from ..utils.xml import DumbXml
 class AndroidHandler(Handler):
     name = "Android"
 
-    plural_template = '<item quantity="{rule}">{string}</item>'
+    plural_template = u'<item quantity="{rule}">{string}</item>'
     SPACE_PAT = re.compile(r'^\s*$')
 
     def feed_content(self, content):
@@ -253,6 +253,9 @@ class AndroidHandler(Handler):
             self._template_ptr = string_offset + len(string_tag.content)
 
     def _compile_string_array(self, string_array_tag, string_array_offset):
+        end = string_array_offset + string_array_tag.inner_offset
+        self._compiled += self._resources_tag_content[self._template_ptr:end]
+        self._template_ptr = end
         for item_tag, item_offset in string_array_tag.find("item"):
             try:
                 next_string = self._stringset[self._stringset_index]
@@ -271,10 +274,11 @@ class AndroidHandler(Handler):
             else:
                 # didn't find it, must remove by having template_ptr skip its
                 # contents
+                end = string_array_offset + item_offset
                 self._compiled += self._resources_tag_content[
-                    self._template_ptr:item_offset
+                    self._template_ptr:end
                 ]
-                self._template_ptr = item_offset + len(item_tag.content)
+                self._template_ptr = end + len(item_tag.content)
 
     def _compile_plurals(self, plurals_tag, plurals_offset):
         try:
