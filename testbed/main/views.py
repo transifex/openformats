@@ -4,6 +4,7 @@ import datetime
 import inspect
 import json
 import os
+import traceback
 from importlib import import_module
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -78,9 +79,9 @@ class ApiView(HandlerMixin, View):
                             'compile_error': ""}
         try:
             stringset = list(handler.feed_content(source))
-        except Exception, e:
+        except Exception:
             returned_payload.update({'stringset': [], 'template': "",
-                                     'parse_error': str(e)})
+                                     'parse_error': traceback.format_exc()})
         else:
             template = handler.template
             returned_payload.update({
@@ -122,12 +123,14 @@ class ApiView(HandlerMixin, View):
         handler.template = template
         try:
             compiled = handler.compile(stringset)
-        except Exception, e:
-            payload = {'action': None, 'compiled': "", 'compile_error': str(e)}
+        except Exception:
+            returned_payload = {'action': None, 'compiled': "",
+                                'compile_error': traceback.format_exc()}
         else:
-            payload = {'action': None, 'compiled': compiled,
-                       'compile_error': ""}
-        return HttpResponse(json.dumps(payload), mimetype="application/json")
+            returned_payload = {'action': None, 'compiled': compiled,
+                                'compile_error': ""}
+        return HttpResponse(json.dumps(returned_payload),
+                            mimetype="application/json")
 
 
 class SaveView(CreateView):
