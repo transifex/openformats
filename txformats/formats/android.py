@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import re
 
-from ..handler import Handler, String
+from ..handler import Handler, String, CopyMixin
 from ..utils.test import test_handler
 from ..utils.xml import DumbXml
 
 
-class AndroidHandler(Handler):
+class AndroidHandler(CopyMixin, Handler):
     name = "Android"
 
     plural_template = u'<item quantity="{rule}">{string}</item>'
@@ -16,22 +16,20 @@ class AndroidHandler(Handler):
     def feed_content(self, content):
         if type(content) == str:
             content = content.decode("utf-8")  # convert to unicode
-        self._content = content
 
-        # ... <resources> ...
-        #     ^
-        opening_position = self._content.index('<resources')
-        self.template = self._content[:opening_position]
-        self._content = self._content[opening_position:]
-        self._template_pointer = 0
+        resources_tag_position = content.index("<resources")
+        self.source = content[resources_tag_position:]
+        self.destination = ""
+        self.ptr = 0
         self._order = 0
 
-        document = DumbXml(self._content)
+        resources_tag = DumbXml(self.source)
         last_comment = None
-        for tag, offset in document.find(('string', 'string-array',
-                                          'plurals', DumbXml.COMMENT)):
+        for tag, offset in resources_tag.find(("string", "string-array",
+                                               "plurals", DumbXml.COMMENT)):
             if tag.name == DumbXml.COMMENT:
                 last_comment = tag.inner
+                self.copy_until(offset + len(tag.content))
             elif tag.name == "string":
                 string = self._handle_string_tag(tag, offset, last_comment)
                 last_comment = None
@@ -40,20 +38,20 @@ class AndroidHandler(Handler):
             elif tag.name == "string-array":
                 for string in self._handle_string_array_tag(tag, offset,
                                                             last_comment):
-                    yield string
-                last_comment = None
+                    if string is not None:
+                        yield string
             elif tag.name == "plurals":
                 string = self._handle_plurals_tag(tag, offset, last_comment)
                 if string is not None:
                     yield string
 
-        # rest of the source file
-        self.template += self._content[self._template_pointer:]
+        self.copy_until(len(self.source))
 
-        # clean up
-        del self._content
-        del self._template_pointer
-        del self._order
+        self.template = content[:resources_tag_position] + self.destination
+
+        del self.source
+        del self.destination
+        del self.ptr
 
     def _handle_string_tag(self, tag, offset, comment):
         string = None
@@ -64,23 +62,19 @@ class AndroidHandler(Handler):
 
         # ... <string name="foo">Hello ....
         #                        ^
-        end = offset + tag.inner_offset
-        self.template += self._content[self._template_pointer:end]
-        self._template_pointer = end
+        self.copy_until(offset + tag.inner_offset)
 
         # ... ing name="foo">Hello world</stri...
         #                               ^
         if string is not None:
-            self.template += string.template_replacement
+            self.add(string.template_replacement)
+            self.skip(len(tag.inner))
         else:
-            self.template += tag.inner
-        self._template_pointer += len(tag.inner)
+            self.copy_until(offset + tag.inner_offset + len(tag.inner))
 
         # ...ello World</string>
-        #                      ^
-        closing_tag = tag.content[tag.inner_offset + len(tag.inner):]
-        self.template += closing_tag
-        self._template_pointer += len(closing_tag)
+        #                       ^
+        self.copy_until(offset + len(tag.content))
 
         return string
 
@@ -88,9 +82,7 @@ class AndroidHandler(Handler):
                                  comment):
         # ...ing-array>   <item>H...
         #              ^
-        end = string_array_offset + string_array_tag.inner_offset
-        self.template += self._content[self._template_pointer:end]
-        self._template_pointer = end
+        self.copy_until(string_array_offset + string_array_tag.inner_offset)
 
         for index, (item_tag, item_offset) in enumerate(
                 string_array_tag.find('item')):
@@ -107,42 +99,31 @@ class AndroidHandler(Handler):
 
             # ... <item>Hello...
             #           ^
-            end = string_array_offset + item_offset + item_tag.inner_offset
-            self.template += self._content[self._template_pointer:end]
-            self._template_pointer = end
+            self.copy_until(string_array_offset + item_offset +
+                            item_tag.inner_offset)
 
             # ...ello world</item>...
             #              ^
             if string is not None:
-                self.template += string.template_replacement
+                self.add(string.template_replacement)
+                self.skip(len(item_tag.inner))
             else:
-                self.template += item_tag.inner
-            self._template_pointer += len(item_tag.inner)
+                self.copy_until(string_array_offset + item_offset +
+                                len(item_tag.inner))
 
             # orld</item>   <it...
             #            ^
-            closing_tag = item_tag.content[
-                item_tag.inner_offset + len(item_tag.inner):
-            ]
-            self.template += closing_tag
-            self._template_pointer += len(closing_tag)
+            self.copy_until(string_array_offset + item_offset +
+                            len(item_tag.content))
 
         # </item>  </string-array>
         #                         ^
-        end = string_array_offset + len(string_array_tag.content)
-        self.template += self._content[self._template_pointer:end]
-        self._template_pointer = end
+        self.copy_until(string_array_offset + len(string_array_tag.content))
 
     def _handle_plurals_tag(self, plurals_tag, plurals_offset, comment):
-        end = plurals_offset + plurals_tag.inner_offset
-        self.template += self._content[self._template_pointer:end]
-        self._template_pointer = end
-
         # <plurals name="foo">   <item>Hello ...
         #                     ^
-        end = plurals_offset + plurals_tag.inner_offset
-        self.template += self._content[self._template_pointer:end]
-        self._template_pointer = end
+        self.copy_until(plurals_offset + plurals_tag.inner_offset)
 
         first_item_offset = None
         strings = {}
@@ -164,25 +145,20 @@ class AndroidHandler(Handler):
 
             # <plurals name="foo">   <item>Hello ...
             #                        ^
-            end = plurals_offset + first_item_offset
-            self.template += self._content[self._template_pointer:end]
-            self._template_pointer = end
+            self.copy_until(plurals_offset + first_item_offset)
 
             # ...</item>   </plurals>...
             #           ^
-            end = plurals_offset + last_item_offset +\
-                len(last_item_tag.content)
-            self.template += string.template_replacement
-            self._template_pointer = end
+            self.add(string.template_replacement)
+            self.skip(last_item_offset + len(last_item_tag.content) -
+                      first_item_offset)
 
         else:
             string = None
 
         # ...</plurals> ...
         #              ^
-        end = plurals_offset + len(plurals_tag.content)
-        self.template += self._content[self._template_pointer:end]
-        self._template_pointer = end
+        self.copy_until(plurals_offset + len(plurals_tag.content))
 
         return string
 
@@ -190,10 +166,12 @@ class AndroidHandler(Handler):
         resources_tag_position = self.template.index("<resources")
         self._stringset = stringset
         self._stringset_index = 0
-        self._compiled = self.template[:resources_tag_position]
-        self._resources_tag_content = self.template[resources_tag_position:]
-        self._template_ptr = 0
-        resources_tag = DumbXml(self._resources_tag_content)
+
+        self.source = self.template[resources_tag_position:]
+        self.destination = ""
+        self.ptr = 0
+
+        resources_tag = DumbXml(self.source)
 
         for tag, offset in resources_tag.find(("string", "string-array",
                                                "plurals")):
@@ -203,31 +181,28 @@ class AndroidHandler(Handler):
                 self._compile_string_array(tag, offset)
             elif tag.name == "plurals":
                 self._compile_plurals(tag, offset)
-        self._compiled += self._resources_tag_content[self._template_ptr:]
+        self.copy_until(len(self.source))
 
         # Lets do another pass to clear empty <string-array>s
-        self._template = self._compiled
-        resources_tag_position = self._template.index("<resources")
-        self._compiled = self._template[:resources_tag_position]
-        self._resources_tag_content = self._template[resources_tag_position:]
-        self._template_ptr = 0
-        resources_tag = DumbXml(self._resources_tag_content)
+        self.source = self.destination
+        self.destination = ""
+        self.ptr = 0
+        resources_tag = DumbXml(self.source)
         for string_array_tag, string_array_offset in resources_tag.find(
                 "string-array"):
             if len(list(string_array_tag.find("item"))) == 0:
-                self._compiled += self._resources_tag_content[
-                    self._template_ptr:string_array_offset
-                ]
-                self._template_ptr = string_array_offset +\
-                    len(string_array_tag.content)
-        self._compiled += self._resources_tag_content[self._template_ptr:]
+                self.copy_until(string_array_offset)
+                self.skip(len(string_array_tag.content))
+        self.copy_until(len(self.source))
 
-        compiled = self._compiled
+        compiled = self.template[:resources_tag_position] + self.destination
+
         del self._stringset
         del self._stringset_index
-        del self._compiled
-        del self._resources_tag_content
-        del self._template_ptr
+        del self.source
+        del self.destination
+        del self.ptr
+
         return compiled
 
     def _compile_string(self, string_tag, string_offset):
@@ -238,24 +213,21 @@ class AndroidHandler(Handler):
         if (next_string is not None and
                 next_string.template_replacement == string_tag.inner):
             # found one to replace
-            end = string_offset + string_tag.inner_offset
-            self._compiled += self._resources_tag_content[
-                self._template_ptr:end
-            ]
-            self._compiled += next_string.string
-            self._template_ptr = end + len(string_tag.inner)
             self._stringset_index += 1
+
+            end = string_offset + string_tag.inner_offset
+            self.copy_until(end)
+            self.add(next_string.string)
+            self.skip(len(string_tag.inner))
+            self.copy_until(string_offset + len(string_tag.content))
+
         else:
-            # didn't find it, must remove by having template_ptr skip its
-            # contents
-            self._compiled += self._resources_tag_content[self._template_ptr:
-                                                          string_offset]
-            self._template_ptr = string_offset + len(string_tag.content)
+            # didn't find it, must remove by skipping it
+            self.copy_until(string_offset)
+            self.skip(len(string_tag.content))
 
     def _compile_string_array(self, string_array_tag, string_array_offset):
-        end = string_array_offset + string_array_tag.inner_offset
-        self._compiled += self._resources_tag_content[self._template_ptr:end]
-        self._template_ptr = end
+        self.copy_until(string_array_offset + string_array_tag.inner_offset)
         for item_tag, item_offset in string_array_tag.find("item"):
             try:
                 next_string = self._stringset[self._stringset_index]
@@ -264,21 +236,20 @@ class AndroidHandler(Handler):
             if (next_string is not None and
                     next_string.template_replacement == item_tag.inner):
                 # found one to replace
-                end = string_array_offset + item_offset + item_tag.inner_offset
-                self._compiled += self._resources_tag_content[
-                    self._template_ptr:end
-                ]
-                self._compiled += next_string.string
-                self._template_ptr = end + len(item_tag.inner)
                 self._stringset_index += 1
+
+                self.copy_until(string_array_offset + item_offset +
+                                item_tag.inner_offset)
+                self.add(next_string.string)
+                self.skip(len(item_tag.inner))
+                self.copy_until(string_array_offset + item_offset +
+                                len(item_tag.content))
+
             else:
-                # didn't find it, must remove by having template_ptr skip its
-                # contents
-                end = string_array_offset + item_offset
-                self._compiled += self._resources_tag_content[
-                    self._template_ptr:end
-                ]
-                self._template_ptr = end + len(item_tag.content)
+                # didn't find it, must remove by skipping it
+                self.copy_until(string_array_offset + item_offset)
+                self.skip(len(item_tag.content))
+        self.copy_until(string_array_offset + len(string_array_tag.content))
 
     def _compile_plurals(self, plurals_tag, plurals_offset):
         try:
@@ -289,53 +260,47 @@ class AndroidHandler(Handler):
                 next_string.template_replacement == plurals_tag.inner.strip()):
             # found one to replace, if the hash is on its own on a line with
             # only spaces, we have to remember it's indent
+            self._stringset_index += 1
+
             hash_position = plurals_offset + plurals_tag.inner_offset +\
                 plurals_tag.inner.index(next_string.template_replacement)
-            indent_length = self._resources_tag_content[hash_position::-1].\
+            indent_length = self.source[hash_position::-1].\
                 index('\n') - 1
-            indent = self._resources_tag_content[hash_position - indent_length:
-                                                 hash_position]
+            indent = self.source[hash_position - indent_length:hash_position]
             end_of_hash = hash_position + len(next_string.template_replacement)
-            tail_length = self._resources_tag_content[end_of_hash:].index('\n')
-            tail = self._resources_tag_content[end_of_hash:
-                                               end_of_hash + tail_length]
+            tail_length = self.source[end_of_hash:].index('\n')
+            tail = self.source[end_of_hash:end_of_hash + tail_length]
 
             if (self.SPACE_PAT.search(indent) and self.SPACE_PAT.search(tail)):
                 # write until beginning of hash
-                self._compiled += self._resources_tag_content[
-                    self._template_ptr:hash_position
-                ]
-                # cut the compiled file back a bit
-                self._compiled = self._compiled[:len(self._compiled) -
-                                                indent_length]
-
+                self.copy_until(hash_position - indent_length)
                 for rule, value in next_string.string.items():
-                    self._compiled += indent + self.plural_template.format(
-                        rule=self.RULES_ITOA[rule], string=value
-                    ) + tail + '\n'
-                self._template_ptr = hash_position + len(
-                    next_string.template_replacement
-                ) + tail_length + 1
+                    self.add(
+                        indent +
+                        self.plural_template.format(rule=self.RULES_ITOA[rule],
+                                                    string=value) +
+                        tail + '\n'
+                    )
+
             else:
                 # string is not on its own, simply replace hash with all plural
                 # forms
-                self._compiled += self._resources_tag_content[
-                    self._template_ptr:hash_position
-                ]
+                self.copy_until(hash_position)
                 for rule, value in next_string.string.items():
-                    self._compiled += self.plural_template.format(
-                        rule=self.RULES_ITOA[rule], string=value
+                    self.add(
+                        self.plural_template.format(
+                            rule=self.RULES_ITOA[rule], string=value
+                        )
                     )
-                self._template_ptr = hash_position +\
-                    len(next_string.template_replacement)
+            self.skip(indent_length + len(next_string.template_replacement) +
+                      tail_length + 1)
 
-            self._stringset_index += 1
+            # finish up by copying until the end of </plurals>
+            self.copy_until(plurals_offset + len(plurals_tag.content))
+
         else:
-            # didn't find it, must remove by having template_ptr skip its
-            # contents
-            self._compiled += self._resources_tag_content[self._template_ptr:
-                                                          plurals_offset]
-            self._template_ptr = plurals_offset + len(plurals_tag.content)
+            # didn't find it, must remove by skipping it
+            self.skip_until(plurals_offset + len(plurals_tag.content))
 
 
 def main():
