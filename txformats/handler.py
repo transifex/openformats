@@ -73,12 +73,12 @@ class Handler(object):
     RULES_ITOA = {0: "zero", 1: "one", 2: "two", 3: "few", 4: "many",
                   5: "other"}
 
-    def feed_content(self, content):
-        # populates self.template and yields strings
+    def parse(self, content):
+        # Parse input and return template and stringset
         raise NotImplemented()
 
-    def compile(self, stringset):
-        # uses self.template and stringset and returns the compiled file
+    def compile(self, template, stringset):
+        # uses template and stringset and returns the compiled file
         raise NotImplemented()
 
 

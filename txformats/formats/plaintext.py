@@ -8,7 +8,8 @@ from ..utils.test import test_handler
 class PlaintextHandler(OrderedCompilerMixin, Handler):
     name = "Plaintext"
 
-    def feed_content(self, content):
+    def parse(self, content):
+        stringset = []
         # find out whether we're using UNIX or DOS newlines
         try:
             position = content.index('\n')
@@ -30,7 +31,7 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
             if stripped_line:
                 string = String(str(order), stripped_line, order=order)
                 order += 1
-                yield string
+                stringset.append(string)
 
                 template_line = line.replace(stripped_line,
                                              string.template_replacement)
@@ -41,7 +42,8 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
                 template += line
 
         # remove newline_sequence added to the start of the template
-        self.template = template[len(newline_sequence):]
+        template = template[len(newline_sequence):]
+        return template, stringset
 
 
 def main():

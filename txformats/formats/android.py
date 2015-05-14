@@ -13,7 +13,8 @@ class AndroidHandler(CopyMixin, Handler):
     plural_template = u'<item quantity="{rule}">{string}</item>'
     SPACE_PAT = re.compile(r'^\s*$')
 
-    def feed_content(self, content):
+    def parse(self, content):
+        stringset = []
         if type(content) == str:
             content = content.decode("utf-8")  # convert to unicode
 
@@ -34,24 +35,26 @@ class AndroidHandler(CopyMixin, Handler):
                 string = self._handle_string_tag(tag, offset, last_comment)
                 last_comment = None
                 if string is not None:
-                    yield string
+                    stringset.append(string)
             elif tag.name == "string-array":
                 for string in self._handle_string_array_tag(tag, offset,
                                                             last_comment):
                     if string is not None:
-                        yield string
+                        stringset.append(string)
             elif tag.name == "plurals":
                 string = self._handle_plurals_tag(tag, offset, last_comment)
                 if string is not None:
-                    yield string
+                    stringset.append(string)
 
         self.copy_until(len(self.source))
 
-        self.template = content[:resources_tag_position] + self.destination
+        template = content[:resources_tag_position] + self.destination
 
         del self.source
         del self.destination
         del self.ptr
+
+        return template, stringset
 
     def _handle_string_tag(self, tag, offset, comment):
         string = None
@@ -162,12 +165,12 @@ class AndroidHandler(CopyMixin, Handler):
 
         return string
 
-    def compile(self, stringset):
-        resources_tag_position = self.template.index("<resources")
+    def compile(self, template, stringset):
+        resources_tag_position = template.index("<resources")
         self._stringset = stringset
         self._stringset_index = 0
 
-        self.source = self.template[resources_tag_position:]
+        self.source = template[resources_tag_position:]
         self.destination = ""
         self.ptr = 0
 
@@ -195,7 +198,7 @@ class AndroidHandler(CopyMixin, Handler):
                 self.skip(len(string_array_tag.content))
         self.copy_until(len(self.source))
 
-        compiled = self.template[:resources_tag_position] + self.destination
+        compiled = template[:resources_tag_position] + self.destination
 
         del self._stringset
         del self._stringset_index
@@ -215,8 +218,7 @@ class AndroidHandler(CopyMixin, Handler):
             # found one to replace
             self._stringset_index += 1
 
-            end = string_offset + string_tag.inner_offset
-            self.copy_until(end)
+            self.copy_until(string_offset + string_tag.inner_offset)
             self.add(next_string.string)
             self.skip(len(string_tag.inner))
             self.copy_until(string_offset + len(string_tag.content))

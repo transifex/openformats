@@ -78,12 +78,11 @@ class ApiView(HandlerMixin, View):
         returned_payload = {'action': None, 'compiled': "",
                             'compile_error': ""}
         try:
-            stringset = list(handler.feed_content(source))
+            template, stringset = handler.parse(source)
         except Exception:
             returned_payload.update({'stringset': [], 'template': "",
                                      'parse_error': traceback.format_exc()})
         else:
-            template = handler.template
             returned_payload.update({
                 'stringset': [self._string_to_json(string)
                               for string in stringset],
@@ -120,9 +119,8 @@ class ApiView(HandlerMixin, View):
             stringset.append(String(key, strings, **string_json))
 
         handler = handler_class()
-        handler.template = template
         try:
-            compiled = handler.compile(stringset)
+            compiled = handler.compile(template, stringset)
         except Exception:
             returned_payload = {'action': None, 'compiled': "",
                                 'compile_error': traceback.format_exc()}
