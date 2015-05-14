@@ -18,7 +18,7 @@ class CommonFormatTestCase(object):
         self.data = {}
         super(CommonFormatTestCase, self).__init__(*args, **kwargs)
 
-    def read_files(self, ftypes=('en', 'tpl', 'fr')):
+    def read_files(self, ftypes=('en', 'tpl')):
         """
         Read test data files into variables.
 
