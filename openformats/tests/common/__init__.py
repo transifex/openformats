@@ -1,4 +1,6 @@
-from os import path
+import fnmatch
+from os import listdir, path
+from os.path import isfile, join
 
 
 class CommonFormatTestCase(object):
@@ -9,10 +11,23 @@ class CommonFormatTestCase(object):
 
     def read_files(self, ftypes=('en', 'tpl', 'fr')):
         """Read 1_en.txt into self.data["1_en"], and same for tpl and fr."""
-        for ftype in ftypes:
-            filename = path.join(self.TESTFILE_BASE, "1_%s.txt" % ftype)
-            with open(filename, "r") as myfile:
-                self.data["1_%s" % ftype] = myfile.read()
+        
+        en_files = []
+        for f in listdir(self.TESTFILE_BASE):
+            if (isfile(join(self.TESTFILE_BASE, f)) and
+                fnmatch.fnmatch(f, '*_en.*')):
+                en_files.append(f)
+        file_nums = set([f.split("_")[0] for f in en_files])
+
+        for num in file_nums:
+            for ftype in ftypes:
+                name = "%s_%s" % (num, ftype) # 1_en, 1_fr etc.
+                filepath = path.join(self.TESTFILE_BASE, "%s.txt" % name)
+                if not isfile(filepath):
+                    self.fail("Bad test data: Expected to find %s" % filepath)
+                with open(filepath, "r") as myfile:
+                    self.data[name] = myfile.read()
+
 
     def setUp(self):
         self.handler = self.HANDLER_CLASS()
