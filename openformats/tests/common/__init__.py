@@ -4,6 +4,9 @@ from os.path import isfile, join
 
 
 class CommonFormatTestCase(object):
+    """
+    Define a set of tests to be run by every file format.
+    """
 
     def __init__(self, *args, **kwargs):
         self.data = {}
@@ -22,7 +25,8 @@ class CommonFormatTestCase(object):
         for num in file_nums:
             for ftype in ftypes:
                 name = "%s_%s" % (num, ftype) # 1_en, 1_fr etc.
-                filepath = path.join(self.TESTFILE_BASE, "%s.txt" % name)
+                filepath = path.join(self.TESTFILE_BASE, "%s.%s" % (
+                    name, self.FORMAT_EXTENSION))
                 if not isfile(filepath):
                     self.fail("Bad test data: Expected to find %s" % filepath)
                 with open(filepath, "r") as myfile:
