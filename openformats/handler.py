@@ -128,6 +128,11 @@ class CopyMixin(object):
         ptr:                                                ^
         destination: <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
     """
+    def __init__(self, *args, **kwargs):
+        self.destination = None
+        self.source = None
+        self.ptr = None
+        super(CopyMixin, self).__init__(*args, **kwargs)
 
     def copy_until(self, end):
         self.destination += self.source[self.ptr:end]

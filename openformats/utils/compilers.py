@@ -62,4 +62,3 @@ class OrderedCompilerMixin(CopyMixin):
         del self.ptr
 
         return compiled
-
