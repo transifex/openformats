@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import re
 
-from ..handler import Handler, String, CopyMixin
+from ..handler import Handler, String, Transcriber
 from ..utils.test import test_handler
 from ..utils.xml import DumbXml
 
 
-class AndroidHandler(CopyMixin, Handler):
+class AndroidHandler(Handler):
     name = "Android"
 
     plural_template = u'<item quantity="{rule}">{string}</item>'
@@ -19,18 +19,20 @@ class AndroidHandler(CopyMixin, Handler):
             content = content.decode("utf-8")  # convert to unicode
 
         resources_tag_position = content.index("<resources")
-        self.source = content[resources_tag_position:]
-        self.destination = ""
-        self.ptr = 0
+
+        source = content[resources_tag_position:]
+
+        self.transcriber = Transcriber(source)
+
         self._order = 0
 
-        resources_tag = DumbXml(self.source)
+        resources_tag = DumbXml(source)
         last_comment = None
         for tag, offset in resources_tag.find(("string", "string-array",
                                                "plurals", DumbXml.COMMENT)):
             if tag.name == DumbXml.COMMENT:
                 last_comment = tag.inner
-                self.copy_until(offset + len(tag.content))
+                self.transcriber.copy_until(offset + len(tag.content))
             elif tag.name == "string":
                 string = self._handle_string_tag(tag, offset, last_comment)
                 last_comment = None
@@ -46,13 +48,12 @@ class AndroidHandler(CopyMixin, Handler):
                 if string is not None:
                     stringset.append(string)
 
-        self.copy_until(len(self.source))
+        self.transcriber.copy_until(len(source))
 
-        template = content[:resources_tag_position] + self.destination
+        template = content[:resources_tag_position] +\
+            self.transcriber.get_destination()
 
-        del self.source
-        del self.destination
-        del self.ptr
+        self.transcriber = None
 
         return template, stringset
 
@@ -65,19 +66,20 @@ class AndroidHandler(CopyMixin, Handler):
 
         # ... <string name="foo">Hello ....
         #                        ^
-        self.copy_until(offset + tag.inner_offset)
+        self.transcriber.copy_until(offset + tag.inner_offset)
 
         # ... ing name="foo">Hello world</stri...
         #                               ^
         if string is not None:
-            self.add(string.template_replacement)
-            self.skip(len(tag.inner))
+            self.transcriber.add(string.template_replacement)
+            self.transcriber.skip(len(tag.inner))
         else:
-            self.copy_until(offset + tag.inner_offset + len(tag.inner))
+            self.transcriber.copy_until(offset + tag.inner_offset +
+                                        len(tag.inner))
 
         # ...ello World</string>
         #                       ^
-        self.copy_until(offset + len(tag.content))
+        self.transcriber.copy_until(offset + len(tag.content))
 
         return string
 
@@ -85,7 +87,8 @@ class AndroidHandler(CopyMixin, Handler):
                                  comment):
         # ...ing-array>   <item>H...
         #              ^
-        self.copy_until(string_array_offset + string_array_tag.inner_offset)
+        self.transcriber.copy_until(string_array_offset +
+                                    string_array_tag.inner_offset)
 
         for index, (item_tag, item_offset) in enumerate(
                 string_array_tag.find('item')):
@@ -102,31 +105,32 @@ class AndroidHandler(CopyMixin, Handler):
 
             # ... <item>Hello...
             #           ^
-            self.copy_until(string_array_offset + item_offset +
-                            item_tag.inner_offset)
+            self.transcriber.copy_until(string_array_offset + item_offset +
+                                        item_tag.inner_offset)
 
             # ...ello world</item>...
             #              ^
             if string is not None:
-                self.add(string.template_replacement)
-                self.skip(len(item_tag.inner))
+                self.transcriber.add(string.template_replacement)
+                self.transcriber.skip(len(item_tag.inner))
             else:
-                self.copy_until(string_array_offset + item_offset +
-                                len(item_tag.inner))
+                self.transcriber.copy_until(string_array_offset + item_offset +
+                                            len(item_tag.inner))
 
             # orld</item>   <it...
             #            ^
-            self.copy_until(string_array_offset + item_offset +
-                            len(item_tag.content))
+            self.transcriber.copy_until(string_array_offset + item_offset +
+                                        len(item_tag.content))
 
         # </item>  </string-array>
         #                         ^
-        self.copy_until(string_array_offset + len(string_array_tag.content))
+        self.transcriber.copy_until(string_array_offset +
+                                    len(string_array_tag.content))
 
     def _handle_plurals_tag(self, plurals_tag, plurals_offset, comment):
         # <plurals name="foo">   <item>Hello ...
         #                     ^
-        self.copy_until(plurals_offset + plurals_tag.inner_offset)
+        self.transcriber.copy_until(plurals_offset + plurals_tag.inner_offset)
 
         first_item_offset = None
         strings = {}
@@ -148,20 +152,21 @@ class AndroidHandler(CopyMixin, Handler):
 
             # <plurals name="foo">   <item>Hello ...
             #                        ^
-            self.copy_until(plurals_offset + first_item_offset)
+            self.transcriber.copy_until(plurals_offset + first_item_offset)
 
             # ...</item>   </plurals>...
             #           ^
-            self.add(string.template_replacement)
-            self.skip(last_item_offset + len(last_item_tag.content) -
-                      first_item_offset)
+            self.transcriber.add(string.template_replacement)
+            self.transcriber.skip(last_item_offset +
+                                  len(last_item_tag.content) -
+                                  first_item_offset)
 
         else:
             string = None
 
         # ...</plurals> ...
         #              ^
-        self.copy_until(plurals_offset + len(plurals_tag.content))
+        self.transcriber.copy_until(plurals_offset + len(plurals_tag.content))
 
         return string
 
@@ -171,8 +176,7 @@ class AndroidHandler(CopyMixin, Handler):
         self._stringset_index = 0
 
         self.source = template[resources_tag_position:]
-        self.destination = ""
-        self.ptr = 0
+        self.transcriber = Transcriber(self.source)
 
         resources_tag = DumbXml(self.source)
 
@@ -184,27 +188,25 @@ class AndroidHandler(CopyMixin, Handler):
                 self._compile_string_array(tag, offset)
             elif tag.name == "plurals":
                 self._compile_plurals(tag, offset)
-        self.copy_until(len(self.source))
+        self.transcriber.copy_until(len(self.source))
 
         # Lets do another pass to clear empty <string-array>s
-        self.source = self.destination
-        self.destination = ""
-        self.ptr = 0
+        self.source = self.transcriber.get_destination()
+        self.transcriber = Transcriber(self.source)
         resources_tag = DumbXml(self.source)
         for string_array_tag, string_array_offset in resources_tag.find(
                 "string-array"):
             if len(list(string_array_tag.find("item"))) == 0:
-                self.copy_until(string_array_offset)
-                self.skip(len(string_array_tag.content))
-        self.copy_until(len(self.source))
+                self.transcriber.copy_until(string_array_offset)
+                self.transcriber.skip(len(string_array_tag.content))
+        self.transcriber.copy_until(len(self.source))
 
-        compiled = template[:resources_tag_position] + self.destination
+        compiled = template[:resources_tag_position] +\
+            self.transcriber.get_destination()
 
-        del self._stringset
-        del self._stringset_index
-        del self.source
-        del self.destination
-        del self.ptr
+        self._stringset = None
+        self._stringset_index = None
+        self.transcriber = None
 
         return compiled
 
@@ -218,18 +220,21 @@ class AndroidHandler(CopyMixin, Handler):
             # found one to replace
             self._stringset_index += 1
 
-            self.copy_until(string_offset + string_tag.inner_offset)
-            self.add(next_string.string)
-            self.skip(len(string_tag.inner))
-            self.copy_until(string_offset + len(string_tag.content))
+            self.transcriber.copy_until(string_offset +
+                                        string_tag.inner_offset)
+            self.transcriber.add(next_string.string)
+            self.transcriber.skip(len(string_tag.inner))
+            self.transcriber.copy_until(string_offset +
+                                        len(string_tag.content))
 
         else:
             # didn't find it, must remove by skipping it
-            self.copy_until(string_offset)
-            self.skip(len(string_tag.content))
+            self.transcriber.copy_until(string_offset)
+            self.transcriber.skip(len(string_tag.content))
 
     def _compile_string_array(self, string_array_tag, string_array_offset):
-        self.copy_until(string_array_offset + string_array_tag.inner_offset)
+        self.transcriber.copy_until(string_array_offset +
+                                    string_array_tag.inner_offset)
         for item_tag, item_offset in string_array_tag.find("item"):
             try:
                 next_string = self._stringset[self._stringset_index]
@@ -240,18 +245,19 @@ class AndroidHandler(CopyMixin, Handler):
                 # found one to replace
                 self._stringset_index += 1
 
-                self.copy_until(string_array_offset + item_offset +
-                                item_tag.inner_offset)
-                self.add(next_string.string)
-                self.skip(len(item_tag.inner))
-                self.copy_until(string_array_offset + item_offset +
-                                len(item_tag.content))
+                self.transcriber.copy_until(string_array_offset + item_offset +
+                                            item_tag.inner_offset)
+                self.transcriber.add(next_string.string)
+                self.transcriber.skip(len(item_tag.inner))
+                self.transcriber.copy_until(string_array_offset + item_offset +
+                                            len(item_tag.content))
 
             else:
                 # didn't find it, must remove by skipping it
-                self.copy_until(string_array_offset + item_offset)
-                self.skip(len(item_tag.content))
-        self.copy_until(string_array_offset + len(string_array_tag.content))
+                self.transcriber.copy_until(string_array_offset + item_offset)
+                self.transcriber.skip(len(item_tag.content))
+        self.transcriber.copy_until(string_array_offset +
+                                    len(string_array_tag.content))
 
     def _compile_plurals(self, plurals_tag, plurals_offset):
         try:
@@ -275,9 +281,9 @@ class AndroidHandler(CopyMixin, Handler):
 
             if (self.SPACE_PAT.search(indent) and self.SPACE_PAT.search(tail)):
                 # write until beginning of hash
-                self.copy_until(hash_position - indent_length)
+                self.transcriber.copy_until(hash_position - indent_length)
                 for rule, value in next_string.string.items():
-                    self.add(
+                    self.transcriber.add(
                         indent +
                         self.plural_template.format(rule=self.RULES_ITOA[rule],
                                                     string=value) +
@@ -287,22 +293,25 @@ class AndroidHandler(CopyMixin, Handler):
             else:
                 # string is not on its own, simply replace hash with all plural
                 # forms
-                self.copy_until(hash_position)
+                self.transcriber.copy_until(hash_position)
                 for rule, value in next_string.string.items():
-                    self.add(
+                    self.transcriber.add(
                         self.plural_template.format(
                             rule=self.RULES_ITOA[rule], string=value
                         )
                     )
-            self.skip(indent_length + len(next_string.template_replacement) +
-                      tail_length + 1)
+            self.transcriber.skip(indent_length +
+                                  len(next_string.template_replacement) +
+                                  tail_length + 1)
 
             # finish up by copying until the end of </plurals>
-            self.copy_until(plurals_offset + len(plurals_tag.content))
+            self.transcriber.copy_until(plurals_offset +
+                                        len(plurals_tag.content))
 
         else:
             # didn't find it, must remove by skipping it
-            self.skip_until(plurals_offset + len(plurals_tag.content))
+            self.transcriber.skip_until(plurals_offset +
+                                        len(plurals_tag.content))
 
 
 def main():

@@ -1,64 +1,57 @@
 import re
 
-from ..handler import CopyMixin
+from ..handler import Transcriber
 
 
-class OrderedCompilerMixin(CopyMixin):
+class OrderedCompilerMixin(object):
     SPACE_PAT = re.compile(r'^\s*$')
 
     def compile(self, template, stringset):
         # assume stringset is ordered within the template
-        self.source = template
-        self.destination = ""
-        self.ptr = 0
+        self.transcriber = Transcriber(template)
 
         for string in stringset:
-            hash_position = self.source.index(string.template_replacement)
+            hash_position = template.index(string.template_replacement)
             if not string.pluralized:
-                self.copy_until(hash_position)
-                self.add(string.string)
-                self.skip(len(string.template_replacement))
+                self.transcriber.copy_until(hash_position)
+                self.transcriber.add(string.string)
+                self.transcriber.skip(len(string.template_replacement))
             else:
                 # if the hash is on its own on a line with only spaces, we have
                 # to remember it's indent
-                indent_length = self.source[hash_position::-1].index('\n') - 1
-                indent = self.source[hash_position - indent_length:
-                                     hash_position]
-                tail_length = self.source[
+                indent_length = template[hash_position::-1].index('\n') - 1
+                indent = template[hash_position - indent_length:hash_position]
+                tail_length = template[
                     hash_position + len(string.template_replacement):
                 ].index('\n')
-                tail = self.source[
+                tail = template[
                     hash_position + len(string.template_replacement):
                     hash_position + len(string.template_replacement) +
                     tail_length
                 ]
                 if (self.SPACE_PAT.search(indent) and
                         self.SPACE_PAT.search(tail)):
-                    self.copy_until(hash_position - indent_length)
+                    self.transcriber.copy_until(hash_position - indent_length)
                     for rule, value in string.string.items():
-                        self.add(
+                        self.transcriber.add(
                             indent + self.plural_template.format(
                                 rule=self.RULES_ITOA[rule], string=value
                             ) + tail + '\n'
                         )
-                    self.skip(indent_length +
-                              len(string.template_replacement) +
-                              tail_length + 1)
+                    self.transcriber.skip(indent_length +
+                                          len(string.template_replacement) +
+                                          tail_length + 1)
                 else:
                     # string is not on its own, simply replace hash with all
                     # plural forms
-                    self.copy_until(hash_position)
+                    self.transcriber.copy_until(hash_position)
                     for rule, value in string.string.items():
-                        self.add(self.plural_template.format(
+                        self.transcriber.add(self.plural_template.format(
                             rule=self.RULES_ITOA[rule], string=value
                         ))
-                    self.skip(len(string.template_replacement))
+                    self.transcriber.skip(len(string.template_replacement))
 
-        self.copy_until(len(self.source))
-        compiled = self.destination
-
-        del self.source
-        del self.destination
-        del self.ptr
+        self.transcriber.copy_until(len(template))
+        compiled = self.transcriber.get_destination()
 
         return compiled
