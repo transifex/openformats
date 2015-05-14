@@ -41,9 +41,9 @@ class SrtHandler(OrderedCompilerMixin, CopyMixin, Handler):
 
         template = self.destination
 
-        del self.source
-        del self.destination
-        del self.ptr
+        self.source = None
+        self.destination = None
+        self.ptr = None
 
         return template, stringset
 
