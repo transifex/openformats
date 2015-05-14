@@ -26,7 +26,8 @@ from ..utils.test import test_handler
 class JsonHandler(Handler):
     name = "JSON"
 
-    def feed_content(self, content):
+    def parse(self, content):
+        stringset = []
         parsed = json.loads(content)
         for key, value in parsed.items():
             # in JSON, keys are always strings, must convert plural rules to
@@ -37,14 +38,15 @@ class JsonHandler(Handler):
                     del value[rule]
 
             string = String(key, value)
-            yield string
+            stringset.append(string)
 
             parsed[key] = string.template_replacement
 
-        self.template = json.dumps(parsed)
+        template = json.dumps(parsed)
+        return template, stringset
 
-    def compile(self, stringset):
-        template_dict = json.loads(self.template)
+    def compile(self, template, stringset):
+        template_dict = json.loads(template)
         stringset_dict = {string.key: string.string for string in stringset}
         for key in template_dict:
             template_dict[key] = stringset_dict[key]

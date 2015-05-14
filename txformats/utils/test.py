@@ -4,7 +4,7 @@ def test_handler(Handler, source):
     print
 
     h = Handler()
-    stringset = list(h.feed_content(source))
+    template, stringset = h.parse(source)
 
     print "## Stringset"
     for string in stringset:
@@ -12,10 +12,10 @@ def test_handler(Handler, source):
     print
 
     print "## Template:"
-    print h.template
+    print template
     print
 
-    compiled = h.compile(stringset)
+    compiled = h.compile(template, stringset)
     print "## Compiled"
     print compiled
 
