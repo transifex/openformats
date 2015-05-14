@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic.base import TemplateView, View
 from django.views.generic.edit import CreateView
 
-from txformats.handler import Handler, String
+from openformats.handler import Handler, String
 
 from .models import Payload
 
@@ -28,11 +28,11 @@ class HandlerMixin(object):
         handlers = {}
         format_files = [
             filename.split(".")[0]
-            for filename in os.listdir(os.path.join("txformats", "formats"))
+            for filename in os.listdir(os.path.join("openformats", "formats"))
             if filename.endswith(".py") and filename != "__init__.py"
         ]
         for filename in format_files:
-            module = import_module("txformats.formats.{}".format(filename))
+            module = import_module("openformats.formats.{}".format(filename))
             for name, each in inspect.getmembers(module):
                 if (inspect.isclass(each) and issubclass(each, Handler) and
                         each != Handler):

@@ -1,4 +1,4 @@
-# txformats
+# openformats
 
 Opensource transifex-independent library for creating/editing/testing file
 formats for transifex.com
@@ -16,8 +16,8 @@ This repository consists of two features:
 It's very easy to get started with the testbed, simply:
 
 ```bash
-git clone https://github.com/transifex/txformats
-cd txformats
+git clone https://github.com/transifex/openformats
+cd openformats
 ./manage.py syncdb --noinput  # optional
 ./manage.py runserver
 ```
