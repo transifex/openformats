@@ -6,6 +6,12 @@ from os.path import isfile, join
 class CommonFormatTestCase(object):
     """
     Define a set of tests to be run by every file format.
+
+    Required class variables and examples for them: 
+
+        FORMAT_EXTENSION = "txt"
+        HANDLER_CLASS = PlaintextHandler
+        TESTFILE_BASE = "openformats/tests/plaintext/files"
     """
 
     def __init__(self, *args, **kwargs):
@@ -13,22 +19,27 @@ class CommonFormatTestCase(object):
         super(CommonFormatTestCase, self).__init__(*args, **kwargs)
 
     def read_files(self, ftypes=('en', 'tpl', 'fr')):
-        """Read 1_en.txt into self.data["1_en"], and same for tpl and fr."""
+        """
+        Read test data files into variables.
+
+        Example: 1_en.txt stored into self.data["1_en"]
+        """
         
+        # Find source files to use as a base to read all others
         en_files = []
         for f in listdir(self.TESTFILE_BASE):
             if (isfile(join(self.TESTFILE_BASE, f)) and
                 fnmatch.fnmatch(f, '*_en.*')):
                 en_files.append(f)
-        file_nums = set([f.split("_")[0] for f in en_files])
 
+        file_nums = set([f.split("_")[0] for f in en_files])
         for num in file_nums:
             for ftype in ftypes:
                 name = "%s_%s" % (num, ftype) # 1_en, 1_fr etc.
                 filepath = path.join(self.TESTFILE_BASE, "%s.%s" % (
                     name, self.FORMAT_EXTENSION))
                 if not isfile(filepath):
-                    self.fail("Bad test data: Expected to find %s" % filepath)
+                    self.fail("Bad test files: Expected to find %s" % filepath)
                 with open(filepath, "r") as myfile:
                     self.data[name] = myfile.read()
 
