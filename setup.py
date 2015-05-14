@@ -19,7 +19,7 @@ setup(
     description="The Transifex open formats library",
     author="Transifex",
     author_email="support@transifex.com",
-    url="https://github.com/transifex/txformats",
+    url="https://github.com/transifex/openformats",
     install_requires=install_requires,
     tests_require=tests_require,
     dependency_links=tests_require,
