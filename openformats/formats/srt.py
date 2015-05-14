@@ -1,10 +1,10 @@
 import re
 
-from ..handler import Handler, CopyMixin, ParseError, String
+from ..handler import Handler, Transcriber, ParseError, String
 from ..utils.compilers import OrderedCompilerMixin
 
 
-class SrtHandler(OrderedCompilerMixin, CopyMixin, Handler):
+class SrtHandler(OrderedCompilerMixin, Handler):
     name = "SRT"
     NON_SPACE_PAT = re.compile(r'[^\s]')
 
@@ -18,33 +18,26 @@ class SrtHandler(OrderedCompilerMixin, CopyMixin, Handler):
             start += len(section) + 2
 
     def parse(self, content):
-        self.source = content
-        self.destination = ""
-        self.ptr = 0
+        transcriber = Transcriber(content)
 
         content = content.replace('\r\n', '\n')
         stringset = []
         for start, subtitle_section in self._generate_split_subtitles(content):
-            self.copy_until(start)
+            transcriber.copy_until(start)
             offset, string = self._parse_section(start, subtitle_section)
 
             if string:
                 stringset.append(string)
 
-                self.copy_until(offset)
-                self.add(string.template_replacement)
-                self.skip(len(string.string))
+                transcriber.copy_until(offset)
+                transcriber.add(string.template_replacement)
+                transcriber.skip(len(string.string))
             else:
-                self.copy_until(start + len(subtitle_section))
+                transcriber.copy_until(start + len(subtitle_section))
 
-        self.copy_until(len(content))
+        transcriber.copy_until(len(content))
 
-        template = self.destination
-
-        self.source = None
-        self.destination = None
-        self.ptr = None
-
+        template = transcriber.get_destination()
         return template, stringset
 
     def _parse_section(self, offset, section):
