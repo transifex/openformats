@@ -1,0 +1,8 @@
+1
+00:01:28,797 --> 00:01:30,297
+Hello, World!
+
+2
+00:01:45,105 --> 00:01:47,940
+Pinky: Gee, Brain, what do you want to do tonight?
+Brain: The same thing we do every night, Pinky - try to take over the world!
