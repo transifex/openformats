@@ -1,34 +1,8 @@
-from os import path
 import unittest
-from nose.tools import *
+from openformats.tests.common import CommonFormatTestCase
 from openformats.formats.plaintext import PlaintextHandler
 
-TESTFILE_BASE = "openformats/tests/plaintext/files"
 
-
-class PlaintextTestCase(unittest.TestCase):
-
-    data = {}
-
-    def read_files(self, ftypes=('en', 'tpl', 'fr')):
-        """Read 1_en.txt into self.data["1_en"], and same for tpl and fr."""
-        for ftype in ftypes:
-            filename = path.join(TESTFILE_BASE, "1_%s.txt" % ftype)
-            with open(filename, "r") as myfile:
-                self.data["1_%s" % ftype] = myfile.read()
-
-    def setUp(self):
-        self.handler = PlaintextHandler()
-        self.read_files()
-
-    def test_template(self):
-        """Test that the template created is the same as static one."""
-        template, _ = self.handler.parse(self.data["1_en"])
-        self.assertEquals(template, self.data["1_tpl"])
-
-    def test_compile(self):
-        """Test that import-export is the same as the original file."""
-        template, stringset = self.handler.parse(self.data["1_en"])
-        compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, self.data["1_en"])
-        
+class PlaintextTestCase(CommonFormatTestCase, unittest.TestCase):
+    HANDLER_CLASS = PlaintextHandler
+    TESTFILE_BASE = "openformats/tests/plaintext/files"
