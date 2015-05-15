@@ -47,24 +47,27 @@ class CommonFormatTestCase(object):
     def setUp(self):
         self.handler = self.HANDLER_CLASS()
         self.read_files()
+        self.tmpl, self.strset = self.handler.parse(self.data["1_en"])
         super(CommonFormatTestCase, self).setUp()
+
 
     def test_template(self):
         """Test that the template created is the same as static one."""
         # FIXME: Test descriptions should have the handler's name prefixed to
         # be able to differentiate between them.
-        template, _ = self.handler.parse(self.data["1_en"])
-        self.assertEquals(template, self.data["1_tpl"])
+        self.assertEquals(self.tmpl, self.data["1_tpl"])
+
+    def test_no_empty_strings_in_handler_stringset(self):
+        for s in self.strset:
+            self.assertFalse(s.string == '')
 
     def test_compile(self):
         """Test that import-export is the same as the original file."""
-        template, stringset = self.handler.parse(self.data["1_en"])
-        compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, self.data["1_en"])
+        remade_orig_content = self.handler.compile(self.tmpl, self.strset)
+        self.assertEquals(remade_orig_content, self.data["1_en"])
 
     def test_translate(self):
         """Test that translate + export is the same as the precompiled file."""
-        template, stringset = self.handler.parse(self.data["1_en"])
-        stringset = translate_stringset(stringset)
-        compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, self.data["1_el"])
+        translated_strset = translate_stringset(self.strset)
+        translated_content = self.handler.compile(self.tmpl, translated_strset)
+        self.assertEquals(translated_content, self.data["1_el"])
