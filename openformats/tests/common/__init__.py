@@ -50,7 +50,6 @@ class CommonFormatTestCase(object):
         self.tmpl, self.strset = self.handler.parse(self.data["1_en"])
         super(CommonFormatTestCase, self).setUp()
 
-
     def test_template(self):
         """Test that the template created is the same as static one."""
         # FIXME: Test descriptions should have the handler's name prefixed to

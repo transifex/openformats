@@ -1,0 +1,6 @@
+[run]
+omit =
+    */python?.?/*
+    */site-packages/*
+    *.egg/*
+    openformats/tests/*

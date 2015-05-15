@@ -1,0 +1,18 @@
+machine:
+  environment:
+    ALL_TESTS: 1
+
+dependencies:
+  override:
+    - pip install coveralls
+
+test:
+  override:
+    - nosetests openformats
+    - coveralls
+
+deployment:
+  rtfd:
+    branch: master
+    commands:
+      - curl -X POST http://readthedocs.org/build/openformats
