@@ -1,6 +1,8 @@
 import fnmatch
 from os import listdir, path
 from os.path import isfile, join
+from openformats.utils.tests import translate_stringset
+
 
 
 class CommonFormatTestCase(object):
@@ -18,7 +20,7 @@ class CommonFormatTestCase(object):
         self.data = {}
         super(CommonFormatTestCase, self).__init__(*args, **kwargs)
 
-    def read_files(self, ftypes=('en', 'tpl')):
+    def read_files(self, ftypes=('en', 'el', 'tpl')):
         """
         Read test data files into variables.
 
@@ -51,6 +53,9 @@ class CommonFormatTestCase(object):
 
     def test_template(self):
         """Test that the template created is the same as static one."""
+        # FIXME: Test descriptions should have the handler's name prefixed to be
+        # able to differentiate between them.
+        self._testMethodDoc = "%s: %s" % (self.handler.name, self._testMethodDoc)
         template, _ = self.handler.parse(self.data["1_en"])
         self.assertEquals(template, self.data["1_tpl"])
 
@@ -59,3 +64,10 @@ class CommonFormatTestCase(object):
         template, stringset = self.handler.parse(self.data["1_en"])
         compiled = self.handler.compile(template, stringset)
         self.assertEquals(compiled, self.data["1_en"])
+
+    def test_translate(self):
+        """Test that translate + export is the same as the precompiled file."""
+        template, stringset = self.handler.parse(self.data["1_en"])
+        stringset = translate_stringset(stringset)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEquals(compiled, self.data["1_el"])
