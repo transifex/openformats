@@ -1,7 +1,9 @@
 
 
-OpenFormats |build-status| |coverage-status|
-============================================
+OpenFormats
+===========
+
+|build-status| |coverage-status|
 
 
 OpenFormats is a localization file format library, written in Python_.
@@ -29,7 +31,7 @@ You can run tests for the formats by doing the following::
 Source code
 -----------
 
-Pelican's source code is `hosted on GitHub`_.
+The source code for OpenFormats is `hosted on GitHub`_.
 
 
 The testbed
@@ -60,15 +62,12 @@ compiling the template against the stringset, or you can modify it first.
 .. _`hosted on GitHub`: https://github.com/transifex/openformats
 
 
-[tx]: http://www.transifex.com/  "Transifex, the Localization Automation Platform"
-
 .. |build-status| image:: https://img.shields.io/circleci/transifex/openformats/master.svg
    :target: https://circleci.com/gh/transifex/openformats
-   :alt: Travis CI: continuous integration status
+   :alt: Circle.ci: continuous integration status
 .. |coverage-status| image:: https://img.shields.io/coveralls/transifex/openformats.svg
    :target: https://coveralls.io/r/transifex/openformats
    :alt: Coveralls: code coverage status
 .. |docs-status| image:: https://img.shields.io/readthedocs/transifex/openformats.svg
    :target: https://readthedocs.org/projects/openformats/?badge=latest
    :alt: ReadTheDocs: code coverage status
-
