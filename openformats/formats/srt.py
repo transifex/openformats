@@ -18,6 +18,8 @@ class SrtHandler(OrderedCompilerMixin, Handler):
             start += len(section) + 2
 
     def parse(self, content):
+        if not isinstance(content, unicode):
+            content = content.decode("utf-8")
         transcriber = Transcriber(content)
 
         content = content.replace('\r\n', '\n')
