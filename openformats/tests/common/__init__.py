@@ -53,8 +53,6 @@ class CommonFormatTestCase(object):
         """Test that the template created is the same as static one."""
         # FIXME: Test descriptions should have the handler's name prefixed to
         # be able to differentiate between them.
-        self._testMethodDoc = "%s: %s" % (self.handler.name,
-                                          self._testMethodDoc)
         template, _ = self.handler.parse(self.data["1_en"])
         self.assertEquals(template, self.data["1_tpl"])
 
