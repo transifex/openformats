@@ -21,7 +21,7 @@ Check out `OpenFormats documentation`_ for more information.
 How to get help, contribute, or provide feedback
 ------------------------------------------------
 
-See our `contribution submission and feedback guidelines <CONTRIBUTING.rst>`_.
+See our `contribution submission and feedback guidelines`_.
 
 You can run tests for the formats by doing the following::
 
@@ -37,7 +37,7 @@ The source code for OpenFormats is `hosted on GitHub`_.
 The testbed
 -----------
 
-To run the testbed:
+To run the testbed::
 
     ./manage.py syncdb --noinput  # optional
     ./manage.py runserver
@@ -58,6 +58,7 @@ compiling the template against the stringset, or you can modify it first.
 
 .. _Python: http://www.python.org/
 .. _Transifex: http://www.transifex.com/
+.. _`contribution submission and feedback guidelines`: http://openformats.readthedocs.org/en/latest/contributing.html
 .. _`OpenFormats documentation`: http://openformats.readthedoc.org/
 .. _`hosted on GitHub`: https://github.com/transifex/openformats
 
@@ -68,6 +69,6 @@ compiling the template against the stringset, or you can modify it first.
 .. |coverage-status| image:: https://img.shields.io/coveralls/transifex/openformats.svg
    :target: https://coveralls.io/r/transifex/openformats
    :alt: Coveralls: code coverage status
-.. |docs-status| image:: https://img.shields.io/readthedocs/transifex/openformats.svg
-   :target: https://readthedocs.org/projects/openformats/?badge=latest
+.. |docs-status| image:: https://readthedocs.org/projects/pip/badge/
+   :target: https://openformats.readthedocs.org/
    :alt: ReadTheDocs: code coverage status

@@ -8,6 +8,8 @@ Contents
    :maxdepth: 2
 
    handler
+   utils
+   contributing
    Changelog
 
 
