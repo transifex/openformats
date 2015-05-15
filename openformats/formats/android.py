@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import re
 
 from ..handler import Handler, String, Transcriber
-from ..utils.test import test_handler
 from ..utils.xml import DumbXml
 
 
@@ -312,27 +311,3 @@ class AndroidHandler(Handler):
             # didn't find it, must remove by skipping it
             self.transcriber.skip_until(plurals_offset +
                                         len(plurals_tag.content))
-
-
-def main():
-    test_handler(AndroidHandler, '''
-        <resources>
-            <string name="foo1">hello osrld</string>
-            <string name="foo2">hello sssfa</string>
-            <string name="foo3">hello world</string>
-            <string name="foo4">hello sdiid</string>
-            <string-array name="asdf">
-                <item>asdf</item>
-                <item>fdsa</item>
-                <item>i883</item>
-            </string-array>
-            <plurals name="unread_messages">
-                <item quantity="one">%s message</item>
-                <item quantity="other">%s messages</item>
-            </plurals>
-        </resources>
-    ''')
-
-
-if __name__ == "__main__":
-    main()

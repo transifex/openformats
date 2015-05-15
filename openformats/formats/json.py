@@ -20,7 +20,6 @@ from __future__ import absolute_import
 import json
 
 from ..handler import Handler, String
-from ..utils.test import test_handler
 
 
 class JsonHandler(Handler):
@@ -51,23 +50,3 @@ class JsonHandler(Handler):
         for key in template_dict:
             template_dict[key] = stringset_dict[key]
         return json.dumps(template_dict, indent=2)
-
-
-def main():
-    test_handler(JsonHandler, '''
-        {
-            "foo1": "Hello world",
-            "foo2": "Kostas",
-            "foo3": "Ioanna",
-            "foo4": "Ariadne",
-            "foo5": "Victor",
-            "foo6": {
-                "1": "%s message",
-                "5": "%s messages"
-            }
-        }
-    ''')
-
-
-if __name__ == "__main__":
-    main()

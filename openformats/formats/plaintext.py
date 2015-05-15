@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from ..handler import Handler, String
 from ..utils.compilers import OrderedCompilerMixin
-from ..utils.test import test_handler
 
 
 class PlaintextHandler(OrderedCompilerMixin, Handler):
@@ -44,19 +43,3 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
         # remove newline_sequence added to the start of the template
         template = template[len(newline_sequence):]
         return template, stringset
-
-
-def main():
-    test_handler(PlaintextHandler, '''
-        Hello world,
-
-        My name is Kostas.
-        How are you today?
-
-        Regards,
-        Kostas
-    ''')
-
-
-if __name__ == "__main__":
-    main()
