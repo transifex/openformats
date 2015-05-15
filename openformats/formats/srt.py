@@ -61,7 +61,7 @@ class SrtHandler(OrderedCompilerMixin, Handler):
             int(order)
         except ValueError:
             raise ParseError(
-                u'First line of subtitle section not a number: "{}.\.."'.
+                u'First line of subtitle section not a number: "{}..."'.
                 format(section[:50])
             )
 
