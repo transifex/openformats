@@ -1,0 +1,27 @@
+1
+00:01:28,797 --> 00:01:30,297
+Hello, World!
+
+2
+00:01:45,105 --> 00:01:47,940
+Pinky: Gee, Brain, what do you want to do tonight?
+Brain: The same thing we do every night, Pinky - try to take over the world!
+
+3
+00:02:45,105 --> 00:02:47,940
+A phrase with escaped &lt;HTML tags&gt;
+
+4
+00:03:45,105 --> 00:03:47,940
+<font color="#00ff00">A phrase with <b>HTML</b> characters</font>
+
+5
+00:05:45,105 --> 00:05:47,940
+A phrase with unicode characters: ΑβΓδΕ → ♡ Ш
+
+6
+00:06:45,105 --> 00:06:47,940
+Three lines: First
+Second
+Third
+

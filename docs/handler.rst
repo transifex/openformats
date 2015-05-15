@@ -9,6 +9,8 @@ Handler
    :members:
    :show-inheritance:
 
+:ref:`handler`.
+
 .. autoclass:: Handler
    :members:
    :show-inheritance:
