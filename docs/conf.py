@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'openformats'
+project = u'OpenFormats'
 copyright = u'2015, Transifex'
 
 intersphinx_mapping = {
