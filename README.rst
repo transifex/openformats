@@ -69,6 +69,6 @@ compiling the template against the stringset, or you can modify it first.
 .. |coverage-status| image:: https://img.shields.io/coveralls/transifex/openformats.svg
    :target: https://coveralls.io/r/transifex/openformats
    :alt: Coveralls: code coverage status
-.. |docs-status| image:: https://readthedocs.org/projects/pip/badge/
-   :target: https://openformats.readthedocs.org/
-   :alt: ReadTheDocs: code coverage status
+.. |docs-status|image:: https://readthedocs.org/projects/openformats/badge/?version=latest
+	:target: https://readthedocs.org/projects/openformats/?badge=latest
+	:alt: Documentation Status
