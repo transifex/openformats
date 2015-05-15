@@ -62,7 +62,7 @@ compiling the template against the stringset, or you can modify it first.
 .. _`hosted on GitHub`: https://github.com/transifex/openformats
 
 
-.. |build-status| image:: https://img.shields.io/circleci/transifex/openformats/master.svg
+.. |build-status| image:: https://img.shields.io/circleci/project/transifex/openformats.svg
    :target: https://circleci.com/gh/transifex/openformats
    :alt: Circle.ci: continuous integration status
 .. |coverage-status| image:: https://img.shields.io/coveralls/transifex/openformats.svg
