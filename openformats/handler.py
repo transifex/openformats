@@ -3,12 +3,12 @@ from hashlib import md5
 
 class String(object):
     DEFAULTS = {
-        'context': (),
+        'context': "",
         'order': None,
         'character_limit': None,
         'occurrences': None,
-        'developer_comment': None,
-        'flags': None,
+        'developer_comment': "",
+        'flags': "",
         'fuzzy': None,
         'obsolete': None,
     }
