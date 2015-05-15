@@ -12,3 +12,7 @@ Handler
 .. autoclass:: Handler
    :members:
    :show-inheritance:
+
+.. autoclass:: Transcriber
+   :members:
+   :show-inheritance:

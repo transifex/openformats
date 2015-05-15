@@ -37,7 +37,7 @@ The source code for OpenFormats is `hosted on GitHub`_.
 The testbed
 -----------
 
-To run the testbed:
+To run the testbed::
 
     ./manage.py syncdb --noinput  # optional
     ./manage.py runserver

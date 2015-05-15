@@ -84,14 +84,16 @@ class Handler(object):
 
 class Transcriber(object):
     """
-        This class will help with both creating a template from an imported
-        file and with compiling a file from a template. It provides functions
-        for copying text. It depends on 3 things, the source content
-        (self.source), the target content (self.destination) which initially
-        will contain an empty string and a pointer (self.ptr) which will
-        indicate which parts of 'source' have already been copied to
-        'destination' (and will be initialized to 0). The methods provided are
-        demonstrated below.
+    Create a template from an imported or compile an output file.
+
+    This class will help with both creating a template from an imported
+    file and with compiling a file from a template. It provides functions
+    for copying text. It depends on 3 things, the source content
+    (self.source), the target content (self.destination) which initially
+    will contain an empty string and a pointer (self.ptr) which will
+    indicate which parts of 'source' have already been copied to
+    'destination' (and will be initialized to 0). The methods provided are
+    demonstrated below::
 
         >>> transcriber = Transcriber(source)
 
@@ -123,7 +125,7 @@ class Transcriber(object):
         source:      <string name="foo">hello world</string>
         ptr:                                                ^
         destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr',
-                      '</string>']
+        '</string>']
 
         >>> print transcriber.get_destination()
 
