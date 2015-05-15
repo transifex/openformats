@@ -8,14 +8,13 @@ Example:
 """
 
 import argparse
-import csv
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from openformats.formats import (plaintext, srt)
+from openformats.utils.tests import translate_stringset
 
 args = argparse.ArgumentParser
-DICT_FNAME = "openformats/tests/common/dictionary.csv"
 
 
 def get_handler(ext):
@@ -24,17 +23,6 @@ def get_handler(ext):
         'txt': plaintext.PlaintextHandler(),
         'srt': srt.SrtHandler(),
     }[ext]
-
-def translate(phrase, from_lang="en", to_lang="el"):
-    """Lookup a phrase in a dictionary and translate if possible."""
-    with open(DICT_FNAME, 'rU') as dict_file:
-        dict_reader = csv.DictReader(dict_file)
-        for r in dict_reader:
-            if r[from_lang] == phrase:
-                if args.debug: print('Found "%s"' % phrase[0:30])
-                return r[to_lang]
-    # Fall back to source lang, differentiate from original string with prefix
-    return "%s:%s" % (to_lang, phrase)
 
 
 def run():
@@ -54,13 +42,10 @@ def run():
             tpl_file.write(template)
         tpl_file.close()
 
-    # Translate phrase
-    for s in stringset:
-        for rule, pluralform in s._strings.items():
-            s._strings[rule] = translate(pluralform)
+    translated_stringset = translate_stringset(stringset, debug=True)
 
     # Save translated file
-    compiled = handler.compile(template, stringset)
+    compiled = handler.compile(template, translated_stringset)
     fname = args.inputfile.replace("_en", "_el")
     with open(fname, 'w+') as f:
         if args.debug: print("Writing %s" % fname)
