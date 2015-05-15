@@ -3,7 +3,7 @@
 OpenFormats
 ===========
 
-|build-status| |coverage-status|
+|build-status| |coverage-status| |docs-status|
 
 
 OpenFormats is a localization file format library, written in Python_.
@@ -69,6 +69,6 @@ compiling the template against the stringset, or you can modify it first.
 .. |coverage-status| image:: https://img.shields.io/coveralls/transifex/openformats.svg
    :target: https://coveralls.io/r/transifex/openformats
    :alt: Coveralls: code coverage status
-.. |docs-status|image:: https://readthedocs.org/projects/openformats/badge/?version=latest
+.. |docs-status| image:: https://readthedocs.org/projects/openformats/badge/?version=latest
 	:target: https://readthedocs.org/projects/openformats/?badge=latest
 	:alt: Documentation Status
