@@ -9,6 +9,7 @@ Contents
 
    handler
    utils
+   contributing
    Changelog
 
 
