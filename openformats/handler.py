@@ -82,67 +82,70 @@ class Handler(object):
         raise NotImplemented()
 
 
-class CopyMixin(object):
+class Transcriber(object):
     """
-        This mixin will help with both creating a template from an imported
+        This class will help with both creating a template from an imported
         file and with compiling a file from a template. It provides functions
         for copying text. It depends on 3 things, the source content
         (self.source), the target content (self.destination) which initially
         will contain an empty string and a pointer (self.ptr) which will
         indicate which parts of 'source' have already been copied to
         'destination' (and will be initialized to 0). The methods provided are
-        demonstraded below.
+        demonstrated below.
 
-        Before using them, you should assign self.source, self.destination
-        and self.ptr with the approprate values.
-
-        >>> self.source = content
-        >>> self.destination = ""
-        >>> self.ptr = 0
+        >>> transcriber = Transcriber(source)
 
         source:      <string name="foo">hello world</string>
         ptr:         ^ (0)
-        destination:
+        destination: []
 
-        >>> self.copy_until(self.source.index('>') + 1)
-
-        source:      <string name="foo">hello world</string>
-        ptr:                            ^
-        destination: <string name="foo">
-
-        >>> self.add("aee8cc2abd5abd5a87cd784be_tr")
+        >>> transcriber.copy_until(source.index('>') + 1)
 
         source:      <string name="foo">hello world</string>
         ptr:                            ^
-        destination: <string name="foo">aee8cc2abd5abd5a87cd784be_tr
+        destination: ['<string name="foo">']
 
-        >>> self.skip(len("hello world"))
+        >>> transcriber.add("aee8cc2abd5abd5a87cd784be_tr")
+
+        source:      <string name="foo">hello world</string>
+        ptr:                            ^
+        destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr']
+
+        >>> transcriber.skip(len("hello world"))
 
         source:      <string name="foo">hello world</string>
         ptr:                                       ^
-        destination: <string name="foo">aee8cc2abd5abd5a87cd784be_tr
+        destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr']
 
-        >>> self.copy_until(source.index("</string>") + len("</string>"))
+        >>> transcriber.copy_until(source.index("</string>") +
+        ...                        len("</string>"))
 
         source:      <string name="foo">hello world</string>
         ptr:                                                ^
-        destination: <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
+        destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr',
+                      '</string>']
+
+        >>> print transcriber.get_destination()
+
+        <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
     """
-    def __init__(self, *args, **kwargs):
-        self.destination = None
-        self.source = None
-        self.ptr = None
-        super(CopyMixin, self).__init__(*args, **kwargs)
+    def __init__(self, source):
+        self.source = source
+        self.destination = []
+        self.ptr = 0
 
     def copy_until(self, end):
-        self.destination += self.source[self.ptr:end]
+        self.destination.append(self.source[self.ptr:end])
         self.ptr = end
 
     def add(self, text):
-        self.destination += text
+        self.destination.append(text)
 
     def skip(self, offset):
         self.ptr += offset
 
     def skip_until(self, end):
         self.ptr = end
+
+    def get_destination(self):
+        return "".join(self.destination)
