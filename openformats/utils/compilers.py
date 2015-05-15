@@ -8,14 +8,14 @@ class OrderedCompilerMixin(object):
 
     def compile(self, template, stringset):
         # assume stringset is ordered within the template
-        self.transcriber = Transcriber(template)
+        transcriber = Transcriber(template)
 
         for string in stringset:
             hash_position = template.index(string.template_replacement)
             if not string.pluralized:
-                self.transcriber.copy_until(hash_position)
-                self.transcriber.add(string.string)
-                self.transcriber.skip(len(string.template_replacement))
+                transcriber.copy_until(hash_position)
+                transcriber.add(string.string)
+                transcriber.skip(len(string.template_replacement))
             else:
                 # if the hash is on its own on a line with only spaces, we have
                 # to remember it's indent
@@ -31,27 +31,27 @@ class OrderedCompilerMixin(object):
                 ]
                 if (self.SPACE_PAT.search(indent) and
                         self.SPACE_PAT.search(tail)):
-                    self.transcriber.copy_until(hash_position - indent_length)
+                    transcriber.copy_until(hash_position - indent_length)
                     for rule, value in string.string.items():
-                        self.transcriber.add(
+                        transcriber.add(
                             indent + self.plural_template.format(
                                 rule=self.RULES_ITOA[rule], string=value
                             ) + tail + '\n'
                         )
-                    self.transcriber.skip(indent_length +
-                                          len(string.template_replacement) +
-                                          tail_length + 1)
+                    transcriber.skip(indent_length +
+                                     len(string.template_replacement) +
+                                     tail_length + 1)
                 else:
                     # string is not on its own, simply replace hash with all
                     # plural forms
-                    self.transcriber.copy_until(hash_position)
+                    transcriber.copy_until(hash_position)
                     for rule, value in string.string.items():
-                        self.transcriber.add(self.plural_template.format(
+                        transcriber.add(self.plural_template.format(
                             rule=self.RULES_ITOA[rule], string=value
                         ))
-                    self.transcriber.skip(len(string.template_replacement))
+                    transcriber.skip(len(string.template_replacement))
 
-        self.transcriber.copy_until(len(template))
-        compiled = self.transcriber.get_destination()
+        transcriber.copy_until(len(template))
+        compiled = transcriber.get_destination()
 
         return compiled
