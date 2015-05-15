@@ -42,7 +42,7 @@ class CommonFormatTestCase(object):
                 if not isfile(filepath):
                     self.fail("Bad test files: Expected to find %s" % filepath)
                 with open(filepath, "r") as myfile:
-                    self.data[name] = myfile.read()
+                    self.data[name] = myfile.read().decode("utf-8")
 
     def setUp(self):
         self.handler = self.HANDLER_CLASS()
