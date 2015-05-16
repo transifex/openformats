@@ -13,7 +13,7 @@ Installation
 To use OpenFormats as a Python library, simply install it with ``pip``,
 prefixing with ``sudo`` if permissions warrant::
 
-    pip install pelican markdown
+    pip install openformats
 
 If you plan to tweak the codebase or add your own format handler, grab a copy
 of the whole repository from GitHub::
@@ -67,26 +67,32 @@ Typically this is done in the following way:
 2. Copy the sample tests
 ------------------------
 
-A dummy set of tests can be found at ``openformats/tests/sample/``. Copy the
-directory and uncomment the relevant lines in ``sample_test.py``.
+* A dummy set of tests can be found at ``openformats/tests/sample/``. Copy the
+  directory and customize your handler::
 
-Then, provide a test file for your file format in
-``openformats/tests/sample/files/``. You'll need at least the following files
-(replace ``sample`` with your own extension:
+      $ mkdir tests/myformat
+      $ cp tests/sample/test_sample.py tests/myformat/test_myformat.py
+      [Edit test_myformat.py...]
 
-* ``1_en.sample``
-* ``1_tpl.sample``
-* ``1_el.sample``
+* Provide a test file for your format: as ``tests/myformat/files/1_en.ext``.
 
-The repository has a handy script to generate the ``tpl`` and ``el`` for you
-using the library itself::
 
-    ./bin/create_files.py openformats/tests/sample/files/1_en.sample
+3. Test your handler
+--------------------
 
-This way you can frequently update your English file with new strings and
-corner-cases to test.
+Test your handler by trying to compile the template and translation files::
+
+      ./bin/create_files.py openformats/tests/myformat/files/1_en.ext
+
+This will create ``1_tpl.ext`` and ``1_el.ext`` for you to review and use in
+the following steps in the tests.
+
+
+4. Run the test suite
+---------------------
+::
+
+    nosetests -v openformats
 
 
 Continue reading the other documentation sections for more detail.
-
-.. _Tutorials: https://github.com/getpelican/pelican/wiki/Tutorials
