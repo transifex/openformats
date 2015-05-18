@@ -131,6 +131,12 @@ class Transcriber(object):
 
         <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
     """
+    class SectionStart:
+        pass
+
+    class SectionEnd:
+        pass
+
     def __init__(self, source):
         self.source = source
         self.destination = []
@@ -149,5 +155,34 @@ class Transcriber(object):
     def skip_until(self, end):
         self.ptr = end
 
+    def mark_section_start(self):
+        self.destination.append(self.SectionStart)
+
+    def mark_section_end(self):
+        self.destination.append(self.SectionEnd)
+
+    def remove_section(self, place=0):
+        section_start_position = self._find_last_section_start(place)
+        try:
+            section_end_position = self.destination.index(
+                self.SectionEnd, section_start_position
+            )
+        except ValueError:
+            section_end_position = len(self.destination)
+        for i in range(section_start_position, section_end_position + 1):
+            self.destination[i] = None
+
+    def _find_last_section_start(self, place=0):
+        count = place
+        for i, segment in enumerate(self.destination[::-1], start=1):
+            if segment == self.SectionStart:
+                if count == 0:
+                    return len(self.destination) - i
+                else:
+                    count -= 1
+
     def get_destination(self):
-        return "".join(self.destination)
+        return "".join([entry
+                        for entry in self.destination
+                        if entry not in (self.SectionStart, self.SectionEnd,
+                                         None)])
