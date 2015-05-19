@@ -205,17 +205,28 @@ class Transcriber(object):
         self.destination = []
         self.ptr = 0
 
+        self.newline_count = 0
+
     def copy_until(self, end):
-        self.destination.append(self.source[self.ptr:end])
+        chunk = self.source[self.ptr:end]
+        self.destination.append(chunk)
         self.ptr = end
+
+        self.newline_count += chunk.count('\n')
 
     def add(self, text):
         self.destination.append(text)
 
     def skip(self, offset):
+        chunk = self.source[self.ptr:self.ptr + offset]
+        self.newline_count += chunk.count('\n')
+
         self.ptr += offset
 
     def skip_until(self, end):
+        chunk = self.source[self.ptr:end]
+        self.newline_count += chunk.count('\n')
+
         self.ptr = end
 
     def mark_section_start(self):
