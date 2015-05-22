@@ -3,7 +3,7 @@
 Hello, World!
 
 2
-00:01:45,105 --> 00:01:47,940
+00:01:45,105 --> 00:01:47,940 X:350 Y:240
 Pinky: Gee, Brain, what do you want to do tonight?
 Brain: The same thing we do every night, Pinky - try to take over the world!
 
@@ -24,4 +24,3 @@ A phrase with unicode characters: ΑβΓδΕ → ♡ Ш
 Three lines: First
 Second
 Third
-

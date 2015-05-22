@@ -84,7 +84,11 @@ class SrtHandler(Handler):
         # second line, timings
         timings_parse_error = False
         try:
-            start, arrow, end = timings.split(None, 3)
+            splitted = timings.split(None, 3)
+            if len(splitted) == 3:
+                start, arrow, end = splitted
+            else:
+                start, arrow, end, _ = splitted
         except ValueError:
             timings_parse_error = True
         else:
@@ -92,8 +96,10 @@ class SrtHandler(Handler):
                 timings_parse_error = True
         if timings_parse_error:
             raise ParseError(
-                u"Timings on line {} don't follow '[start] --> [end]' pattern".
-                format(self.transcriber.newline_count + 2)
+                u"Timings on line {} don't follow '[start] --> [end] "
+                "(position)' pattern".format(
+                    self.transcriber.newline_count + 2
+                )
             )
         try:
             start = self._format_timing(start)
