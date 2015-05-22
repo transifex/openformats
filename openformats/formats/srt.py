@@ -104,13 +104,17 @@ class SrtHandler(Handler):
         try:
             start = self._format_timing(start)
         except ValueError:
-            raise ParseError(u"Problem with start of timing at line {}".
-                             format(self.transcriber.newline_count + 2))
+            raise ParseError(
+                u"Problem with start of timing at line {line_no}: '{start}'".
+                format(line_no=self.transcriber.newline_count + 2, start=start)
+            )
         try:
             end = self._format_timing(end)
         except ValueError:
-            raise ParseError(u"Problem with end of timing at line {}".
-                             format(self.transcriber.newline_count + 2))
+            raise ParseError(
+                u"Problem with end of timing at line {line_no}: '{end}'".
+                format(line_no=self.transcriber.newline_count + 2, end=end)
+            )
 
         # Content
         string_stripped = string.strip()
