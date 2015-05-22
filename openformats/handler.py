@@ -84,7 +84,8 @@ class Handler(object):
 
 class Transcriber(object):
     """
-    Create a template from an imported or compile an output file.
+    Create a template from an imported file or compile an output file from a
+    template.
 
     This class will help with both creating a template from an imported
     file and with compiling a file from a template. It provides functions
@@ -130,7 +131,69 @@ class Transcriber(object):
         >>> print transcriber.get_destination()
 
         <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
+
+    Another feature available to you is to mark sections in the target file and
+    optionally remove them. Insert the section-start and section-end bookmarks
+    wherever you want to mark a section. Then you can remove a section with
+    `remove_section()`. For example,
+
+        >>> transcriber = Transcriber(source)
+
+        source:      <keep><remove>
+        ptr:         ^ (0)
+        destination: []
+
+        >>> transcriber.mark_section_start()
+        >>> transcriber.copy_until(1)  # copy until first '<'
+        >>> string = source[1:source.index('>')]
+        >>> transcriber.add("asdf")  # add the hash
+        >>> transcriber.skip(len(string))
+        >>> transcriber.copy_until(source.index('>') + 1)
+        >>> transcriber.mark_section_end()
+
+        source:      <keep><remove>
+        ptr:               ^
+        destination: [SectionStart, '<', 'asdf', '>', SectionEnd]
+
+        >>> if string == "remove":
+        ...     transcriber.remove_section()
+
+        (nothing happens)
+
+        >>> start = source.index('>') + 1
+
+        >>> # Same deal as before, mostly
+        >>> transcriber.mark_section_start()
+        >>> transcriber.copy_until(start + 1)  # copy until second '<'
+        >>> string = source[1:source.index('>', start)]
+        >>> transcriber.add("fdsa")  # add the hash
+        >>> transcriber.skip(len(string))
+        >>> transcriber.copy_until(source.index('>', start) + 1)
+        >>> transcriber.mark_section_end()
+
+        source:      <keep><remove>
+        ptr:                       ^
+        destination: [SectionStart, '<', 'asdf', '>', SectionEnd,
+                      SectionStart, '<', 'fdsa', '>', SectionEnd]
+
+        >>> if string == "remove":
+        ...     transcriber.remove_section()
+
+        source:      <keep><remove>
+        ptr:                       ^
+        destination: [SectionStart, '<', 'asdf', '>', SectionEnd,
+                      None       , None, None , None, None      ]
+
+        (The last section was replaced with Nones)
+
+        Now, when you try to get the result with `get_destination()`, the
+        Nones, SectionStarts and SectionEnds will be ommited:
+
+        >>> transcriber.get_destination()
+
+        <asdf>
     """
+
     class SectionStart:
         pass
 
