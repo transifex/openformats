@@ -5,7 +5,7 @@ Handler
 
 .. py:module:: openformats.handler
 
-.. autoclass:: String
+.. autoclass:: OpenString
    :members:
    :show-inheritance:
 

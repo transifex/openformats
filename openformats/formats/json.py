@@ -19,7 +19,7 @@ from __future__ import absolute_import
 
 import json
 
-from ..handler import Handler, String
+from ..handler import Handler, OpenString
 
 
 class JsonHandler(Handler):
@@ -36,7 +36,7 @@ class JsonHandler(Handler):
                     value[int(rule)] = string
                     del value[rule]
 
-            string = String(key, value)
+            string = OpenString(key, value)
             stringset.append(string)
 
             parsed[key] = string.template_replacement

@@ -1,6 +1,6 @@
 import re
 
-from ..handler import Handler, Transcriber, ParseError, String
+from ..handler import Handler, Transcriber, ParseError, OpenString
 from ..utils.compilers import OrderedCompilerMixin
 
 
@@ -82,7 +82,7 @@ class SrtHandler(OrderedCompilerMixin, Handler):
 
         # Actual subtitle
         source, translation = order, subtitle
-        string = String(
+        string = OpenString(
             source, translation, order=int(order),
             occurrences="{},{}".format(self._format_timing(start),
                                        self._format_timing(end)),

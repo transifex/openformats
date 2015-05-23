@@ -43,14 +43,14 @@ is as follows.
 * Accept a string (``content``) as an argument.
 * Responsible for accepting a string (``content``) and outputting:
   * A template, which is the same string but with the English content removed.
-  * A stringset, which is a collection of `String`s
+  * A stringset, which is a collection of `OpenString`s
 
 Typically this is done in the following way:
 
 * Use a library or own code to segment (deserialize) the content into
   translatable entities.
 * Choose a key to uniquely identify the entity.
-* Create a ``String`` object representing the entity.
+* Create a ``OpenString`` object representing the entity.
 * Create a hash to replace the original content with.
 * Create a stringset with the content
 * Use library or own code to serialize stringset back into a template.
