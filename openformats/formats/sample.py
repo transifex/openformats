@@ -2,7 +2,7 @@
 Sample OpenFormats Handler
 """
 
-from ..handler import Handler  # , String
+from ..handler import Handler  # , OpenString
 
 
 class SampleHandler(Handler):
@@ -12,7 +12,7 @@ class SampleHandler(Handler):
         # stringset = []
         # parsed = parsing_library.load(content)
         # for key, value in parsed.items():
-        #    string = String(key, value)
+        #    string = OpenString(key, value)
         #    stringset.append(string)
         #    parsed[key] = string.template_replacement
         # template = parsing_library.export(parsed)

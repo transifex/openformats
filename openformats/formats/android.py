@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import re
 
-from ..handler import Handler, String, Transcriber
+from ..handler import Handler, OpenString, Transcriber
 from ..utils.xml import DumbXml
 
 
@@ -59,8 +59,8 @@ class AndroidHandler(Handler):
     def _handle_string_tag(self, tag, offset, comment):
         string = None
         if tag.inner.strip() != "":
-            string = String(tag.attrs['name'], tag.inner, order=self._order,
-                            developer_comment=comment)
+            string = OpenString(tag.attrs['name'], tag.inner,
+                                order=self._order, developer_comment=comment)
             self._order += 1
 
         # ... <string name="foo">Hello ....
@@ -93,7 +93,7 @@ class AndroidHandler(Handler):
                 string_array_tag.find('item')):
             string = None
             if item_tag.inner.strip() != "":
-                string = String(
+                string = OpenString(
                     "{}[{}]".format(string_array_tag.attrs['name'], index),
                     item_tag.inner,
                     order=self._order,
@@ -145,8 +145,8 @@ class AndroidHandler(Handler):
         last_item_tag, last_item_offset = item_tag, item_offset
 
         if strings is not None:
-            string = String(plurals_tag.attrs['name'], strings,
-                            order=self._order, developer_comment=comment)
+            string = OpenString(plurals_tag.attrs['name'], strings,
+                                order=self._order, developer_comment=comment)
             self._order += 1
 
             # <plurals name="foo">   <item>Hello ...

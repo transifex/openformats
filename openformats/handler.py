@@ -1,7 +1,7 @@
 from hashlib import md5
 
 
-class String(object):
+class OpenString(object):
     DEFAULTS = {
         'context': "",
         'order': None,

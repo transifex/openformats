@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic.base import TemplateView, View
 from django.views.generic.edit import CreateView
 
-from openformats.handler import Handler, String
+from openformats.handler import Handler, OpenString
 
 from .models import Payload
 
@@ -99,7 +99,7 @@ class ApiView(HandlerMixin, View):
                         'strings': string._strings,
                         'pluralized': string.pluralized,
                         'template_replacement': string.template_replacement}
-        for key in String.DEFAULTS:
+        for key in OpenString.DEFAULTS:
             return_value[key] = getattr(string, key)
         return return_value
 
@@ -116,7 +116,7 @@ class ApiView(HandlerMixin, View):
                        for key, value in string_json.pop('strings').items()}
             del string_json['pluralized']
             del string_json['template_replacement']
-            stringset.append(String(key, strings, **string_json))
+            stringset.append(OpenString(key, strings, **string_json))
 
         handler = handler_class()
         try:

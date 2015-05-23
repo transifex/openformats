@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from ..handler import Handler, String
+from ..handler import Handler, OpenString
 from ..utils.compilers import OrderedCompilerMixin
 
 
@@ -28,7 +28,7 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
         for line in lines:
             stripped_line = line.strip()
             if stripped_line:
-                string = String(str(order), stripped_line, order=order)
+                string = OpenString(str(order), stripped_line, order=order)
                 order += 1
                 stringset.append(string)
 

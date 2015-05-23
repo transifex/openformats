@@ -27,9 +27,9 @@ $(document).ready(function() {
     },
   });
 
-  var String = Backbone.Model.extend({});
+  var OpenString = Backbone.Model.extend({});
   var Stringset = Backbone.Collection.extend({
-    model: String,
+    model: OpenString,
     comparator: 'order',
   });
 

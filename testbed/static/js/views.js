@@ -150,12 +150,12 @@ $(function() {
       this.listenTo(Globals.payload.stringset, 'add', this.render_new);
     },
     render_new: function(new_string) {
-      var new_string_view = new Views.String({ model: new_string });
+      var new_string_view = new Views.OpenString({ model: new_string });
       new_string_view.render().$el.appendTo(this.$el);
     },
   });
 
-  Views.String = Backbone.View.extend({
+  Views.OpenString = Backbone.View.extend({
     tagName: 'a',
     events: {
       'click': "select_string",
