@@ -56,7 +56,7 @@ $(function() {
 
   Views.SourceForm = Backbone.View.extend({
     events: {
-      'change select[name="handler"]': "validate_handler",
+      'change select[name="handler"]': "send_handler",
       'keydown select[name="handler"]': "blur_handler",
       'submit': "submit_source",
       'keydown textarea[name="source"]': "source_keypress",
@@ -99,6 +99,12 @@ $(function() {
     },
     validate_source: function() {
       return this._validate_input('source');
+    },
+    send_handler: function() {
+      if(! this.validate_handler()) { return; }
+      handler = this.ui.handler.val();
+      Globals.payload.set({ handler: handler, action: 'choose_handler' });
+      Globals.payload.send();
     },
     render: function() {
       this.ui.handler.val(Globals.payload.get('handler'));

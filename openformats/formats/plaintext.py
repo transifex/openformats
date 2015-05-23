@@ -6,6 +6,7 @@ from ..utils.compilers import OrderedCompilerMixin
 
 class PlaintextHandler(OrderedCompilerMixin, Handler):
     name = "Plaintext"
+    extension = "txt"
 
     def parse(self, content):
         stringset = []
