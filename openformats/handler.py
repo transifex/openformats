@@ -33,7 +33,7 @@ class OpenString(object):
         return hash((self.key, self.context, self.rule))
 
     def __repr__(self):
-        return '"{}"'.format(self._strings[5])
+        return '"{}"'.format(self._strings[5].encode('utf-8'))
 
     @property
     def string(self):
