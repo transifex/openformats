@@ -1,7 +1,7 @@
 import fnmatch
 from os import listdir, path
 from os.path import isfile, join
-from openformats.utils.tests import translate_stringset
+from ..utils import translate_stringset
 
 
 class CommonFormatTestCase(object):
