@@ -30,7 +30,7 @@ class CommonFormatTestCase(object):
         en_files = []
         for f in listdir(self.TESTFILE_BASE):
             if (isfile(join(self.TESTFILE_BASE, f)) and
-                    fnmatch.fnmatch(f, '*_en.*')):
+                    fnmatch.fnmatch(f, '[!.]*_en.*')):
                 en_files.append(f)
 
         file_nums = set([f.split("_")[0] for f in en_files])
