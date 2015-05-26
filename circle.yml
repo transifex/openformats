@@ -8,7 +8,7 @@ dependencies:
 
 test:
   override:
-    - nosetests openformats
+    - python setup.py test
     - coveralls
 
 deployment:
