@@ -1,7 +1,4 @@
-
-
 class Handler(object):
-
     def parse(self, content):
         # Parse input and return template and stringset
         raise NotImplemented()

@@ -2,7 +2,7 @@
 Sample OpenFormats Handler
 """
 
-from ..handler import Handler  # , OpenString
+from ..handlers import Handler  # , OpenString
 
 
 class SampleHandler(Handler):

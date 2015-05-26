@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from ..handler import Handler
+from ..handlers import Handler
 from openformats.strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
 

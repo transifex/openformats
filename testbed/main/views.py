@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic.base import TemplateView, View
 from django.views.generic.edit import CreateView
 
-from openformats.handler import Handler
+from openformats.handlers import Handler
 from openformats.strings import OpenString
 
 from .models import Payload
