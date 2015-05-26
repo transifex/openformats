@@ -82,14 +82,11 @@ class ApiView(HandlerMixin, View):
             "1_en.{}".format(handler_class.extension)
         )
         return_value = {'handler': handler_name}
-        sample_file = None
         try:
             with open(sample_filepath) as f:
-                sample_file = f.read()
+                return_value['source'] = f.read()
         except IOError:
             pass
-        else:
-            return_value['source'] = sample_file
         return return_value
 
     def _parse(self, payload):
