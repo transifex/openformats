@@ -1,10 +1,9 @@
 import re
 
 from ..handler import Handler, Transcriber, ParseError, OpenString
-from ..utils.compilers import OrderedCompilerMixin
 
 
-class SrtHandler(OrderedCompilerMixin, Handler):
+class SrtHandler(Handler):
     name = "SRT"
     NON_SPACE_PAT = re.compile(r'[^\s]')
 
@@ -20,9 +19,9 @@ class SrtHandler(OrderedCompilerMixin, Handler):
     def parse(self, content):
         if not isinstance(content, unicode):
             content = content.decode("utf-8")
-        transcriber = Transcriber(content)
+        content = content.replace(u'\r\n', u'\n')
 
-        content = content.replace('\r\n', '\n')
+        transcriber = Transcriber(content)
         stringset = []
         for start, subtitle_section in self._generate_split_subtitles(content):
             transcriber.copy_until(start)
@@ -102,3 +101,41 @@ class SrtHandler(OrderedCompilerMixin, Handler):
         )
         return "{:02}:{:02}:{:02}.{:03}".format(hours, minutes, seconds,
                                                 milliseconds)
+
+    def compile(self, template, stringset):
+        transcriber = Transcriber(template)
+        stringset = iter(stringset)
+        string = stringset.next()
+
+        for start, subtitle_section in self.\
+                _generate_split_subtitles(template):
+            transcriber.copy_until(start)
+            transcriber.mark_section_start()
+
+            # Hash is supposed to follow second newline character
+            first_newline = subtitle_section.index('\n')
+            second_newline = subtitle_section.index('\n', first_newline + 1)
+            hash_position = second_newline + 1
+
+            if (subtitle_section[
+                    hash_position:
+                    hash_position + len(string.template_replacement)
+                    ] == string.template_replacement):
+                # found it
+                transcriber.copy_until(start + hash_position)
+                transcriber.add(string.string)
+                transcriber.skip(len(string.template_replacement))
+                transcriber.copy_until(start + len(subtitle_section))
+                transcriber.mark_section_end()
+                try:
+                    string = stringset.next()
+                except StopIteration:
+                    pass
+            else:
+                # did not find it, must remove section
+                transcriber.copy_until(start + len(subtitle_section))
+                transcriber.mark_section_end()
+                transcriber.remove_section()
+
+        transcriber.copy_until(len(template))
+        return transcriber.get_destination()
