@@ -1,6 +1,7 @@
 import re
 
-from ..handler import Handler, ParseError, OpenString
+from ..handler import Handler, ParseError
+from openformats.strings import OpenString
 from openformats.transcribers import Transcriber
 
 

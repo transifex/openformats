@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import re
 
-from ..handler import Handler, OpenString
+from ..handler import Handler
+from openformats.strings import OpenString
 from openformats.transcribers import Transcriber
 from ..utils.xml import DumbXml
 
