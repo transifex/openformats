@@ -1,7 +1,3 @@
-class ParseError(Exception):
-    pass
-
-
 class Handler(object):
     RULES_ATOI = {'zero': 0, 'one': 1, 'two': 2, 'few': 3, 'many': 4,
                   'other': 5}
