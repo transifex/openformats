@@ -1,2 +1,10 @@
-class ParseError(Exception):
+class OpenformatsError(Exception):
+    pass
+
+
+class ParseError(OpenformatsError):
+    pass
+
+
+class RuleError(OpenformatsError):
     pass
