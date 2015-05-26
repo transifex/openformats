@@ -3,7 +3,7 @@
 Γεια σου, Κόσμε!
 
 2
-00:01:45,105 --> 00:01:47,940
+00:01:45,105 --> 00:01:47,940 X:350 Y:240
 Pinky: Brain, ρι θες να κάνουμε απόψε;
 Brain: Ό,τι και κάθε βράδυ, Pinky: θα κατακτήσουμε τον κόσμο!
 
@@ -24,4 +24,3 @@ el:A phrase with unicode characters: ΑβΓδΕ → ♡ Ш
 el:Three lines: First
 Second
 Third
-
