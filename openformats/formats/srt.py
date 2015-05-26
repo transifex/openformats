@@ -1,6 +1,7 @@
 import re
 
-from ..handler import Handler, Transcriber, ParseError, OpenString
+from ..handler import Handler, ParseError, OpenString
+from openformats.transcribers import Transcriber
 
 
 class SrtHandler(Handler):
