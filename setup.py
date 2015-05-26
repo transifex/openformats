@@ -23,7 +23,7 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     dependency_links=tests_require,
-    test_suite="",
+    test_suite="openformats.tests.run_tests.run_all",
     packages=find_packages(
         where='.',
         exclude=('tests*', 'testbed')
