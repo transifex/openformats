@@ -22,72 +22,109 @@ class SrtHandler(Handler):
             content = content.decode("utf-8")
         content = content.replace(u'\r\n', u'\n')
 
-        transcriber = Transcriber(content)
+        self.transcriber = Transcriber(content)
         stringset = []
+        self.max_order = None
         for start, subtitle_section in self._generate_split_subtitles(content):
-            transcriber.copy_until(start)
+            self.transcriber.copy_until(start)
             offset, string = self._parse_section(start, subtitle_section)
 
             if string:
                 stringset.append(string)
 
-                transcriber.copy_until(offset)
-                transcriber.add(string.template_replacement)
-                transcriber.skip(len(string.string))
+                self.transcriber.copy_until(offset)
+                self.transcriber.add(string.template_replacement)
+                self.transcriber.skip(len(string.string))
             else:
-                transcriber.copy_until(start + len(subtitle_section))
+                self.transcriber.copy_until(start + len(subtitle_section))
 
-        transcriber.copy_until(len(content))
+        self.transcriber.copy_until(len(content))
 
-        template = transcriber.get_destination()
+        template = self.transcriber.get_destination()
         return template, stringset
 
     def _parse_section(self, offset, section):
         try:
-            splitted = section.split('\n', 2)
-            order, timings = splitted[:2]
-            try:
-                subtitle = splitted[2]
-            except IndexError:
-                # logger.warning(
-                #     'Could not parse "{}...". Skipping... Error: '
-                #     '{}'.format(section[:50], unicode(e)),
-                #     exc_info=True
-                # )
-                return None, None
-        except ValueError:
-            raise ParseError(u'Could not parse subtitle section: "{}..."'.
-                             format(section[:50]))
-
-        try:
-            int(order)
+            order_str, timings, string = section.split('\n', 2)
         except ValueError:
             raise ParseError(
-                u'First line of subtitle section not a number: "{}..."'.
-                format(section[:50])
+                u"Not enough data on subtitle section on line {}. Order "
+                u"number, timings and subtitle content are needed".
+                format(self.transcriber.newline_count + 1)
             )
 
-        # 2nd line, timings and maybe position
+        # first line, order
+        order_parse_error = False
         try:
-            split_timings = timings.split(None, 3)
-            if split_timings[1] != "-->":
-                raise ParseError("Invalid timings separator: {}".
-                                 format(timings))
-        except Exception:
+            order_int = int(order_str.strip())
+        except ValueError:
+            order_parse_error = True
+        else:
+            if order_int <= 0:
+                order_parse_error = True
+        if order_parse_error:
             raise ParseError(
-                'Second line of subtitle section does not propertly '
-                'represent timing: "{}.\.."'.format(section[:50])
+                u"Order number on line {line_no} ({order_no}) must be a "
+                u"positive integer".format(
+                    line_no=self.transcriber.newline_count + 1,
+                    order_no=order_str,
+                )
             )
-        start, end = split_timings[0], split_timings[2]
+        if self.max_order is not None and order_int <= self.max_order:
+            raise ParseError(
+                u"Order numbers must be in ascending order; number in line "
+                u"{line_no} ({order_no}) is wrong".format(
+                    line_no=self.transcriber.newline_count + 1,
+                    order_no=order_int,
+                )
+            )
+        else:
+            self.max_order = order_int
 
-        # Actual subtitle
-        source, translation = order, subtitle
-        string = OpenString(
-            source, translation, order=int(order),
-            occurrences="{},{}".format(self._format_timing(start),
-                                       self._format_timing(end)),
-        )
-        return offset + len(order) + 1 + len(timings) + 1, string
+        # second line, timings
+        timings_parse_error = False
+        try:
+            splitted = timings.split(None, 3)
+            if len(splitted) == 3:
+                start, arrow, end = splitted
+            else:
+                start, arrow, end, _ = splitted
+        except ValueError:
+            timings_parse_error = True
+        else:
+            if arrow != u"-->":
+                timings_parse_error = True
+        if timings_parse_error:
+            raise ParseError(
+                u"Timings on line {} don't follow '[start] --> [end] "
+                "(position)' pattern".format(
+                    self.transcriber.newline_count + 2
+                )
+            )
+        try:
+            start = self._format_timing(start)
+        except ValueError:
+            raise ParseError(
+                u"Problem with start of timing at line {line_no}: '{start}'".
+                format(line_no=self.transcriber.newline_count + 2, start=start)
+            )
+        try:
+            end = self._format_timing(end)
+        except ValueError:
+            raise ParseError(
+                u"Problem with end of timing at line {line_no}: '{end}'".
+                format(line_no=self.transcriber.newline_count + 2, end=end)
+            )
+
+        # Content
+        string_stripped = string.strip()
+        if string_stripped == u"":
+            raise ParseError(u"Subtitle is empty on line {}".
+                             format(self.transcriber.newline_count + 3))
+
+        string = OpenString(order_str.strip(), string, order=order_int,
+                        occurrences="{},{}".format(start, end))
+        return offset + len(order_str) + 1 + len(timings) + 1, string
 
     def _format_timing(self, timing):
         try:

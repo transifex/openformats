@@ -87,14 +87,16 @@ class Transcriber(object):
     Create a template from an imported file or compile an output file from a
     template.
 
-    This class will help with both creating a template from an imported
-    file and with compiling a file from a template. It provides functions
-    for copying text. It depends on 3 things, the source content
-    (self.source), the target content (self.destination) which initially
-    will contain an empty string and a pointer (self.ptr) which will
-    indicate which parts of 'source' have already been copied to
-    'destination' (and will be initialized to 0). The methods provided are
-    demonstrated below::
+    ## Main functionality
+
+    This class will help with both creating a template from an imported file
+    and with compiling a file from a template. It provides functions for
+    copying text. It depends on 3 things, the source content (self.source), the
+    target content (self.destination) which initially will contain an empty
+    string and a pointer (self.ptr) which will indicate which parts of 'source'
+    have already been copied to 'destination' (and will be initialized to 0).
+
+    The maing methods provided are demonstrated below::
 
         >>> transcriber = Transcriber(source)
 
@@ -132,10 +134,12 @@ class Transcriber(object):
 
         <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
 
+    ## Removing sections
+
     Another feature available to you is to mark sections in the target file and
     optionally remove them. Insert the section-start and section-end bookmarks
     wherever you want to mark a section. Then you can remove a section with
-    `remove_section()`. For example,
+    `remove_section()`. For example::
 
         >>> transcriber = Transcriber(source)
 
@@ -192,6 +196,34 @@ class Transcriber(object):
         >>> transcriber.get_destination()
 
         <asdf>
+
+    ## Counting newlines
+
+    The transcriber remembers how many newlines it has went over on the source,
+    both when copying and skipping content. This allows you to pinpoint the
+    line-number a parse-error has occured. For example::
+
+        source:
+            first line
+            second line
+            third line with error
+            fourth line
+
+        >>> transcriber = Transcriber(source)
+        >>> for line in source.split('\n'):
+        ...     if "error" not in line:
+        ...         transcriber.copy(len(line) + 1)  # include the newline too
+        ...     else:
+        ...         raise ParseError(
+        ...             "Error on line {line_no}: '{line}'".format(
+        ...                 line_no=transcriber.newline_count + 1,
+        ...                 line=line
+        ..              )
+        ...         )
+
+        This will raise a::
+
+        >>> ParseError("Error on line 3: 'third line with error'")
     """
 
     class SectionStart:
@@ -205,17 +237,35 @@ class Transcriber(object):
         self.destination = []
         self.ptr = 0
 
+        self.newline_count = 0
+
+    def copy(self, offset):
+        chunk = self.source[self.ptr:self.ptr + offset]
+        self.destination.append(chunk)
+        self.ptr += offset
+
+        self.newline_count += chunk.count('\n')
+
     def copy_until(self, end):
-        self.destination.append(self.source[self.ptr:end])
+        chunk = self.source[self.ptr:end]
+        self.destination.append(chunk)
         self.ptr = end
+
+        self.newline_count += chunk.count('\n')
 
     def add(self, text):
         self.destination.append(text)
 
     def skip(self, offset):
+        chunk = self.source[self.ptr:self.ptr + offset]
+        self.newline_count += chunk.count('\n')
+
         self.ptr += offset
 
     def skip_until(self, end):
+        chunk = self.source[self.ptr:end]
+        self.newline_count += chunk.count('\n')
+
         self.ptr = end
 
     def mark_section_start(self):
