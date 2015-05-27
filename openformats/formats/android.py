@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import re
 
-from ..handler import Handler, OpenString, Transcriber
+from ..handlers import Handler
+from openformats.strings import OpenString
+from openformats.transcribers import Transcriber
 from ..utils.xml import DumbXml
 
 
@@ -141,7 +143,7 @@ class AndroidHandler(Handler):
 
             first_item_offset = first_item_offset or item_offset
 
-            rule = self.RULES_ATOI[item_tag.attrs['quantity']]
+            rule = self.get_rule_number([item_tag.attrs['quantity']])
             strings[rule] = item_tag.inner
         last_item_tag, last_item_offset = item_tag, item_offset
 

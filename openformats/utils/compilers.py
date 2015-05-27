@@ -1,6 +1,6 @@
 import re
 
-from ..handler import Transcriber
+from openformats.transcribers import Transcriber
 
 
 class OrderedCompilerMixin(object):

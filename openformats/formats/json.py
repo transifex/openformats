@@ -19,7 +19,8 @@ from __future__ import absolute_import
 
 import json
 
-from ..handler import Handler, OpenString
+from ..handlers import Handler
+from openformats.strings import OpenString
 
 
 class JsonHandler(Handler):
