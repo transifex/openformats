@@ -5,6 +5,7 @@ from ..handler import Handler, Transcriber, ParseError, OpenString
 
 class SrtHandler(Handler):
     name = "SRT"
+    extension = "srt"
     NON_SPACE_PAT = re.compile(r'[^\s]')
 
     def _generate_split_subtitles(self, content):

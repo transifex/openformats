@@ -64,10 +64,30 @@ class MainView(HandlerMixin, TemplateView):
 class ApiView(HandlerMixin, View):
     def post(self, request):
         payload = json.loads(request.body)
-        if payload['action'] == "parse":
-            return self._parse(payload)
+        if payload['action'] == "choose_handler":
+            return_value = self._choose_handler(payload)
+        elif payload['action'] == "parse":
+            return_value = self._parse(payload)
         elif payload['action'] == "compile":
-            return self._compile(payload)
+            return_value = self._compile(payload)
+        return HttpResponse(json.dumps(return_value),
+                            mimetype="application/json")
+
+    def _choose_handler(self, payload):
+        handler_name = payload['handler']
+        handler_class = self.handlers[handler_name]
+        handler_name_lower = handler_name.lower()
+        sample_filepath = os.path.join(
+            "openformats", "tests", handler_name_lower, "files",
+            "1_en.{}".format(handler_class.extension)
+        )
+        return_value = {'handler': handler_name}
+        try:
+            with open(sample_filepath) as f:
+                return_value['source'] = f.read()
+        except IOError:
+            pass
+        return return_value
 
     def _parse(self, payload):
         handler_name = payload['handler']
@@ -90,8 +110,7 @@ class ApiView(HandlerMixin, View):
                 'parse_error': "",
             })
 
-        return HttpResponse(json.dumps(returned_payload),
-                            mimetype="application/json")
+        return returned_payload
 
     def _string_to_json(self, string):
         return_value = {'id': string.template_replacement,
@@ -127,8 +146,7 @@ class ApiView(HandlerMixin, View):
         else:
             returned_payload = {'action': None, 'compiled': compiled,
                                 'compile_error': ""}
-        return HttpResponse(json.dumps(returned_payload),
-                            mimetype="application/json")
+        return returned_payload
 
 
 class SaveView(CreateView):

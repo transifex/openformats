@@ -8,6 +8,7 @@ from ..utils.xml import DumbXml
 
 class AndroidHandler(Handler):
     name = "Android"
+    extension = "xml"
 
     plural_template = u'<item quantity="{rule}">{string}</item>'
     SPACE_PAT = re.compile(r'^\s*$')

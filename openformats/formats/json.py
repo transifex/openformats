@@ -24,6 +24,7 @@ from ..handler import Handler, OpenString
 
 class JsonHandler(Handler):
     name = "JSON"
+    extension = "json"
 
     def parse(self, content):
         stringset = []
