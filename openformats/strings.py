@@ -35,7 +35,7 @@ class OpenString(object):
         return hash((self.key, self.context, self.rule))
 
     def __repr__(self):
-        return '"{}"'.format(self._strings[5].encode('utf-8'))
+        return '"{}"'.format(self._strings[5].encode('utf-8'))  # pragma: nocover
 
     @property
     def string(self):
@@ -45,14 +45,9 @@ class OpenString(object):
             return self._strings[5]
 
     def _get_template_replacement(self):
-        if self.context:
-            keys = [self.key] + self.context
-        else:
-            keys = [self.key, '']
-        if self.pluralized:
-            suffix = "pl"
-        else:
-            suffix = "tr"
+        keys = [self.key, self.context or '']
+        suffix = 'pl' if self.pluralized else 'tr'
+
         return "{hash}_{suffix}".format(
             hash=md5(':'.join(keys).encode('utf-8')).hexdigest(),
             suffix=suffix,
