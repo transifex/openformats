@@ -1,7 +1,8 @@
 import fnmatch
 from os import listdir, path
 from os.path import isfile, join
-from ..utils import translate_stringset
+
+from openformats.tests.formats.utils import translate_stringset
 
 
 class CommonFormatTestCase(object):
@@ -14,6 +15,10 @@ class CommonFormatTestCase(object):
         HANDLER_CLASS = PlaintextHandler
         TESTFILE_BASE = "openformats/tests/plaintext/files"
     """
+
+    TESTFILE_BASE = None
+    FORMAT_EXTENSION = None
+    HANDLER_CLASS = None
 
     def __init__(self, *args, **kwargs):
         self.data = {}

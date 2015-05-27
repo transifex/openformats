@@ -4,9 +4,11 @@ Various methods useful for tests and similar operations.
 """
 
 import csv
+import os
 
-DICT_FNAME = "openformats/tests/common/dictionary.csv"
 
+root = os.path.dirname(__file__)
+DICT_FNAME = os.path.join(root, 'common', 'dictionary.csv')
 
 class FunkyDictionary(object):
     def __init__(self):

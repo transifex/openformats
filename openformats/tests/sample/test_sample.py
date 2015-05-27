@@ -1,5 +1,3 @@
-import unittest
-from openformats.tests.common import CommonFormatTestCase
 # from openformats.formats.sample import SampleHandler
 
 

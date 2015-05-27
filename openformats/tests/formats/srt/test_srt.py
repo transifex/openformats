@@ -1,12 +1,13 @@
 import unittest
-from openformats.tests.common import CommonFormatTestCase
+
+from openformats.tests.formats.common import CommonFormatTestCase
 from openformats.formats.srt import SrtHandler
 
 
 class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
     FORMAT_EXTENSION = "srt"
     HANDLER_CLASS = SrtHandler
-    TESTFILE_BASE = "openformats/tests/srt/files"
+    TESTFILE_BASE = "openformats/tests/formats/srt/files"
 
     def test_srt_occurrences(self):
         """srt: Test that timings are saved as occurrencies."""
