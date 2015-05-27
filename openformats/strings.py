@@ -22,8 +22,10 @@ class OpenString(object):
         else:
             self.pluralized = False
             self._strings = {5: string_or_strings}
+
         for key, value in self.DEFAULTS.items():
             setattr(self, key, kwargs.get(key, value))
+
         if 'pluralized' in kwargs:
             self.pluralized = kwargs['pluralized']
 
