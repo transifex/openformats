@@ -12,7 +12,7 @@ class Transcriber(object):
     string and a pointer (self.ptr) which will indicate which parts of 'source'
     have already been copied to 'destination' (and will be initialized to 0).
 
-    The maing methods provided are demonstrated below::
+    The main methods provided are demonstrated below::
 
         >>> transcriber = Transcriber(source)
 

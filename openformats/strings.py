@@ -86,7 +86,7 @@ class OpenString(object):
         if 'pluralized' in kwargs:
             self.pluralized = kwargs['pluralized']
 
-        self._template_replacement = None
+        self._string_hash = None
 
     def __hash__(self):
         return hash((self.key, self.context, self.rule))

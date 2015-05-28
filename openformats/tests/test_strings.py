@@ -70,12 +70,12 @@ class OpenStringTestCase(TestCase):
 
         # Test when pluralized False
         open_string.pluralized = False
-        template_replacement = open_string._get_template_replacement()
+        template_replacement = open_string.template_replacement
         self.assertTrue(template_replacement.endswith('tr'))
 
         # Test when pluralized True
         open_string.pluralized = True
-        template_replacement = open_string._get_template_replacement()
+        template_replacement = open_string.template_replacement
         self.assertTrue(template_replacement.endswith('pl'))
 
     def test_context_is_hashed_when_present(self):
@@ -88,7 +88,7 @@ class OpenStringTestCase(TestCase):
         open_string = OpenString(random_key, 'test')
         open_string.context = random_context
 
-        replacement = open_string._get_template_replacement()
+        replacement = open_string.template_replacement
         hash_string = replacement.split('_')[0]
 
         self.assertEqual(hash_string, random_hash)
