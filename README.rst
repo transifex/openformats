@@ -59,7 +59,7 @@ compiling the template against the stringset, or you can modify it first.
 .. _Python: http://www.python.org/
 .. _Transifex: http://www.transifex.com/
 .. _`contribution submission and feedback guidelines`: http://openformats.readthedocs.org/en/latest/contributing.html
-.. _`OpenFormats documentation`: http://openformats.readthedoc.org/
+.. _`OpenFormats documentation`: http://openformats.readthedocs.org/
 .. _`hosted on GitHub`: https://github.com/transifex/openformats
 
 
