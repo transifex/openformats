@@ -1,9 +1,9 @@
 class Transcriber(object):
     """
-    Create a template from an imported file or compile an output file from a
-    template.
+    This class helps with creating a template from an imported file or compile
+    an output file from a template.
 
-    ## Main functionality
+    **Main functionality**
 
     This class will help with both creating a template from an imported file
     and with compiling a file from a template. It provides functions for
@@ -50,7 +50,7 @@ class Transcriber(object):
 
         <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
 
-    ## Removing sections
+    **Removing sections**
 
     Another feature available to you is to mark sections in the target file and
     optionally remove them. Insert the section-start and section-end bookmarks
@@ -113,7 +113,7 @@ class Transcriber(object):
 
         <asdf>
 
-    ## Counting newlines
+    **Counting newlines**
 
     The transcriber remembers how many newlines it has went over on the source,
     both when copying and skipping content. This allows you to pinpoint the
@@ -126,16 +126,16 @@ class Transcriber(object):
             fourth line
 
         >>> transcriber = Transcriber(source)
-        >>> for line in source.split('\n'):
-        ...     if "error" not in line:
-        ...         transcriber.copy(len(line) + 1)  # include the newline too
-        ...     else:
-        ...         raise ParseError(
-        ...             "Error on line {line_no}: '{line}'".format(
-        ...                 line_no=transcriber.newline_count + 1,
-        ...                 line=line
-        ..              )
-        ...         )
+        >>> for line in source.split("\ n"):
+        >>>     if "error" not in line:
+        >>>         transcriber.copy(len(line) + 1)  # include the newline too
+        >>>     else:
+        >>>         raise ParseError(
+        >>>             "Error on line {line_no}: '{line}'".format(
+        >>>                 line_no=transcriber.newline_count + 1,
+        >>>                 line=line
+        >>>             )
+        >>>         )
 
         This will raise a::
 
