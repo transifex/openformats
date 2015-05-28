@@ -1,7 +1,11 @@
 import fnmatch
+import re
+
 from os import listdir, path
 from os.path import isfile, join
-from ..utils import translate_stringset
+
+from openformats.exceptions import ParseError
+from openformats.tests.formats.utils import translate_stringset
 
 
 class CommonFormatTestCase(object):
@@ -10,10 +14,12 @@ class CommonFormatTestCase(object):
 
     Required class variables and examples for them:
 
-        FORMAT_EXTENSION = "txt"
         HANDLER_CLASS = PlaintextHandler
         TESTFILE_BASE = "openformats/tests/plaintext/files"
     """
+
+    TESTFILE_BASE = None
+    HANDLER_CLASS = None
 
     def __init__(self, *args, **kwargs):
         self.data = {}
@@ -38,7 +44,7 @@ class CommonFormatTestCase(object):
             for ftype in ftypes:
                 name = "%s_%s" % (num, ftype)  # 1_en, 1_fr etc.
                 filepath = path.join(self.TESTFILE_BASE, "%s.%s" % (
-                    name, self.FORMAT_EXTENSION))
+                    name, self.HANDLER_CLASS.extension))
                 if not isfile(filepath):
                     self.fail("Bad test files: Expected to find %s" % filepath)
                 with open(filepath, "r") as myfile:
@@ -70,3 +76,11 @@ class CommonFormatTestCase(object):
         translated_strset = translate_stringset(self.strset)
         translated_content = self.handler.compile(self.tmpl, translated_strset)
         self.assertEquals(translated_content, self.data["1_el"])
+
+    def _test_parse_error(self, source, error_msg):
+        """
+        Test that trying to parse 'source' raises an error with a message
+        exactly like 'error_msg'
+        """
+        self.assertRaisesRegexp(ParseError, re.escape(error_msg),
+                                lambda: self.HANDLER_CLASS().parse(source))
