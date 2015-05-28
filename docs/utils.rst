@@ -1,4 +1,4 @@
-.. _handler:
+.. _utils:
 
 Utils
 =====
