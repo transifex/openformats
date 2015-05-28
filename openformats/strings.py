@@ -113,6 +113,5 @@ class OpenString(object):
 
     @property
     def template_replacement(self):
-        "What this string should be replaced with in the template"
         suffix = 'pl' if self.pluralized else 'tr'
         return "{hash}_{suffix}".format(hash=self.string_hash, suffix=suffix)
