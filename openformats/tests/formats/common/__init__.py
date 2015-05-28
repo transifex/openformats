@@ -11,13 +11,11 @@ class CommonFormatTestCase(object):
 
     Required class variables and examples for them:
 
-        FORMAT_EXTENSION = "txt"
         HANDLER_CLASS = PlaintextHandler
         TESTFILE_BASE = "openformats/tests/plaintext/files"
     """
 
     TESTFILE_BASE = None
-    FORMAT_EXTENSION = None
     HANDLER_CLASS = None
 
     def __init__(self, *args, **kwargs):
@@ -43,7 +41,7 @@ class CommonFormatTestCase(object):
             for ftype in ftypes:
                 name = "%s_%s" % (num, ftype)  # 1_en, 1_fr etc.
                 filepath = path.join(self.TESTFILE_BASE, "%s.%s" % (
-                    name, self.FORMAT_EXTENSION))
+                    name, self.HANDLER_CLASS.extension))
                 if not isfile(filepath):
                     self.fail("Bad test files: Expected to find %s" % filepath)
                 with open(filepath, "r") as myfile:
