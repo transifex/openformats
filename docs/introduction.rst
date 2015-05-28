@@ -5,7 +5,7 @@ Why all this fuss?
 ##################
 
 This library performs one of the most important functions of Transifex: The use
-of language files to import and deliver translations for software products.
+of language files to import and deliver translations.
 
 How software localization works (in a nutshell)
 ===============================================
@@ -89,7 +89,7 @@ File formats
 
 As you can see, these language files have a peculiar format. These ones in
 particular follow the PO file format, and are generated and parsed by an
-open-source software called Gettext, which is popular in the open-source world.
+open-source software called `gettext`_, which is popular in the open-source world.
 The structure of these files allows compatible software to use their contents
 to display the product in a variety of languages.
 
@@ -97,6 +97,8 @@ Transifex needs to support a variety of such file formats, as well of some
 formats that weren't necessarily made for localization. For example, why
 shouldn't you be able to use Transifex to localize subtitle files when the same
 process can clearly work for those too?
+
+.. _gettext: http://en.wikipedia.org/wiki/Gettext
 
 Source::
 
@@ -177,15 +179,17 @@ string with::
 This is the template!
 
 In Transifex, the translators will produce a translated string based on our
-source string::
+source string:
 
-+----------+----------------------------------------------------+
-| Language | Text                                               |
-+==========+====================================================+
-| English  | Pinky: Gee, Brain, what do you want to do tonight? |
-+----------+----------------------------------------------------+
-| Greek    | Pinky: Τι θες να κάνουμε απόψε Brain?              |
-+----------+----------------------------------------------------+
+
+.. table::
+
+=========== =====================================================
+ Language    Text
+=========== =====================================================
+  English    Pinky: Gee, Brain, what do you want to do tonight?
+  Greek      Pinky: Τι θες να κάνουμε απόψε Brain?
+=========== =====================================================
 
 And, finally, the compiler will be able to find the hash in the template and
 replace it with the translation::
