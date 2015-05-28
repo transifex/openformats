@@ -52,8 +52,6 @@ project = u'OpenFormats'
 copyright = u'2015, Transifex'
 
 intersphinx_mapping = {
-    'psycopg2': ('http://initd.org/psycopg/docs/', None),
-    'watchdog': ('http://pythonhosted.org/watchdog/', None),
     'python': ('https://docs.python.org/2.7/', None),
 }
 
