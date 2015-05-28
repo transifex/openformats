@@ -3,18 +3,8 @@
 Handler
 =======
 
-.. py:module:: openformats.handler
-
-.. autoclass:: OpenString
-   :members:
-   :show-inheritance:
-
-:ref:`handler`.
+.. py:module:: openformats.handlers
 
 .. autoclass:: Handler
-   :members:
-   :show-inheritance:
-
-.. autoclass:: Transcriber
    :members:
    :show-inheritance:
