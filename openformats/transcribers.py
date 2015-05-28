@@ -168,7 +168,7 @@ class Transcriber(object):
                 self.SectionEnd, section_start_position
             )
         except ValueError:
-            section_end_position = len(self.destination)
+            section_end_position = len(self.destination) - 1
         for i in range(section_start_position, section_end_position + 1):
             self.destination[i] = None
 
