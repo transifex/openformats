@@ -1,7 +1,10 @@
 import fnmatch
+import re
+
 from os import listdir, path
 from os.path import isfile, join
 
+from openformats.exceptions import ParseError
 from openformats.tests.formats.utils import translate_stringset
 
 
@@ -73,3 +76,11 @@ class CommonFormatTestCase(object):
         translated_strset = translate_stringset(self.strset)
         translated_content = self.handler.compile(self.tmpl, translated_strset)
         self.assertEquals(translated_content, self.data["1_el"])
+
+    def _test_parse_error(self, source, error_msg):
+        """
+        Test that trying to parse 'source' raises an error with a message
+        exactly like 'error_msg'
+        """
+        self.assertRaisesRegexp(ParseError, re.escape(error_msg),
+                                lambda: self.HANDLER_CLASS().parse(source))
