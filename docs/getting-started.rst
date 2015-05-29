@@ -37,7 +37,7 @@ subtitles (``.srt``) and others. Here are the steps to create your own handler.
 .. autoclass:: Handler
    :members:
 
-Following are some classes that will help you with this process:
+The following are some classes that will help you with this process:
 
 
 2. The `OpenString` class
@@ -59,4 +59,4 @@ Following are some classes that will help you with this process:
 
 
 
-Continue reading the other documentation sections for more detail.
+Continue reading the other documentation sections for further details.
