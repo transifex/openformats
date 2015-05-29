@@ -81,5 +81,6 @@ class CommonFormatTestMixin(object):
         Test that trying to parse 'source' raises an error with a message
         exactly like 'error_msg'
         """
-        self.assertRaisesRegexp(ParseError, re.escape(error_msg),
+        self.assertRaisesRegexp(ParseError,
+                                r'^{}$'.format(re.escape(error_msg)),
                                 lambda: self.HANDLER_CLASS().parse(source))

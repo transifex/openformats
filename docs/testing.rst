@@ -70,6 +70,8 @@ you will want to also test more things, like:
 .. autofunction:: generate_random_string
 .. autofunction:: strip_leading_spaces
 
+.. automethod:: openformats.tests.formats.common.CommonFormatTestMixin._test_parse_error
+
 
 5. Run the test suite
 =====================
