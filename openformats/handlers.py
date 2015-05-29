@@ -1,6 +1,14 @@
 from openformats.exceptions import RuleError
 
+
 class Handler(object):
+    """
+    This class defines the interface you need to implement in order to create a
+    handler. Both the `parse` and `compile` methods must be implemented.
+    """
+
+    name = None
+    extension = None
 
     _RULES_ATOI = {
         'zero': 0,
@@ -38,9 +46,44 @@ class Handler(object):
             raise RuleError(msg)
 
     def parse(self, content):
-        # Parse input and return template and stringset
+        """
+        Parses the content, extracts translatable strings into a stringset,
+        replaces them with hashes and returns a tuple of the template with the
+        stringset
+
+        Typically this is done in the following way:
+
+        * Use a library or your own code to segment (deserialize) the content
+          into translatable entities.
+        * Choose a key to uniquely identify the entity.
+        * Create an ``OpenString`` object representing the entity.
+        * Create a hash to replace the original content with.
+        * Create a stringset with the content.
+        * Use library or own code to serialize stringset back into a template.
+        """
+
         raise NotImplemented('Abstract method')  # pragma: no cover
 
     def compile(self, template, stringset):
-        # uses template and stringset and returns the compiled file
+        """
+        Parses the template, finds the hashes, replaces them with strings from
+        the stringset and returns the compiled file. If a hash in the template
+        isn't found in the stringset, it's a good practice to remove the whole
+        string section surrounding it
+
+        Typically this is done in the following way:
+
+        * Use a library or own code to segment (deserialize) the template into
+          translatable entities, as if assuming that the hashes are the
+          translatable entities.
+        * Make sure the hash matches the first string in the stringset.
+        * Replace the hash with the string.
+        * Use library or own code to serialize stringset back into a compiled
+          file.
+
+        You can safely assume that the stringset will have strings in the
+        correct order for the above process and thus you will probably be able
+        to perform the whole compilation in a single pass.
+        """
+
         raise NotImplemented('Abstract method')  # pragma: no cover

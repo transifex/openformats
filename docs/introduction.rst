@@ -124,7 +124,7 @@ Translated::
 How Transifex and Openformats deal with this task
 =================================================
 
-A :ref:`handler` , the basic unit of the Openformats library, will parse a
+A **handler**, the basic unit of the Openformats library, will parse a
 source language file and find the source strings in it. It will extract these
 into a **stringset**, a collection of said content associated with some
 metadata. This metadata's use is to:

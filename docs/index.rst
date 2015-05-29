@@ -9,7 +9,7 @@ Contents
 
    introduction
    getting-started
-   handler
+   testing
    utils
    contributing
    Changelog

@@ -9,6 +9,7 @@ from openformats.transcribers import Transcriber
 class SrtHandler(Handler):
     name = "SRT"
     extension = "srt"
+
     NON_SPACE_PAT = re.compile(r'[^\s]')
 
     def _generate_split_subtitles(self, content):
@@ -53,7 +54,7 @@ class SrtHandler(Handler):
             raise ParseError(
                 u"Not enough data on subtitle section on line {}. Order "
                 u"number, timings and subtitle content are needed".
-                format(self.transcriber.newline_count + 1)
+                format(self.transcriber.line_number)
             )
 
         # first line, order
@@ -69,7 +70,7 @@ class SrtHandler(Handler):
             raise ParseError(
                 u"Order number on line {line_no} ({order_no}) must be a "
                 u"positive integer".format(
-                    line_no=self.transcriber.newline_count + 1,
+                    line_no=self.transcriber.line_number,
                     order_no=order_str,
                 )
             )
@@ -77,7 +78,7 @@ class SrtHandler(Handler):
             raise ParseError(
                 u"Order numbers must be in ascending order; number in line "
                 u"{line_no} ({order_no}) is wrong".format(
-                    line_no=self.transcriber.newline_count + 1,
+                    line_no=self.transcriber.line_number,
                     order_no=order_int,
                 )
             )
@@ -101,7 +102,7 @@ class SrtHandler(Handler):
             raise ParseError(
                 u"Timings on line {} don't follow '[start] --> [end] "
                 "(position)' pattern".format(
-                    self.transcriber.newline_count + 2
+                    self.transcriber.line_number + 1
                 )
             )
         try:
@@ -109,24 +110,24 @@ class SrtHandler(Handler):
         except ValueError:
             raise ParseError(
                 u"Problem with start of timing at line {line_no}: '{start}'".
-                format(line_no=self.transcriber.newline_count + 2, start=start)
+                format(line_no=self.transcriber.line_number + 1, start=start)
             )
         try:
             end = self._format_timing(end)
         except ValueError:
             raise ParseError(
                 u"Problem with end of timing at line {line_no}: '{end}'".
-                format(line_no=self.transcriber.newline_count + 2, end=end)
+                format(line_no=self.transcriber.line_number + 1, end=end)
             )
 
         # Content
         string_stripped = string.strip()
         if string_stripped == u"":
             raise ParseError(u"Subtitle is empty on line {}".
-                             format(self.transcriber.newline_count + 3))
+                             format(self.transcriber.line_number + 2))
 
         string = OpenString(order_str.strip(), string, order=order_int,
-                        occurrences="{},{}".format(start, end))
+                            occurrences="{},{}".format(start, end))
         return offset + len(order_str) + 1 + len(timings) + 1, string
 
     def _format_timing(self, timing):
