@@ -25,7 +25,7 @@ See our `contribution submission and feedback guidelines`_.
 
 You can run tests for the formats by doing the following::
 
-    nosetests openformats
+    python setup.py test
 
 
 Source code
