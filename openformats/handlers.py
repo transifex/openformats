@@ -4,8 +4,7 @@ from openformats.exceptions import RuleError
 class Handler(object):
     """
     This class defines the interface you need to implement in order to create a
-    handler. What you have to define are the `parse` and `compile` methods.
-
+    handler. Both the `parse` and `compile` methods must be implemented.
     """
 
     name = None
@@ -54,12 +53,12 @@ class Handler(object):
 
         Typically this is done in the following way:
 
-        * Use a library or own code to segment (deserialize) the content into
-          translatable entities.
+        * Use a library or your own code to segment (deserialize) the content
+          into translatable entities.
         * Choose a key to uniquely identify the entity.
-        * Create a ``OpenString`` object representing the entity.
+        * Create an ``OpenString`` object representing the entity.
         * Create a hash to replace the original content with.
-        * Create a stringset with the content
+        * Create a stringset with the content.
         * Use library or own code to serialize stringset back into a template.
         """
 
@@ -84,7 +83,7 @@ class Handler(object):
 
         You can safely assume that the stringset will have strings in the
         correct order for the above process and thus you will probably be able
-        to make the whole compilation in one pass.
+        to perform the whole compilation in a single pass.
         """
 
         raise NotImplemented('Abstract method')  # pragma: no cover
