@@ -1,8 +1,10 @@
+from random import randint
 from unittest import TestCase
+
 from openformats.exceptions import RuleError
 from openformats.handlers import Handler
-from utils import generate_random_string
-from random import randint
+
+from openformats.tests.utils import generate_random_string
 
 
 class HandlerTestCase(TestCase):

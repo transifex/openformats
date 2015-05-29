@@ -1,11 +1,11 @@
 import unittest
 
-from openformats.tests.formats.common import CommonFormatTestCase
+from openformats.tests.formats.common import CommonFormatTestMixin
 from openformats.tests.utils import strip_leading_spaces
 from openformats.formats.srt import SrtHandler
 
 
-class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
+class SrtTestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = SrtHandler
     TESTFILE_BASE = "openformats/tests/formats/srt/files"
 

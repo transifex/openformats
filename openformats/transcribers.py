@@ -195,7 +195,7 @@ class Transcriber(object):
                 fourth line
 
             >>> transcriber = Transcriber(source)
-            >>> for line in source.split("\ n"):
+            >>> for line in source.split("\\n"):
             >>>     if "error" not in line:
             >>>         # include the newline too
             >>>         transcriber.copy(len(line) + 1)

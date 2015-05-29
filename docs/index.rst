@@ -11,6 +11,7 @@ Contents
    getting-started
    testing
    utils
+   testbed
    contributing
    Changelog
 

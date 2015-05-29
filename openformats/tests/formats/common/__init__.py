@@ -5,25 +5,24 @@ from os import listdir, path
 from os.path import isfile, join
 
 from openformats.exceptions import ParseError
-from openformats.tests.formats.utils import translate_stringset
+from openformats.tests.utils import translate_stringset
 
 
-class CommonFormatTestCase(object):
+class CommonFormatTestMixin(object):
     """
     Define a set of tests to be run by every file format.
-
-    Required class variables and examples for them:
-
-        HANDLER_CLASS = PlaintextHandler
-        TESTFILE_BASE = "openformats/tests/plaintext/files"
     """
+
+    # Required class variables and examples:
+    #     HANDLER_CLASS = PlaintextHandler
+    #     TESTFILE_BASE = "openformats/tests/formats/plaintext/files"
 
     TESTFILE_BASE = None
     HANDLER_CLASS = None
 
     def __init__(self, *args, **kwargs):
         self.data = {}
-        super(CommonFormatTestCase, self).__init__(*args, **kwargs)
+        super(CommonFormatTestMixin, self).__init__(*args, **kwargs)
 
     def read_files(self, ftypes=('en', 'el', 'tpl')):
         """
@@ -54,7 +53,7 @@ class CommonFormatTestCase(object):
         self.handler = self.HANDLER_CLASS()
         self.read_files()
         self.tmpl, self.strset = self.handler.parse(self.data["1_en"])
-        super(CommonFormatTestCase, self).setUp()
+        super(CommonFormatTestMixin, self).setUp()
 
     def test_template(self):
         """Test that the template created is the same as static one."""
