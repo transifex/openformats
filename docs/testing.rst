@@ -77,4 +77,4 @@ you will want to also test more things, like:
 =====================
 ::
 
-    nosetests -v openformats
+    python setup.py test

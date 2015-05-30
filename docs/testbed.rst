@@ -4,4 +4,4 @@
 The testbed
 ###########
 
-TODO
+.. image:: images/openformats-testbed-screencast.gif
