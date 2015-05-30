@@ -10,8 +10,8 @@ Contents
    introduction
    getting-started
    testing
-   utils
    testbed
+   utils
    contributing
    Changelog
 
