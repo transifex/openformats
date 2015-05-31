@@ -112,12 +112,14 @@ class Transcriber(object):
             ptr:         ^ (0)
             destination: []
 
+            >>> start = 0
+
             >>> transcriber.mark_section_start()
-            >>> transcriber.copy_until(1)  # copy until first '<'
-            >>> string = source[1:source.index('>')]
+            >>> transcriber.copy_until(start + 1)  # copy until first '<'
+            >>> string = source[start + 1:source.index('>', start)]
             >>> transcriber.add("asdf")  # add the hash
             >>> transcriber.skip(len(string))
-            >>> transcriber.copy_until(source.index('>') + 1)
+            >>> transcriber.copy_until(source.index('>', start) + 1)
             >>> transcriber.mark_section_end()
 
             source:      <keep><remove>
@@ -134,7 +136,7 @@ class Transcriber(object):
             >>> # Same deal as before, mostly
             >>> transcriber.mark_section_start()
             >>> transcriber.copy_until(start + 1)  # copy until second '<'
-            >>> string = source[1:source.index('>', start)]
+            >>> string = source[start + 1:source.index('>', start)]
             >>> transcriber.add("fdsa")  # add the hash
             >>> transcriber.skip(len(string))
             >>> transcriber.copy_until(source.index('>', start) + 1)
@@ -183,7 +185,7 @@ class Transcriber(object):
 
     @property
     def line_number(self):
-        """
+        r"""
         The transcriber remembers how many newlines it has went over on the
         source, both when copying and skipping content. This allows you to
         pinpoint the line-number a parse-error has occured. For example::
@@ -195,7 +197,7 @@ class Transcriber(object):
                 fourth line
 
             >>> transcriber = Transcriber(source)
-            >>> for line in source.split("\\n"):
+            >>> for line in source.split("\n"):
             >>>     if "error" not in line:
             >>>         # include the newline too
             >>>         transcriber.copy(len(line) + 1)

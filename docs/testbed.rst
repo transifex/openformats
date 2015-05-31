@@ -12,7 +12,7 @@ simply run::
 
 and point your browser to ``http://localhost:8000``
 
-The interface consists of 3 columns, one for each stage of the hadnler's
+The interface consists of 3 columns, one for each state of the handler's
 lifetime.
 
 .. image:: images/openformats-testbed-screencast.gif
@@ -31,7 +31,7 @@ Once you select one, you can type or paste some content in the textarea. If you
 have a sample file in
 ``openformats/tests/formats/<format_name>/files/1_en.<extension>``, it will be
 picked up by the testbed and put in the textarea automatically once you select
-a format.
+a format. You can of course edit or replace it if you want.
 
 Finally, press 'parse' to, well, parse the source content. The actual handler
 will be used to display the outcome in the next column:

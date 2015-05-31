@@ -11,11 +11,12 @@ from openformats.tests.utils import translate_stringset
 class CommonFormatTestMixin(object):
     """
     Define a set of tests to be run by every file format.
-    """
 
-    # Required class variables and examples:
-    #     HANDLER_CLASS = PlaintextHandler
-    #     TESTFILE_BASE = "openformats/tests/formats/plaintext/files"
+    The class that inherits from this must define the following:
+
+    * ``HANDLER_CLASS``, eg: PlaintextHandler
+    * ``TESTFILE_BASE``, eg: `openformats/tests/formats/plaintext/files`
+    """
 
     TESTFILE_BASE = None
     HANDLER_CLASS = None
