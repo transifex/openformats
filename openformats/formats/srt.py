@@ -1,3 +1,4 @@
+import itertools
 import re
 
 from ..handlers import Handler
@@ -29,6 +30,7 @@ class SrtHandler(Handler):
         self.transcriber = Transcriber(content)
         stringset = []
         self.max_order = None
+        self.orders = itertools.count()
         for start, subtitle_section in self._generate_split_subtitles(content):
             self.transcriber.copy_until(start)
             offset, string = self._parse_section(start, subtitle_section)
@@ -123,7 +125,7 @@ class SrtHandler(Handler):
             raise ParseError(u"Subtitle is empty on line {}".
                              format(self.transcriber.line_number + 2))
 
-        string = OpenString(order_str.strip(), string, order=order_int,
+        string = OpenString(order_str.strip(), string, order=next(self.orders),
                             occurrences="{},{}".format(start, end))
         return offset + len(order_str) + 1 + len(timings) + 1, string
 
