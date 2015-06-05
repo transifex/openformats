@@ -51,11 +51,8 @@ class SrtHandler(Handler):
         try:
             order_str, timings, string = section.split('\n', 2)
         except ValueError:
-            raise ParseError(
-                u"Not enough data on subtitle section on line {}. Order "
-                u"number, timings and subtitle content are needed".
-                format(self.transcriber.line_number)
-            )
+            # We can't parse this, skip
+            return None, None
 
         # first line, order
         order_parse_error = False
