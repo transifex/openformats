@@ -150,6 +150,14 @@ class SrtHandler(Handler):
 
         for start, subtitle_section in self.\
                 _generate_split_subtitles(template):
+            if subtitle_section.count('\n') <= 1:
+                # No hash present, must be a skipped subtitle, copy until end
+                transcriber.copy_until(start)
+                transcriber.mark_section_start()
+                transcriber.copy_until(start + len(subtitle_section))
+                transcriber.mark_section_end()
+                continue
+
             transcriber.copy_until(start)
             transcriber.mark_section_start()
 
