@@ -66,8 +66,8 @@ class OpenString(object):
         'occurrences': None,
         'developer_comment': "",
         'flags': "",
-        'fuzzy': None,
-        'obsolete': None,
+        'fuzzy': False,
+        'obsolete': False,
     }
 
     def __init__(self, key, string_or_strings, **kwargs):
