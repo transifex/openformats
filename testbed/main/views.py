@@ -79,7 +79,7 @@ class ApiView(HandlerMixin, View):
         handler_class = self.handlers[handler_name]
         handler_name_lower = handler_name.lower()
         sample_filepath = os.path.join(
-            "openformats", "tests", handler_name_lower, "files",
+            "openformats", "tests", "formats", handler_name_lower, "files",
             "1_en.{}".format(handler_class.extension)
         )
         return_value = {'handler': handler_name}
