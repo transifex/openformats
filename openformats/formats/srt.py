@@ -82,7 +82,15 @@ class SrtHandler(Handler):
             self.max_order = order_int
 
         # second line, timings
-        timings_str = lines.next()
+        try:
+            timings_str = lines.next()
+        except StopIteration:
+            raise ParseError(
+                u"Subtitle section in line {line_no} is only 1 line long. A "
+                u"timings line and the actual subtitle are needed".format(
+                    line_no=self.transcriber.line_number
+                )
+            )
         timings_parse_error = False
         try:
             splitted = timings_str.split(None, 3)
@@ -98,7 +106,7 @@ class SrtHandler(Handler):
         if timings_parse_error:
             raise ParseError(
                 u"Timings on line {} don't follow '[start] --> [end] "
-                "(position)' pattern".format(
+                u"(position)' pattern".format(
                     self.transcriber.line_number + 1
                 )
             )

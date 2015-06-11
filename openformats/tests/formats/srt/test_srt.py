@@ -26,8 +26,18 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Order number on line 1 (00:01:28,797 --> 00:01:30,297) must be a "
-            "positive integer"
+            u"Order number on line 1 (00:01:28,797 --> 00:01:30,297) must be "
+            u"a positive integer"
+        )
+
+    def test_only_one_line(self):
+        source = strip_leading_spaces("""
+            1
+        """)
+        self._test_parse_error(
+            source,
+            u"Subtitle section in line 1 is only 1 line long. A timings line "
+            u"and the actual subtitle are needed"
         )
 
     def test_missing_timings(self):
@@ -37,8 +47,8 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Timings on line 2 don't follow '[start] --> [end] (position)' "
-            "pattern"
+            u"Timings on line 2 don't follow '[start] --> [end] (position)' "
+            u"pattern"
         )
 
     def test_missing_string(self):
@@ -58,7 +68,7 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Order number on line 1 (-3) must be a positive integer"
+            u"Order number on line 1 (-3) must be a positive integer"
         )
 
     def test_non_ascending_order(self):
@@ -73,8 +83,8 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Order numbers must be in ascending order; number in line 5 (1) "
-            "is wrong"
+            u"Order numbers must be in ascending order; number in line 5 (1) "
+            u"is wrong"
         )
 
     def test_wrong_timings(self):
@@ -85,8 +95,8 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Timings on line 2 don't follow '[start] --> [end] (position)' "
-            "pattern"
+            u"Timings on line 2 don't follow '[start] --> [end] (position)' "
+            u"pattern"
         )
 
         source = strip_leading_spaces("""
@@ -96,7 +106,7 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Problem with start of timing at line 2: '00:fas28,797'"
+            u"Problem with start of timing at line 2: '00:fas28,797'"
         )
 
         source = strip_leading_spaces("""
@@ -106,5 +116,5 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Problem with end of timing at line 2: '00:ois30,297'"
+            u"Problem with end of timing at line 2: '00:ois30,297'"
         )
