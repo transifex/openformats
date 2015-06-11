@@ -1,7 +1,7 @@
 .. _testbed:
 
 
-The testbed
+The Testbed
 ###########
 
 The testbed is a real-time `django`_ web application included with the openformats

@@ -56,8 +56,8 @@ you will want to also test more things, like:
 
 * The hashes produced take the correct information into account
 * The metadata of the extracted strings is what you want
-* `ParseErrors` are raised when they should and their message is helpful to
-  Transifex users
+* `ParseErrors` are raised when appropriate and they produce a helpful error
+  message
 * Sections of the compiled files are removed when the relevant strings are
   missing from the stringset given as input
 * Anything to get your coverage higher
