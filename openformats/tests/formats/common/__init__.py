@@ -84,4 +84,4 @@ class CommonFormatTestMixin(object):
         """
         self.assertRaisesRegexp(ParseError,
                                 r'^{}$'.format(re.escape(error_msg)),
-                                lambda: self.HANDLER_CLASS().parse(source))
+                                lambda: self.handler.parse(source))
