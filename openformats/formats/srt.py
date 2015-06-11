@@ -50,13 +50,10 @@ class SrtHandler(Handler):
         return template, stringset
 
     def _parse_section(self, offset, section):
-        try:
-            order_str, timings, string = section.split('\n', 2)
-        except ValueError:
-            # We can't parse this, skip
-            return None, None
+        lines = iter(section.split('\n'))
 
         # first line, order
+        order_str = lines.next()
         order_parse_error = False
         try:
             order_int = int(order_str.strip())
@@ -85,9 +82,10 @@ class SrtHandler(Handler):
             self.max_order = order_int
 
         # second line, timings
+        timings_str = lines.next()
         timings_parse_error = False
         try:
-            splitted = timings.split(None, 3)
+            splitted = timings_str.split(None, 3)
             if len(splitted) == 3:
                 start, arrow, end = splitted
             else:
@@ -120,14 +118,15 @@ class SrtHandler(Handler):
             )
 
         # Content
-        string_stripped = string.strip()
+        string_stripped = '\n'.join(lines).strip()
         if string_stripped == u"":
-            raise ParseError(u"Subtitle is empty on line {}".
-                             format(self.transcriber.line_number + 2))
+            # We can't parse this, skip
+            return None, None
 
-        string = OpenString(order_str.strip(), string, order=next(self.orders),
+        string = OpenString(order_str.strip(), string_stripped,
+                            order=next(self.orders),
                             occurrences="{},{}".format(start, end))
-        return offset + len(order_str) + 1 + len(timings) + 1, string
+        return offset + len(order_str) + 1 + len(timings_str) + 1, string
 
     def _format_timing(self, timing):
         try:

@@ -26,8 +26,8 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Not enough data on subtitle section on line 2. Order number, "
-            "timings and subtitle content are needed"
+            "Order number on line 1 (00:01:28,797 --> 00:01:30,297) must be a "
+            "positive integer"
         )
 
     def test_missing_timings(self):
@@ -37,8 +37,8 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Not enough data on subtitle section on line 2. Order number, "
-            "timings and subtitle content are needed"
+            "Timings on line 2 don't follow '[start] --> [end] (position)' "
+            "pattern"
         )
 
     def test_missing_string(self):
@@ -46,11 +46,9 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
             1
             00:01:28,797 --> 00:01:30,297
         """)
-        self._test_parse_error(
-            source,
-            "Not enough data on subtitle section on line 2. Order number, "
-            "timings and subtitle content are needed"
-        )
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(template, source)
+        self.assertEquals(len(stringset), 0)
 
     def test_negative_order(self):
         source = strip_leading_spaces("""
@@ -60,7 +58,7 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Order number on line 2 (-3) must be a positive integer"
+            "Order number on line 1 (-3) must be a positive integer"
         )
 
     def test_non_ascending_order(self):
@@ -75,7 +73,7 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Order numbers must be in ascending order; number in line 6 (1) "
+            "Order numbers must be in ascending order; number in line 5 (1) "
             "is wrong"
         )
 
@@ -87,7 +85,7 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Timings on line 3 don't follow '[start] --> [end] (position)' "
+            "Timings on line 2 don't follow '[start] --> [end] (position)' "
             "pattern"
         )
 
@@ -98,7 +96,7 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Problem with start of timing at line 3: '00:fas28,797'"
+            "Problem with start of timing at line 2: '00:fas28,797'"
         )
 
         source = strip_leading_spaces("""
@@ -108,5 +106,5 @@ class SrtTestCase(CommonFormatTestCase, unittest.TestCase):
         """)
         self._test_parse_error(
             source,
-            "Problem with end of timing at line 3: '00:ois30,297'"
+            "Problem with end of timing at line 2: '00:ois30,297'"
         )
