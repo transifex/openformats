@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from openformats.formats import (plaintext, srt)
-from openformats.utils.tests import translate_stringset
+from openformats.tests.utils import translate_stringset
 
 args = argparse.ArgumentParser
 

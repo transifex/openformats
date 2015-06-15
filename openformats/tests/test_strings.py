@@ -1,9 +1,10 @@
+from hashlib import md5
 from random import randint
 from unittest import TestCase
-from hashlib import md5
 
 from openformats.strings import OpenString
-from utils import generate_random_string
+
+from openformats.tests.utils import generate_random_string
 
 
 class OpenStringTestCase(TestCase):

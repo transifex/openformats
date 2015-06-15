@@ -7,9 +7,9 @@ def generate_random_string(length=20):
 
 
 def strip_leading_spaces(source):
-    """
+    r"""
     This is to help you write multilingual strings as test inputs in your
-    tests without screwing up your code's syntax. Eg
+    tests without screwing up your code's syntax. Eg::
 
         '''
             1
@@ -17,7 +17,7 @@ def strip_leading_spaces(source):
             Hello world
         '''
 
-    will be converted to:
+    will be converted to::
 
         '\n1\n00:01:28.797 --> 00:01:30.297 X:240 Y:480\nHello world\n'
     """

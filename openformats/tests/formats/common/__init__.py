@@ -5,17 +5,17 @@ from os import listdir, path
 from os.path import isfile, join
 
 from openformats.exceptions import ParseError
-from openformats.tests.formats.utils import translate_stringset
+from openformats.tests.utils import translate_stringset
 
 
-class CommonFormatTestCase(object):
+class CommonFormatTestMixin(object):
     """
     Define a set of tests to be run by every file format.
 
-    Required class variables and examples for them:
+    The class that inherits from this must define the following:
 
-        HANDLER_CLASS = PlaintextHandler
-        TESTFILE_BASE = "openformats/tests/plaintext/files"
+    * ``HANDLER_CLASS``, eg: PlaintextHandler
+    * ``TESTFILE_BASE``, eg: `openformats/tests/formats/plaintext/files`
     """
 
     TESTFILE_BASE = None
@@ -23,7 +23,7 @@ class CommonFormatTestCase(object):
 
     def __init__(self, *args, **kwargs):
         self.data = {}
-        super(CommonFormatTestCase, self).__init__(*args, **kwargs)
+        super(CommonFormatTestMixin, self).__init__(*args, **kwargs)
 
     def read_files(self, ftypes=('en', 'el', 'tpl')):
         """
@@ -54,7 +54,7 @@ class CommonFormatTestCase(object):
         self.handler = self.HANDLER_CLASS()
         self.read_files()
         self.tmpl, self.strset = self.handler.parse(self.data["1_en"])
-        super(CommonFormatTestCase, self).setUp()
+        super(CommonFormatTestMixin, self).setUp()
 
     def test_template(self):
         """Test that the template created is the same as static one."""
@@ -82,5 +82,6 @@ class CommonFormatTestCase(object):
         Test that trying to parse 'source' raises an error with a message
         exactly like 'error_msg'
         """
-        self.assertRaisesRegexp(ParseError, re.escape(error_msg),
-                                lambda: self.HANDLER_CLASS().parse(source))
+        self.assertRaisesRegexp(ParseError,
+                                r'^{}$'.format(re.escape(error_msg)),
+                                lambda: self.handler.parse(source))

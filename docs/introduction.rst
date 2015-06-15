@@ -93,10 +93,10 @@ open-source software called `gettext`_, which is popular in the open-source worl
 The structure of these files allows compatible software to use their contents
 to display the product in a variety of languages.
 
-Transifex needs to support a variety of such file formats, as well of some
-formats that weren't necessarily made for localization. For example, why
-shouldn't you be able to use Transifex to localize subtitle files when the same
-process can clearly work for those too?
+We need to support a variety of such file formats, as well of some formats that
+weren't necessarily made for localization. For example, why shouldn't you be
+able to use this process to localize subtitle files when the same process can
+clearly work for those too?
 
 .. _gettext: http://en.wikipedia.org/wiki/Gettext
 
@@ -139,9 +139,9 @@ the **template**.
 Both the stringset and the template are stored in Transifex's database. The
 translation editor will present the stringset to translators, abstracting the
 template away, allowing them to focus solely on translation. Translators in
-transifex can work on a variety of files using the exact same interface, not
-having to bother with the nature or the structure of the file format being
-used.
+Transifex's web editor can work on a variety of files using the exact same
+interface, not having to bother with the nature or the structure of the file
+format being used.
 
 Having saved the trasnlations in the database, the format handler can combine
 those with the template to produce a target language file to be used in your
@@ -178,8 +178,8 @@ string with::
 
 This is the template!
 
-In Transifex, the translators will produce a translated string based on our
-source string:
+In the web editor, the translators will produce a translated string based on
+our source string:
 
 
 .. table::

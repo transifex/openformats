@@ -105,10 +105,10 @@ Contribution quality standards
   code/formatting can be improved.
 * Add docs and tests for your changes. Undocumented and untested features will
   not be accepted.
-* `Run all the tests`_ **on all versions of Python supported by Openformats** to
+* `Run all the tests` **on all versions of Python supported by Openformats** to
   ensure nothing was accidentally broken.
 
-Check out our `Git Tips`_ page or `ask for help`_ if you
+Check out our `Git Tips`_ page or `ask for help` if you
 need assistance or have any questions about these guidelines.
 
 .. _`Create a new git branch`: f
