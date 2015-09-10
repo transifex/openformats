@@ -11,7 +11,7 @@ import argparse
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from openformats.formats import (plaintext, srt)
+from openformats.formats import (plaintext, srt, android)
 from openformats.tests.utils import translate_stringset
 
 args = argparse.ArgumentParser
@@ -22,6 +22,7 @@ def get_handler(ext):
     return {
         'txt': plaintext.PlaintextHandler(),
         'srt': srt.SrtHandler(),
+        'xml': android.AndroidHandler(),
     }[ext]
 
 
@@ -37,7 +38,8 @@ def run():
     template, stringset = handler.parse(source_contents)
     tpl_fname = args.inputfile.replace("_en", "_tpl")
     with open(tpl_fname, 'w+') as tpl_file:
-        if args.debug: print("Writing %s" % tpl_fname)
+        if args.debug:
+            print("Writing %s" % tpl_fname)
         if args.execute:
             tpl_file.write(template)
         tpl_file.close()
@@ -48,23 +50,26 @@ def run():
     compiled = handler.compile(template, translated_stringset)
     fname = args.inputfile.replace("_en", "_el")
     with open(fname, 'w+') as f:
-        if args.debug: print("Writing %s" % fname)
+        if args.debug:
+            print("Writing %s" % fname)
         f.write(compiled)
         f.close()
-        
+
 
 def main(argv):
-    parser = argparse.ArgumentParser(add_help=True,
-        description='Generate right test files from an English source file.')
+    parser = argparse.ArgumentParser(
+        add_help=True,
+        description='Generate right test files from an English source file.'
+    )
     parser.add_argument('inputfile',
                         help="Source file to convert")
     parser.add_argument('-d', '--debug', action='store_true', default=True,
                         help='Print debug information')
     parser.add_argument('-x', '--execute', action='store_true', default=True,
                         help="Actually execute. Otherwise, don't do anything.")
-    global args # Help us access this variable from inside the other methods.
+    global args  # Help us access this variable from inside the other methods.
     args = parser.parse_args()
     run()
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+    main(sys.argv[1:])

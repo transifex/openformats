@@ -62,8 +62,13 @@ class AndroidHandler(Handler):
     def _handle_string_tag(self, tag, offset, comment):
         string = None
         if tag.inner.strip() != "":
+            context = ""
+            product = tag.attrs.get('product', None)
+            if product:
+                context = "product: {}".format(product)
             string = OpenString(tag.attrs['name'], tag.inner,
-                                order=self._order, developer_comment=comment)
+                                context=context, order=self._order,
+                                developer_comment=comment)
             self._order += 1
 
         # ... <string name="foo">Hello ....
@@ -92,6 +97,10 @@ class AndroidHandler(Handler):
         self.transcriber.copy_until(string_array_offset +
                                     string_array_tag.inner_offset)
 
+        context = ""
+        product = string_array_tag.attrs.get('product', None)
+        if product:
+            context = "product: {}".format(product)
         for index, (item_tag, item_offset) in enumerate(
                 string_array_tag.find('item')):
             string = None
@@ -99,6 +108,7 @@ class AndroidHandler(Handler):
                 string = OpenString(
                     "{}[{}]".format(string_array_tag.attrs['name'], index),
                     item_tag.inner,
+                    context=context,
                     order=self._order,
                     developer_comment=comment
                 )
@@ -143,13 +153,18 @@ class AndroidHandler(Handler):
 
             first_item_offset = first_item_offset or item_offset
 
-            rule = self.get_rule_number([item_tag.attrs['quantity']])
+            rule = self.get_rule_number(item_tag.attrs['quantity'])
             strings[rule] = item_tag.inner
         last_item_tag, last_item_offset = item_tag, item_offset
 
         if strings is not None:
+            context = ""
+            product = plurals_tag.attrs.get('product', None)
+            if product:
+                context = "product: {}".format(product)
             string = OpenString(plurals_tag.attrs['name'], strings,
-                                order=self._order, developer_comment=comment)
+                                context=context, order=self._order,
+                                developer_comment=comment)
             self._order += 1
 
             # <plurals name="foo">   <item>Hello ...
@@ -287,8 +302,9 @@ class AndroidHandler(Handler):
                 for rule, value in next_string.string.items():
                     self.transcriber.add(
                         indent +
-                        self.plural_template.format(rule=self.RULES_ITOA[rule],
-                                                    string=value) +
+                        self.plural_template.format(
+                            rule=self.get_rule_string(rule), string=value
+                        ) +
                         tail + '\n'
                     )
 
@@ -299,7 +315,7 @@ class AndroidHandler(Handler):
                 for rule, value in next_string.string.items():
                     self.transcriber.add(
                         self.plural_template.format(
-                            rule=self.RULES_ITOA[rule], string=value
+                            rule=self.get_rule_string(rule), string=value
                         )
                     )
             self.transcriber.skip(indent_length +
