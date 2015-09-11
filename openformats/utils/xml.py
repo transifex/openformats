@@ -19,6 +19,7 @@ class DumbXml(object):
     )
     ATTR_PAT = re.compile(r'\b(?P<key>[^=]+)="(?P<value>[^"]+)"')
     COMMENT = "!--"
+    SINGLE_TAG_PAT = re.compile(r'/\s*\>$')
 
     def __init__(self, content):
         """
@@ -85,6 +86,11 @@ class DumbXml(object):
             return start + closing_start, start + closing_start + 3
 
         opening_match = self.OPENING_TAG_PAT.search(self.content[start:])
+
+        if self.SINGLE_TAG_PAT.search(opening_match.group()):
+            # Single tag, eg `<foo a="b" />`
+            return start + opening_match.end(), start + opening_match.end()
+
         tag_name = opening_match.groupdict()['name']
         tag_pat = re.compile(r'\<(?:(?:{tag_name})|(?:/{tag_name}\>))'.
                              format(tag_name=re.escape(tag_name)))

@@ -30,7 +30,7 @@ class AndroidHandler(Handler):
 
         resources_tag = DumbXml(source)
         last_comment = None
-        for tag, offset in resources_tag.find(("string", "string-array",
+        for tag, offset in resources_tag.find(("string-array", "string",
                                                "plurals", DumbXml.COMMENT)):
             if tag.name == DumbXml.COMMENT:
                 last_comment = tag.inner
@@ -213,7 +213,8 @@ class AndroidHandler(Handler):
         resources_tag = DumbXml(self.source)
         for string_array_tag, string_array_offset in resources_tag.find(
                 "string-array"):
-            if len(list(string_array_tag.find("item"))) == 0:
+            if (string_array_tag.inner and
+                    len(list(string_array_tag.find("item"))) == 0):
                 self.transcriber.copy_until(string_array_offset)
                 self.transcriber.skip(len(string_array_tag.content))
         self.transcriber.copy_until(len(self.source))
