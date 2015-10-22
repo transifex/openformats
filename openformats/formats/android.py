@@ -14,6 +14,10 @@ class AndroidHandler(Handler):
 
     plural_template = u'<item quantity="{rule}">{string}</item>'
     SPACE_PAT = re.compile(r'^\s*$')
+    # Atttibutes that designate a string should be filtered out
+    FILTER_ATTRIBUTES = {
+        'translatable': 'false'
+    }
 
     def parse(self, content):
         stringset = []
@@ -29,15 +33,19 @@ class AndroidHandler(Handler):
         self._order = 0
 
         resources_tag = DumbXml(source)
-        last_comment = None
+        last_comment = ""
         for tag, offset in resources_tag.find(("string-array", "string",
                                                "plurals", DumbXml.COMMENT)):
+
+            if self._should_ignore(tag):
+                last_comment = ""
+                continue
             if tag.name == DumbXml.COMMENT:
                 last_comment = tag.inner
                 self.transcriber.copy_until(offset + len(tag.content))
             elif tag.name == "string":
                 string = self._handle_string_tag(tag, offset, last_comment)
-                last_comment = None
+                last_comment = ""
                 if string is not None:
                     stringset.append(string)
             elif tag.name == "string-array":
@@ -45,10 +53,12 @@ class AndroidHandler(Handler):
                                                             last_comment):
                     if string is not None:
                         stringset.append(string)
+                last_comment = ""
             elif tag.name == "plurals":
                 string = self._handle_plurals_tag(tag, offset, last_comment)
                 if string is not None:
                     stringset.append(string)
+                last_comment = ""
 
         self.transcriber.copy_until(len(source))
 
@@ -62,10 +72,7 @@ class AndroidHandler(Handler):
     def _handle_string_tag(self, tag, offset, comment):
         string = None
         if tag.inner.strip() != "":
-            context = ""
-            product = tag.attrs.get('product', None)
-            if product:
-                context = "product: {}".format(product)
+            context = tag.attrs.get('product', "")
             string = OpenString(tag.attrs['name'], tag.inner,
                                 context=context, order=self._order,
                                 developer_comment=comment)
@@ -97,10 +104,7 @@ class AndroidHandler(Handler):
         self.transcriber.copy_until(string_array_offset +
                                     string_array_tag.inner_offset)
 
-        context = ""
-        product = string_array_tag.attrs.get('product', None)
-        if product:
-            context = "product: {}".format(product)
+        context = string_array_tag.attrs.get('product', "")
         for index, (item_tag, item_offset) in enumerate(
                 string_array_tag.find('item')):
             string = None
@@ -158,10 +162,7 @@ class AndroidHandler(Handler):
         last_item_tag, last_item_offset = item_tag, item_offset
 
         if strings is not None:
-            context = ""
-            product = plurals_tag.attrs.get('product', None)
-            if product:
-                context = "product: {}".format(product)
+            context = plurals_tag.attrs.get('product', "")
             string = OpenString(plurals_tag.attrs['name'], strings,
                                 context=context, order=self._order,
                                 developer_comment=comment)
@@ -187,9 +188,20 @@ class AndroidHandler(Handler):
 
         return string
 
+    def _should_ignore(self, tag):
+        """
+        If the tag has a key: value elemement that matches FILTER_ATTRIBUTES
+        it will return True, else it returns False
+        """
+        for key, value in self.FILTER_ATTRIBUTES.iteritems():
+            filter_attr = tag.attrs.get(key, None)
+            if filter_attr is not None and filter_attr == value:
+                return True
+        return False
+
     def compile(self, template, stringset):
         resources_tag_position = template.index("<resources")
-        self._stringset = stringset
+        self._stringset = list(stringset)
         self._stringset_index = 0
 
         self.source = template[resources_tag_position:]
@@ -199,6 +211,8 @@ class AndroidHandler(Handler):
 
         for tag, offset in resources_tag.find(("string", "string-array",
                                                "plurals")):
+            if self._should_ignore(tag):
+                continue
             if tag.name == "string":
                 self._compile_string(tag, offset)
             elif tag.name == "string-array":
