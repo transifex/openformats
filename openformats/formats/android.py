@@ -26,9 +26,8 @@ class AndroidHandler(Handler):
 
         resources_tag_position = content.index("<resources")
 
-        source = content[resources_tag_position:]
-
-        self.transcriber = Transcriber(source)
+        self.transcriber = Transcriber(content[resources_tag_position:])
+        source = self.transcriber.source
 
         self._order = 0
 
@@ -204,8 +203,8 @@ class AndroidHandler(Handler):
         self._stringset = list(stringset)
         self._stringset_index = 0
 
-        self.source = template[resources_tag_position:]
-        self.transcriber = Transcriber(self.source)
+        self.transcriber = Transcriber(template[resources_tag_position:])
+        self.source = self.transcriber.source
 
         resources_tag = DumbXml(self.source)
 
@@ -222,8 +221,8 @@ class AndroidHandler(Handler):
         self.transcriber.copy_until(len(self.source))
 
         # Lets do another pass to clear empty <string-array>s
-        self.source = self.transcriber.get_destination()
-        self.transcriber = Transcriber(self.source)
+        self.transcriber = Transcriber(self.transcriber.get_destination())
+        self.source = self.transcriber.source
         resources_tag = DumbXml(self.source)
         for string_array_tag, string_array_offset in resources_tag.find(
                 "string-array"):

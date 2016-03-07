@@ -22,14 +22,11 @@ class SrtHandler(Handler):
             start += len(section) + 2
 
     def parse(self, content):
-        if not isinstance(content, unicode):
-            content = content.decode("utf-8")
-        content = content.replace(u'\r\n', u'\n')
-
         self.transcriber = Transcriber(content)
+        source = self.transcriber.source
         stringset = []
         self.max_order = None
-        for start, subtitle_section in self._generate_split_subtitles(content):
+        for start, subtitle_section in self._generate_split_subtitles(source):
             self.transcriber.copy_until(start)
             offset, string = self._parse_section(start, subtitle_section)
 
@@ -42,7 +39,7 @@ class SrtHandler(Handler):
             else:
                 self.transcriber.copy_until(start + len(subtitle_section))
 
-        self.transcriber.copy_until(len(content))
+        self.transcriber.copy_until(len(source))
 
         template = self.transcriber.get_destination()
         return template, stringset
@@ -146,6 +143,7 @@ class SrtHandler(Handler):
 
     def compile(self, template, stringset):
         transcriber = Transcriber(template)
+        template = transcriber.source
         stringset = iter(stringset)
         string = stringset.next()
 
