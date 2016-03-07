@@ -4,7 +4,7 @@
     <string name="a_string">ac2562b9f825de04b7ae4736274b1e5f_tr</string>
 
     <!-- Testing with product attribute -->
-    <string name="a_string" product="a_product">d4da8cdeb4818cf3ddc6aca30c85853a_tr</string>
+    <string name="a_string" product="a_product">160db9c24b122af9e0f4218ad732d0ce_tr</string>
 
     <!-- Testing string arrays -->
     <string-array name="an_array">
@@ -14,8 +14,8 @@
 
     <!-- Testing string arrays with product -->
     <string-array name="an_array" product="a_product">
-        <item>67331e8e9e58c67d6d6a5418909e8e10_tr</item>
-        <item>391b18c79068468757fbb3f11533f12f_tr</item>
+        <item>43eaef1774ce539d9eaebcad8495e81c_tr</item>
+        <item>52b109326a6eb5aecd0e92fa86f9e790_tr</item>
     </string-array>
 
     <!-- Testing plurals -->
@@ -25,6 +25,6 @@
 
     <!-- Testing plurals with product -->
     <plurals name="some_plurals" product="a_product">
-        5992334a1810f001c6e92387c227986b_pl
+        37e2fbe40ddc00946c516530aa8aeef9_pl
     </plurals>
 </resources>
