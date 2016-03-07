@@ -1,5 +1,5 @@
 class Transcriber(object):
-    """
+    r"""
     This class helps with creating a template from an imported file or compile
     an output file from a template.
 
@@ -11,6 +11,17 @@ class Transcriber(object):
     target content (self.destination) which initially will contain an empty
     string and a pointer (self.ptr) which will indicate which parts of 'source'
     have already been copied to 'destination' (and will be initialized to 0).
+
+    Transcriber detects and remembers the newline type (DOS, ``'\r\n'`` or UNIX
+    ``'\n'``) of 'source'. It then converts 'source' to UNIX-like newlines and
+    works on this. When returning the destination, the initial newline type
+    will be used. Because 'source' is being potentially edited, it's a good
+    idea to save Transcriber's source back on top of the original one:
+
+        >>> def parse(self, source):
+        ...     self.transcriber = Transcriber(source)
+        ...     self.source = self.transcriber.source
+        ...     # ...
 
     The main methods provided are demonstrated below::
 
@@ -63,6 +74,12 @@ class Transcriber(object):
         self.ptr = 0
 
         self.newline_count = 0
+
+        # Handle newlines
+        self.newline_type = "UNIX"
+        if '\r\n' in self.source:
+            self.newline_type = "DOS"
+            self.source = self.source.replace('\r\n', '\n')
 
     def copy(self, offset):
         chunk = self.source[self.ptr:self.ptr + offset]
@@ -215,8 +232,39 @@ class Transcriber(object):
         """
         return self.newline_count + 1
 
-    def get_destination(self):
-        return "".join([entry
-                        for entry in self.destination
-                        if entry not in (self.SectionStart, self.SectionEnd,
+    def get_destination(self, enforce_newline_type=None):
+        return "".join([self.edit_newlines(chunk, enforce_newline_type)
+                        for chunk in self.destination
+                        if chunk not in (self.SectionStart, self.SectionEnd,
                                          None)])
+
+    def edit_newlines(self, chunk, enforce_newline_type=None):
+        r"""
+        This is the part that renders the newlines to their correct type when
+        returning the final result. You have the option to enforce the newline
+        type if you want to.
+
+            >>> source = "hello\r\nworld"
+            >>> t = Transcriber(source)
+            >>> t.source
+
+            >>> "hello\nworld"
+
+            >>> source = trascriber.source
+            >>> # Work as if source was UNIX-type
+            >>> t.copy_until(source.index('\n') + 1)  # include the '\n'
+            >>> t.add("fellas")
+            >>> t.get_destination()
+
+            >>> "hello\r\nfellas"  # <- it remembered newline type from source
+
+            >>> t.get_destination(enforce_newline_type="UNIX")
+
+            >>> "hello\nfellas"
+        """
+
+        if ((enforce_newline_type is None and self.newline_type == "DOS") or
+                enforce_newline_type == "DOS"):
+            return chunk.replace('\n', '\r\n')
+        else:
+            return chunk

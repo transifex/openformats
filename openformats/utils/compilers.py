@@ -9,6 +9,7 @@ class OrderedCompilerMixin(object):
     def compile(self, template, stringset):
         # assume stringset is ordered within the template
         transcriber = Transcriber(template)
+        template = transcriber.source
 
         for string in stringset:
             hash_position = template.index(string.template_replacement)
