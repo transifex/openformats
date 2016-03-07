@@ -14,6 +14,10 @@ class AndroidHandler(Handler):
 
     plural_template = u'<item quantity="{rule}">{string}</item>'
     SPACE_PAT = re.compile(r'^\s*$')
+    # Atttibutes that designate a string should be filtered out
+    FILTER_ATTRIBUTES = {
+        'translatable': 'false'
+    }
 
     def parse(self, content):
         stringset = []
@@ -29,15 +33,19 @@ class AndroidHandler(Handler):
         self._order = 0
 
         resources_tag = DumbXml(source)
-        last_comment = None
-        for tag, offset in resources_tag.find(("string", "string-array",
+        last_comment = ""
+        for tag, offset in resources_tag.find(("string-array", "string",
                                                "plurals", DumbXml.COMMENT)):
+
+            if self._should_ignore(tag):
+                last_comment = ""
+                continue
             if tag.name == DumbXml.COMMENT:
                 last_comment = tag.inner
                 self.transcriber.copy_until(offset + len(tag.content))
             elif tag.name == "string":
                 string = self._handle_string_tag(tag, offset, last_comment)
-                last_comment = None
+                last_comment = ""
                 if string is not None:
                     stringset.append(string)
             elif tag.name == "string-array":
@@ -45,10 +53,12 @@ class AndroidHandler(Handler):
                                                             last_comment):
                     if string is not None:
                         stringset.append(string)
+                last_comment = ""
             elif tag.name == "plurals":
                 string = self._handle_plurals_tag(tag, offset, last_comment)
                 if string is not None:
                     stringset.append(string)
+                last_comment = ""
 
         self.transcriber.copy_until(len(source))
 
@@ -62,8 +72,10 @@ class AndroidHandler(Handler):
     def _handle_string_tag(self, tag, offset, comment):
         string = None
         if tag.inner.strip() != "":
+            context = tag.attrs.get('product', "")
             string = OpenString(tag.attrs['name'], tag.inner,
-                                order=self._order, developer_comment=comment)
+                                context=context, order=self._order,
+                                developer_comment=comment)
             self._order += 1
 
         # ... <string name="foo">Hello ....
@@ -92,6 +104,7 @@ class AndroidHandler(Handler):
         self.transcriber.copy_until(string_array_offset +
                                     string_array_tag.inner_offset)
 
+        context = string_array_tag.attrs.get('product', "")
         for index, (item_tag, item_offset) in enumerate(
                 string_array_tag.find('item')):
             string = None
@@ -99,6 +112,7 @@ class AndroidHandler(Handler):
                 string = OpenString(
                     "{}[{}]".format(string_array_tag.attrs['name'], index),
                     item_tag.inner,
+                    context=context,
                     order=self._order,
                     developer_comment=comment
                 )
@@ -143,13 +157,15 @@ class AndroidHandler(Handler):
 
             first_item_offset = first_item_offset or item_offset
 
-            rule = self.get_rule_number([item_tag.attrs['quantity']])
+            rule = self.get_rule_number(item_tag.attrs['quantity'])
             strings[rule] = item_tag.inner
         last_item_tag, last_item_offset = item_tag, item_offset
 
         if strings is not None:
+            context = plurals_tag.attrs.get('product', "")
             string = OpenString(plurals_tag.attrs['name'], strings,
-                                order=self._order, developer_comment=comment)
+                                context=context, order=self._order,
+                                developer_comment=comment)
             self._order += 1
 
             # <plurals name="foo">   <item>Hello ...
@@ -172,9 +188,20 @@ class AndroidHandler(Handler):
 
         return string
 
+    def _should_ignore(self, tag):
+        """
+        If the tag has a key: value elemement that matches FILTER_ATTRIBUTES
+        it will return True, else it returns False
+        """
+        for key, value in self.FILTER_ATTRIBUTES.iteritems():
+            filter_attr = tag.attrs.get(key, None)
+            if filter_attr is not None and filter_attr == value:
+                return True
+        return False
+
     def compile(self, template, stringset):
         resources_tag_position = template.index("<resources")
-        self._stringset = stringset
+        self._stringset = list(stringset)
         self._stringset_index = 0
 
         self.source = template[resources_tag_position:]
@@ -184,6 +211,8 @@ class AndroidHandler(Handler):
 
         for tag, offset in resources_tag.find(("string", "string-array",
                                                "plurals")):
+            if self._should_ignore(tag):
+                continue
             if tag.name == "string":
                 self._compile_string(tag, offset)
             elif tag.name == "string-array":
@@ -198,7 +227,8 @@ class AndroidHandler(Handler):
         resources_tag = DumbXml(self.source)
         for string_array_tag, string_array_offset in resources_tag.find(
                 "string-array"):
-            if len(list(string_array_tag.find("item"))) == 0:
+            if (string_array_tag.inner and
+                    len(list(string_array_tag.find("item"))) == 0):
                 self.transcriber.copy_until(string_array_offset)
                 self.transcriber.skip(len(string_array_tag.content))
         self.transcriber.copy_until(len(self.source))
@@ -287,8 +317,9 @@ class AndroidHandler(Handler):
                 for rule, value in next_string.string.items():
                     self.transcriber.add(
                         indent +
-                        self.plural_template.format(rule=self.RULES_ITOA[rule],
-                                                    string=value) +
+                        self.plural_template.format(
+                            rule=self.get_rule_string(rule), string=value
+                        ) +
                         tail + '\n'
                     )
 
@@ -299,7 +330,7 @@ class AndroidHandler(Handler):
                 for rule, value in next_string.string.items():
                     self.transcriber.add(
                         self.plural_template.format(
-                            rule=self.RULES_ITOA[rule], string=value
+                            rule=self.get_rule_string(rule), string=value
                         )
                     )
             self.transcriber.skip(indent_length +
