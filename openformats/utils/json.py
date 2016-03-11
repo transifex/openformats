@@ -130,5 +130,8 @@ class DumbJson(object):
         for ptr in xrange(start, len(self.source)):
             candidate = self.source[ptr]
             if candidate in symbols:
+                if (candidate in {'{', '[', '"', ','} and ptr > 0 and
+                        self.source[ptr - 1] == '\\'):
+                    continue
                 return candidate, ptr
         return None, None
