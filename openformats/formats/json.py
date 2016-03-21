@@ -4,11 +4,11 @@ import json
 import re
 from collections import OrderedDict
 
+from ..exceptions import ParseError
 from ..handlers import Handler
 from ..strings import OpenString
 from ..transcribers import Transcriber
 from ..utils.json import DumbJson
-from ..exceptions import ParseError
 
 
 class JsonHandler_(object):
@@ -111,6 +111,12 @@ class JsonHandler(Handler):
     extension = "json"
 
     def parse(self, content):
+        # Do a first pass using the `json` module to ensure content is valid
+        try:
+            json.loads(content)
+        except ValueError, e:
+            raise ParseError(e.message)
+
         self.transcriber = Transcriber(content)
         source = self.transcriber.source
         self.stringset = []
