@@ -170,7 +170,7 @@ class JsonHandler(Handler):
         parsed = DumbJson(template)
         self.intract(parsed)
 
-        self.transcriber.copy_until(len(template) - 1)
+        self.transcriber.copy_until(len(template))
         compiled = self.transcriber.get_destination()
 
         return self.clean_compiled(compiled)
