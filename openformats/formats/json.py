@@ -125,7 +125,7 @@ class JsonHandler(Handler):
         if parsed.type == dict:
             for key, key_position, value, value_position in parsed:
                 if nest is not None:
-                    key = "{}.{}".format(nest, key)
+                    key = "{}.{}".format(nest, self._escape_key(key))
                 if isinstance(value, unicode):
                     openstring = OpenString(key, value)
                     self.transcriber.copy_until(value_position)
@@ -154,6 +154,12 @@ class JsonHandler(Handler):
                     raise ParseError("Invalid JSON")
         else:
             raise ParseError("Invalid JSON")
+
+    @staticmethod
+    def _escape_key(key):
+        key = key.replace("\\", "\\\\")
+        key = key.replace(".", "\\.")
+        return key
 
     def compile(self, template, stringset):
         self.transcriber = Transcriber(template)

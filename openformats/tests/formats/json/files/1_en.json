@@ -5,6 +5,8 @@
             {"first_subarray_key": "First subarray item",
              "second_subarray_key": "Second subarray item"},
             "Third item"],
+  "key.that": "needs.escaping",
+  "string\"with": "escaped\"quotes",
   "dict": {
     "first_key_array": ["First subarray item", "Second subarray item",
                         "Third subarray item", "Fourth subarray item",
