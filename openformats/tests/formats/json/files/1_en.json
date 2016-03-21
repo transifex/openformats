@@ -16,6 +16,7 @@
       "first_subkey": "First subvalue",
       "second_subkey": "Second subvalue"
     },
+    "list with weird things": [null, 34e-12, "inside weird list", false, -4],
     "fourth_key": "Fourth value"
   }
 }

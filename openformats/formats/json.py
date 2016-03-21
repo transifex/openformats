@@ -138,10 +138,11 @@ class JsonHandler(Handler):
                     self.transcriber.add(openstring.template_replacement)
                     self.transcriber.skip(len(value))
                     self.stringset.append(openstring)
-                elif value.type in (dict, list):
+                elif isinstance(value, DumbJson):
                     self.extract(value, key)
                 else:
-                    raise ParseError("Invalid JSON")
+                    # Ignore other JSON types (bools, nulls, numbers)
+                    pass
         elif parsed.type == list:
             for index, (item, item_position) in enumerate(parsed):
                 if nest is None:
@@ -154,10 +155,11 @@ class JsonHandler(Handler):
                     self.transcriber.add(openstring.template_replacement)
                     self.transcriber.skip(len(item))
                     self.stringset.append(openstring)
-                elif item.type in (dict, list):
+                elif isinstance(item, DumbJson):
                     self.extract(item, key)
                 else:
-                    raise ParseError("Invalid JSON")
+                    # Ignore other JSON types (bools, nulls, numbers)
+                    pass
         else:
             raise ParseError("Invalid JSON")
 
