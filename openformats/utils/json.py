@@ -80,7 +80,7 @@ class DumbJson(object):
         match = re.search(r'^\s*.', self.source[start:])
         if match:
             if match.group()[-1] == "]":
-                self.end = start + match.end()
+                self.end = start + match.end() - 1
                 return
 
         while True:

@@ -13,7 +13,10 @@ class DumbJsonTestCase(unittest.TestCase):
                        [("a", 2, "b", 7), ("c", 12, "d", 17)])
 
     def test_empty_dict(self):
-        self._test_dfs('{}', [])
+        self._test_dfs('{  }', [])
+
+    def test_empty_dict_inbetween(self):
+        self._test_dfs('["a", {  }, "b"]', [("a", 2), ([], 6), ("b", 13)])
 
     def test_dict_with_non_string_values(self):
         self._test_dfs('{"string": "Hello World", "True": true, '
@@ -39,7 +42,12 @@ class DumbJsonTestCase(unittest.TestCase):
         self._test_dfs('["a", "b"]', [("a", 2), ("b", 7)])
 
     def test_empty_list(self):
-        self._test_dfs('[]', [])
+        self._test_dfs('[  ]', [])
+
+    def test_empty_list_inbetween(self):
+        self._test_dfs('{"a": "b", "c": [  ], "d": "e"}',
+                       [("a", 2, "b", 7), ("c", 12, [], 16),
+                        ("d", 23, "e", 28)])
 
     def test_list_with_non_string_values(self):
         self._test_dfs('["Hello world", true, false, null, 1234, -1234, '
