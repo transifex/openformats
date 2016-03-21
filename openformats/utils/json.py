@@ -21,9 +21,16 @@ class DumbJson(object):
             return self._iter_list()
 
     def _iter_dict(self):
-        # the '_p' suffix means 'position'
+        # The '_p' suffix means 'position'
 
         start = self.start + 1
+
+        # Maybe it's an empty dict
+        end, end_p = self._find_next('"}', start)
+        if end == "}":
+            self.end = end_p
+            return
+
         while True:
             # Lets find our key
             _, start_key_quote_p = self._find_next('"', start)
@@ -65,7 +72,17 @@ class DumbJson(object):
                 break
 
     def _iter_list(self):
+        # The '_p' suffix means 'position'
+
         start = self.start + 1
+
+        # Maybe it's an empty list
+        match = re.search(r'^\s*.', self.source[start:])
+        if match:
+            if match.group()[-1] == "]":
+                self.end = start + match.end()
+                return
+
         while True:
             # Lets find our items
             item_start_string, item_start_computed, item_start_p =\
