@@ -10,24 +10,26 @@ class DumbJsonTestCase(unittest.TestCase):
 
     def test_simple_dict_with_two_items(self):
         self._test_dfs('{"a": "b", "c": "d"}',
-                  [("a", 2, "b", 7), ("c", 12, "d", 17)])
+                       [("a", 2, "b", 7), ("c", 12, "d", 17)])
 
     def test_empty_dict(self):
         self._test_dfs('{}', [])
 
     def test_dict_with_non_string_values(self):
-        self._test_dfs('{"string": "Hello World", "True": true, "False": false, '
-                  '"None": null, "Integer": 1234, "Negative integer": -1234, '
-                  '"Float": 12.34, "Negative float": -12.34, '
-                  '"E-notation": 12e34, "Negative e-notation": 12e-34}',
-                  [("string", 2, "Hello World", 12), ("True", 27, True, 34),
-                   ("False", 41, False, 49), ("None", 57, None, 64),
-                   ("Integer", 71, 1234, 81),
-                   ("Negative integer", 88, -1234, 107),
-                   ("Float", 115, 12.34, 123),
-                   ("Negative float", 131, -12.34, 148),
-                   ("E-notation", 157, 12e34, 170),
-                   ("Negative e-notation", 178, 12e-34, 200)])
+        self._test_dfs('{"string": "Hello World", "True": true, '
+                       '"False": false, "None": null, "Integer": 1234, '
+                       '"Negative integer": -1234, "Float": 12.34, '
+                       '"Negative float": -12.34, "E-notation": 12e34, '
+                       '"Negative e-notation": 12e-34}',
+                       [("string", 2, "Hello World", 12),
+                        ("True", 27, True, 34),
+                        ("False", 41, False, 49), ("None", 57, None, 64),
+                        ("Integer", 71, 1234, 81),
+                        ("Negative integer", 88, -1234, 107),
+                        ("Float", 115, 12.34, 123),
+                        ("Negative float", 131, -12.34, 148),
+                        ("E-notation", 157, 12e34, 170),
+                        ("Negative e-notation", 178, 12e-34, 200)])
 
     # Lists
     def test_simple_list(self):
@@ -40,11 +42,11 @@ class DumbJsonTestCase(unittest.TestCase):
         self._test_dfs('[]', [])
 
     def test_list_with_non_string_values(self):
-        self._test_dfs('["Hello world", true, false, null, 1234, -1234, 12.34, '
-                  '-12.34, 12e34, 12e-34]',
-                  [("Hello world", 2), (True, 16), (False, 22), (None, 29),
-                   (1234, 35), (-1234, 41), (12.34, 48), (-12.34, 55),
-                   (12e34, 63), (12e-34, 70)])
+        self._test_dfs('["Hello world", true, false, null, 1234, -1234, '
+                       '12.34, -12.34, 12e34, 12e-34]',
+                       [("Hello world", 2), (True, 16), (False, 22),
+                        (None, 29), (1234, 35), (-1234, 41), (12.34, 48),
+                        (-12.34, 55), (12e34, 63), (12e-34, 70)])
 
     # Nested
     def test_dict_within_dict(self):
