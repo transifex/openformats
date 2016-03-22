@@ -5,6 +5,46 @@ import re
 
 
 class DumbJson(object):
+    """ A utility to help iterate over a JSON string. The main focuses are:
+
+        1. Return the exact contents of each encountered string, don't unescape
+           double quotes ('"')
+        2. Also return the positions of things encountered
+
+        To initialize, simply pass a JSON string:
+
+            >>> dumb_json = DumbJson('{"hello": "world"}')
+
+        If you want, you can pass an extra argument to identify an embedded
+        JSON object within the outer one. For example, if you have this string.
+
+            >>> source = '["first string", {"second": "dict"}, "third string"]'
+
+        You can:
+
+            >>> start = source.index('{')  # 17
+            >>> dumb_json = DumbJson(source, start)
+
+        In this case, when you iterate over this, it will only yield the inner
+        dictionary (`{"second": "string"}`). The item positions yielded while
+        iterating will be in respect to the outer string, so:
+
+            >>> assert next(dumb_json) == ('second', 19, 'dict', 29)
+
+        If the DumbJson object is a dictionary, then iterating it will yield
+        4-tuples with `(key, key_position, value, value_position)`. If it's a
+        list it will yield 2-tuples with `(item, item_position)`. Eg:
+
+            >>> assert list(DumbJson('{"a": "b"}')) == [('a', 2, 'b', 7)]
+            >>> assert list(DumbJson('["a", "b"]')) == [('a', 2), ('b', 7)]
+
+        When the items or values are not strings but objects allowed by JSON,
+        like numbers, booleans or null, they will be yielded normally:
+
+            >>> assert list(DumbJson('{"a": null}')) == [("a", 2, None, 6)]
+            >>> assert list(DumbJson('[null]')) == [(None, 2)]
+    """
+
     def __init__(self, source, start=0):
         self.source = source
         self._end = None
