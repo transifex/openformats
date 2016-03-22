@@ -278,3 +278,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
         self.assertEquals(compiled, source)
+
+    def test_duplicate_keys(self):
+        self._test_parse_error('{"a": "hello", "a": "world"}',
+                               "Duplicate string key ('a') in line 1")

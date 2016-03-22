@@ -25,6 +25,7 @@ class JsonHandler(Handler):
         self.transcriber = Transcriber(content)
         source = self.transcriber.source
         self.stringset = []
+        self.existing_keys = set()
 
         try:
             parsed = DumbJson(source)
@@ -42,6 +43,15 @@ class JsonHandler(Handler):
                 key = self._escape_key(key)
                 if nest is not None:
                     key = "{}.{}".format(nest, key)
+
+                # 'key' should be unique
+                if key in self.existing_keys:
+                    # Need this for line number
+                    self.transcriber.copy_until(key_position)
+                    raise ParseError("Duplicate string key ('{}') in line {}".
+                                     format(key, self.transcriber.line_number))
+                self.existing_keys.add(key)
+
                 if isinstance(value, (str, unicode)):
                     openstring = OpenString(key, value,
                                             order=next(self._order))
