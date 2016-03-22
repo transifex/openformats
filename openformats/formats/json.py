@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 import re
+from itertools import count
 
 from ..exceptions import ParseError
 from ..handlers import Handler
@@ -29,6 +30,7 @@ class JsonHandler(Handler):
             parsed = DumbJson(source)
         except ValueError, e:
             raise ParseError(e.message)
+        self._order = count()
         self._extract(parsed)
         self.transcriber.copy_until(len(source))
 
@@ -41,7 +43,8 @@ class JsonHandler(Handler):
                 if nest is not None:
                     key = "{}.{}".format(nest, key)
                 if isinstance(value, (str, unicode)):
-                    openstring = OpenString(key, value)
+                    openstring = OpenString(key, value,
+                                            order=next(self._order))
                     self.transcriber.copy_until(value_position)
                     self.transcriber.add(openstring.template_replacement)
                     self.transcriber.skip(len(value))
@@ -58,7 +61,7 @@ class JsonHandler(Handler):
                 else:
                     key = "{}..{}..".format(nest, index)
                 if isinstance(item, (str, unicode)):
-                    openstring = OpenString(key, item)
+                    openstring = OpenString(key, item, order=next(self._order))
                     self.transcriber.copy_until(item_position)
                     self.transcriber.add(openstring.template_replacement)
                     self.transcriber.skip(len(item))
@@ -88,7 +91,8 @@ class JsonHandler(Handler):
         # the compilation process
 
         fake_stringset = [OpenString(openstring.key,
-                                     openstring.template_replacement)
+                                     openstring.template_replacement,
+                                     order=openstring.order)
                           for openstring in stringset]
         new_template = self._replace_translations(template, fake_stringset)
         new_template = self._clean_empties(new_template)

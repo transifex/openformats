@@ -17,7 +17,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         self.handler = JsonHandler()
         self.random_string = generate_random_string()
-        self.random_openstring = OpenString("a", self.random_string)
+        self.random_openstring = OpenString("a", self.random_string, order=0)
         self.random_hash = self.random_openstring.template_replacement
 
     def test_simple(self):
@@ -34,7 +34,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_root_object_is_list(self):
         source = '["%s"]' % self.random_string
-        random_openstring = OpenString('..0..', self.random_string)
+        random_openstring = OpenString('..0..', self.random_string, order=0)
         random_hash = random_openstring.template_replacement
 
         template, stringset = self.handler.parse(source)
@@ -47,7 +47,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_embedded_dicts(self):
         source = '{"a": {"b": "%s"}}' % self.random_string
-        openstring = OpenString("a.b", self.random_string)
+        openstring = OpenString("a.b", self.random_string, order=0)
         random_hash = openstring.template_replacement
 
         template, stringset = self.handler.parse(source)
@@ -60,7 +60,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_embedded_lists(self):
         source = '{"a": ["%s"]}' % self.random_string
-        openstring = OpenString("a..0..", self.random_string)
+        openstring = OpenString("a..0..", self.random_string, order=0)
         random_hash = openstring.template_replacement
 
         template, stringset = self.handler.parse(source)
@@ -73,7 +73,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_python_values_are_ignored(self):
         source = '[true, "%s", false]' % self.random_string
-        random_openstring = OpenString('..1..', self.random_string)
+        random_openstring = OpenString('..1..', self.random_string, order=0)
         random_hash = random_openstring.template_replacement
         template, stringset = self.handler.parse(source)
         self.assertEquals(template, '[true, "%s", false]' % random_hash)
@@ -84,7 +84,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         string1 = self.random_string
         string2 = generate_random_string()
         openstring1 = self.random_openstring
-        openstring2 = OpenString("b", string2)
+        openstring2 = OpenString("b", string2, order=1)
         hash1 = self.random_hash
         hash2 = openstring2.template_replacement
 
@@ -102,8 +102,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_compile_skips_removed_strings_for_lists(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring1 = OpenString("..0..", string1)
-        openstring2 = OpenString("..1..", string2)
+        openstring1 = OpenString("..0..", string1, order=0)
+        openstring2 = OpenString("..1..", string2, order=1)
         hash1 = openstring1.template_replacement
         hash2 = openstring2.template_replacement
 
@@ -121,8 +121,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_compile_skips_removed_nested_dict(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring1 = OpenString("..0..", string1)
-        openstring2 = OpenString("..1...a", string2)
+        openstring1 = OpenString("..0..", string1, order=0)
+        openstring2 = OpenString("..1...a", string2, order=1)
         hash1 = openstring1.template_replacement
         hash2 = openstring2.template_replacement
 
@@ -141,7 +141,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         string1 = self.random_string
         string2 = generate_random_string()
         openstring1 = self.random_openstring
-        openstring2 = OpenString("b..0..", string2)
+        openstring2 = OpenString("b..0..", string2, order=1)
         hash1 = self.random_hash
         hash2 = openstring2.template_replacement
 
@@ -159,7 +159,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_remove_all_strings_removed_from_list_but_non_strings_exist(self):
         random_string = self.random_string
-        random_openstring = OpenString('a..1..', random_string)
+        random_openstring = OpenString('a..1..', random_string, order=0)
         random_hash = random_openstring.template_replacement
 
         source = '{"a": [true, "%s"]}' % random_string
@@ -190,7 +190,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_skip_start_of_dict(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring2 = OpenString('b', string2)
+        openstring2 = OpenString('b', string2, order=1)
 
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
 
@@ -202,7 +202,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_skip_end_of_dict(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring1 = OpenString('a', string1)
+        openstring1 = OpenString('a', string1, order=1)
 
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
 
@@ -215,8 +215,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         string1 = self.random_string
         string2 = generate_random_string()
         string3 = generate_random_string()
-        openstring1 = OpenString('a', string1)
-        openstring3 = OpenString('c', string3)
+        openstring1 = OpenString('a', string1, order=0)
+        openstring3 = OpenString('c', string3, order=2)
 
         source = '{"a": "%s", "b": "%s", "c": "%s"}' % (string1, string2,
                                                         string3)
@@ -230,7 +230,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_skip_start_of_list(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring2 = OpenString('..1..', string2)
+        openstring2 = OpenString('..1..', string2, order=1)
 
         source = '["%s", "%s"]' % (string1, string2)
 
@@ -242,7 +242,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_skip_end_of_list(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring1 = OpenString('..0..', string1)
+        openstring1 = OpenString('..0..', string1, order=0)
 
         source = '["%s", "%s"]' % (string1, string2)
 
@@ -255,8 +255,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         string1 = self.random_string
         string2 = generate_random_string()
         string3 = generate_random_string()
-        openstring1 = OpenString('..0..', string1)
-        openstring3 = OpenString('..2..', string3)
+        openstring1 = OpenString('..0..', string1, order=0)
+        openstring3 = OpenString('..2..', string3, order=2)
 
         source = '["%s", "%s", "%s"]' % (string1, string2, string3)
 
