@@ -1,0 +1,22 @@
+{
+  "first_string": "78aa3dbb6a161653a8a96d40de23c933_tr",
+  "second_string": "917c90a95f598f4895ba244a5d478a83_tr",
+  "array": ["db2ff94c6a51e4a409274bc80279e3ac_tr",
+            {"first_subarray_key": "be503bc09092fe5a3a15fd4b2d3b09df_tr",
+             "second_subarray_key": "b5830130eb32c52361aba5ebbf0aaa5c_tr"},
+            "c623f343c5cddb9dc4e940f546e484da_tr"],
+  "key.that": "d619e20ab23c1a0b1472e408fbbe58e2_tr",
+  "string\"with": "7f062b35253b7722bf9f0d228164b9bb_tr",
+  "dict": {
+    "first_key_array": ["894faf94cd6cba0f5855133e60ee1f83_tr", "d7d2cd8d7d9441d4f3d5f58e93d8096d_tr",
+                        "cb239b52dbe9017aba3d5d97c148cf2f_tr", "9f7a9124a81374c9a0a3f68ad304b194_tr",
+                        "d06f923edce8db5d5fd519ce11b2bdfe_tr"],
+    "second_key": "1f247d4acc62c8b29db95e2da3a35252_tr",
+    "third_key_dict": {
+      "first_subkey": "84054cbdf430608e91adec5b2ce4ecc1_tr",
+      "second_subkey": "1cfae8349fc15cb2015b41777e8bb046_tr"
+    },
+    "list with weird things": [null, 34e-12, "40dbee8ad26da8a3051673fad2e38ca0_tr", false, -4],
+    "fourth_key": "c9ffc99fd88e5c35de8ea9afcb11e697_tr"
+  }
+}

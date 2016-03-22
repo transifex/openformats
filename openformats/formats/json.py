@@ -37,7 +37,7 @@ class JsonHandler(Handler):
                 key = self._escape_key(key)
                 if nest is not None:
                     key = "{}.{}".format(nest, key)
-                if isinstance(value, unicode):
+                if isinstance(value, (str, unicode)):
                     openstring = OpenString(key, value)
                     self.transcriber.copy_until(value_position)
                     self.transcriber.add(openstring.template_replacement)
@@ -54,7 +54,7 @@ class JsonHandler(Handler):
                     key = "..{}..".format(index)
                 else:
                     key = "{}..{}..".format(nest, index)
-                if isinstance(item, unicode):
+                if isinstance(item, (str, unicode)):
                     openstring = OpenString(key, item)
                     self.transcriber.copy_until(item_position)
                     self.transcriber.add(openstring.template_replacement)
@@ -94,7 +94,7 @@ class JsonHandler(Handler):
             for key, key_position, value, value_position in parsed:
                 self.transcriber.copy_until(key_position - 1)
                 self.transcriber.mark_section_start()
-                if isinstance(value, unicode):
+                if isinstance(value, (str, unicode)):
                     string = self._get_next_string()
                     if (string is not None and
                             value == string.template_replacement):
@@ -125,7 +125,7 @@ class JsonHandler(Handler):
             for item, item_position in parsed:
                 self.transcriber.copy_until(item_position - 1)
                 self.transcriber.mark_section_start()
-                if isinstance(item, unicode):
+                if isinstance(item, (str, unicode)):
                     string = self._get_next_string()
                     if (string is not None and
                             item == string.template_replacement):
