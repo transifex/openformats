@@ -122,68 +122,74 @@ class JsonHandler(Handler):
         return self.transcriber.get_destination()
 
     def _intract(self, parsed):
-        at_least_one = False
         if parsed.type == dict:
-            for key, key_position, value, value_position in parsed:
-                self.transcriber.copy_until(key_position - 1)
-                self.transcriber.mark_section_start()
-                if isinstance(value, (str, unicode)):
-                    string = self._get_next_string()
-                    if (string is not None and
-                            value == string.template_replacement):
-                        at_least_one = True
-                        self.transcriber.copy_until(value_position)
-                        self.transcriber.add(string.string)
-                        self.transcriber.skip(len(value))
-                        self.stringset_index += 1
-                    else:
-                        self.transcriber.copy_until(value_position +
-                                                    len(value) + 1)
-                        self.transcriber.mark_section_end()
-                        self.transcriber.remove_section()
-                elif isinstance(value, DumbJson):
-                    all_removed = self._intract(value)
-                    if all_removed:
-                        self.transcriber.copy_until(value.end + 1)
-                        self.transcriber.mark_section_end()
-                        self.transcriber.remove_section()
-                    else:
-                        at_least_one = True
-                else:
-                    # 'value' is a python value allowed by JSON (integer,
-                    # boolean, null), skip it
-                    at_least_one = True
-
+            return self._intract_dict(parsed)
         elif parsed.type == list:
-            for item, item_position in parsed:
-                self.transcriber.copy_until(item_position - 1)
-                self.transcriber.mark_section_start()
-                if isinstance(item, (str, unicode)):
-                    string = self._get_next_string()
-                    if (string is not None and
-                            item == string.template_replacement):
-                        at_least_one = True
-                        self.transcriber.copy_until(item_position)
-                        self.transcriber.add(string.string)
-                        self.transcriber.skip(len(item))
-                        self.stringset_index += 1
-                    else:
-                        self.transcriber.copy_until(item_position +
-                                                    len(item) + 1)
-                        self.transcriber.mark_section_end()
-                        self.transcriber.remove_section()
-                elif isinstance(item, DumbJson):
-                    all_removed = self._intract(item)
-                    if all_removed:
-                        self.transcriber.copy_until(item.end + 1)
-                        self.transcriber.mark_section_end()
-                        self.transcriber.remove_section()
-                    else:
-                        at_least_one = True
-                else:
-                    # 'value' is a python value allowed by JSON (integer,
-                    # boolean, null), skip it
+            return self._intract_list(parsed)
+
+    def _intract_dict(self, parsed):
+        at_least_one = False
+        for key, key_position, value, value_position in parsed:
+            self.transcriber.copy_until(key_position - 1)
+            self.transcriber.mark_section_start()
+            if isinstance(value, (str, unicode)):
+                string = self._get_next_string()
+                if (string is not None and
+                        value == string.template_replacement):
                     at_least_one = True
+                    self.transcriber.copy_until(value_position)
+                    self.transcriber.add(string.string)
+                    self.transcriber.skip(len(value))
+                    self.stringset_index += 1
+                else:
+                    self.transcriber.copy_until(value_position +
+                                                len(value) + 1)
+                    self.transcriber.mark_section_end()
+                    self.transcriber.remove_section()
+            elif isinstance(value, DumbJson):
+                all_removed = self._intract(value)
+                if all_removed:
+                    self.transcriber.copy_until(value.end + 1)
+                    self.transcriber.mark_section_end()
+                    self.transcriber.remove_section()
+                else:
+                    at_least_one = True
+            else:
+                # 'value' is a python value allowed by JSON (integer,
+                # boolean, null), skip it
+                at_least_one = True
+        return not at_least_one
+
+    def _intract_list(self, parsed):
+        at_least_one = False
+        for item, item_position in parsed:
+            self.transcriber.copy_until(item_position - 1)
+            self.transcriber.mark_section_start()
+            if isinstance(item, (str, unicode)):
+                string = self._get_next_string()
+                if (string is not None and
+                        item == string.template_replacement):
+                    at_least_one = True
+                    self.transcriber.copy_until(item_position)
+                    self.transcriber.add(string.string)
+                    self.transcriber.skip(len(item))
+                    self.stringset_index += 1
+                else:
+                    self.transcriber.copy_until(item_position + len(item) + 1)
+                    self.transcriber.mark_section_end()
+                    self.transcriber.remove_section()
+            elif isinstance(item, DumbJson):
+                all_removed = self._intract(item)
+                if all_removed:
+                    self.transcriber.copy_until(item.end + 1)
+                    self.transcriber.mark_section_end()
+                    self.transcriber.remove_section()
+                else:
+                    at_least_one = True
+            else:
+                # 'value' is a python value allowed by JSON (integer,
+                # boolean, null), skip it
+                at_least_one = True
         return not at_least_one
 
     def _clean_empties(self, compiled):

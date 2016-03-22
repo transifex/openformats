@@ -282,3 +282,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_duplicate_keys(self):
         self._test_parse_error('{"a": "hello", "a": "world"}',
                                "Duplicate string key ('a') in line 1")
+
+    def test_display_json_errors(self):
+        self._test_parse_error('["]',
+                               "Unterminated string starting at: line 1 "
+                               "column 2 (char 1)")
