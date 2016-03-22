@@ -25,7 +25,10 @@ class JsonHandler(Handler):
         source = self.transcriber.source
         self.stringset = []
 
-        parsed = DumbJson(source)
+        try:
+            parsed = DumbJson(source)
+        except ValueError, e:
+            raise ParseError(e.message)
         self.extract(parsed)
         self.transcriber.copy_until(len(source))
 

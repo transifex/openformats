@@ -53,6 +53,8 @@ class DumbJson(object):
             self.type = dict
         elif starting_symbol == '[':
             self.type = list
+        else:
+            raise ValueError("Input is not a JSON container")
 
     def __iter__(self):
         if self.type == dict:
