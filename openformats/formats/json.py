@@ -130,8 +130,9 @@ class JsonHandler(Handler):
     def extract(self, parsed, nest=None):
         if parsed.type == dict:
             for key, key_position, value, value_position in parsed:
+                key = self._escape_key(key)
                 if nest is not None:
-                    key = "{}.{}".format(nest, self._escape_key(key))
+                    key = "{}.{}".format(nest, key)
                 if isinstance(value, unicode):
                     openstring = OpenString(key, value)
                     self.transcriber.copy_until(value_position)
@@ -203,7 +204,7 @@ class JsonHandler(Handler):
                                                     len(value) + 1)
                         self.transcriber.mark_section_end()
                         self.transcriber.remove_section()
-                else:
+                elif isinstance(value, DumbJson):
                     all_removed = self.intract(value)
                     if all_removed:
                         self.transcriber.copy_until(value.end + 1)
@@ -211,6 +212,10 @@ class JsonHandler(Handler):
                         self.transcriber.remove_section()
                     else:
                         at_least_one = True
+                else:
+                    # 'value' is a python value allowed by JSON (integer,
+                    # boolean, null), skip it
+                    at_least_one = True
 
         elif parsed.type == list:
             for item, item_position in parsed:
@@ -230,7 +235,7 @@ class JsonHandler(Handler):
                                                     len(item) + 1)
                         self.transcriber.mark_section_end()
                         self.transcriber.remove_section()
-                else:
+                elif isinstance(item, DumbJson):
                     all_removed = self.intract(item)
                     if all_removed:
                         self.transcriber.copy_until(item.end + 1)
@@ -238,6 +243,10 @@ class JsonHandler(Handler):
                         self.transcriber.remove_section()
                     else:
                         at_least_one = True
+                else:
+                    # 'value' is a python value allowed by JSON (integer,
+                    # boolean, null), skip it
+                    at_least_one = True
         return not at_least_one
 
     def clean_compiled(self, compiled):
