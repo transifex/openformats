@@ -272,3 +272,9 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self._test_parse_error('"hello"', "Input is not a JSON container")
         self._test_parse_error('3', "Input is not a JSON container")
         self._test_parse_error('false', "Input is not a JSON container")
+
+    def test_skipping_stuff_within_strings(self):
+        source = '{"a": "b,  ,c"}'
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEquals(compiled, source)

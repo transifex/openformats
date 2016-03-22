@@ -29,12 +29,12 @@ class JsonHandler(Handler):
             parsed = DumbJson(source)
         except ValueError, e:
             raise ParseError(e.message)
-        self.extract(parsed)
+        self._extract(parsed)
         self.transcriber.copy_until(len(source))
 
         return self.transcriber.get_destination(), self.stringset
 
-    def extract(self, parsed, nest=None):
+    def _extract(self, parsed, nest=None):
         if parsed.type == dict:
             for key, key_position, value, value_position in parsed:
                 key = self._escape_key(key)
@@ -47,7 +47,7 @@ class JsonHandler(Handler):
                     self.transcriber.skip(len(value))
                     self.stringset.append(openstring)
                 elif isinstance(value, DumbJson):
-                    self.extract(value, key)
+                    self._extract(value, key)
                 else:
                     # Ignore other JSON types (bools, nulls, numbers)
                     pass
@@ -64,7 +64,7 @@ class JsonHandler(Handler):
                     self.transcriber.skip(len(item))
                     self.stringset.append(openstring)
                 elif isinstance(item, DumbJson):
-                    self.extract(item, key)
+                    self._extract(item, key)
                 else:
                     # Ignore other JSON types (bools, nulls, numbers)
                     pass
@@ -78,20 +78,36 @@ class JsonHandler(Handler):
         return key
 
     def compile(self, template, stringset):
+        # Lets play on the template first, we need it to not include the hashes
+        # that aren't in the stringset. For that we will create a new stringset
+        # which will have the hashes themselves as strings and compile against
+        # that. The compilation process will remove any string sections that
+        # are absent from the stringset. Next we will call `_clean_empties`
+        # from the template to clear out any `...,  ,...` or `...{ ,...`
+        # sequences left. The result will be used as the actual template for
+        # the compilation process
+
+        fake_stringset = [OpenString(openstring.key,
+                                     openstring.template_replacement)
+                          for openstring in stringset]
+        new_template = self._replace_translations(template, fake_stringset)
+        new_template = self._clean_empties(new_template)
+
+        return self._replace_translations(new_template, stringset)
+
+    def _replace_translations(self, template, stringset):
         self.transcriber = Transcriber(template)
         template = self.transcriber.source
         self.stringset = stringset
         self.stringset_index = 0
 
         parsed = DumbJson(template)
-        self.intract(parsed)
+        self._intract(parsed)
 
         self.transcriber.copy_until(len(template))
-        compiled = self.transcriber.get_destination()
+        return self.transcriber.get_destination()
 
-        return self.clean_compiled(compiled)
-
-    def intract(self, parsed):
+    def _intract(self, parsed):
         at_least_one = False
         if parsed.type == dict:
             for key, key_position, value, value_position in parsed:
@@ -112,7 +128,7 @@ class JsonHandler(Handler):
                         self.transcriber.mark_section_end()
                         self.transcriber.remove_section()
                 elif isinstance(value, DumbJson):
-                    all_removed = self.intract(value)
+                    all_removed = self._intract(value)
                     if all_removed:
                         self.transcriber.copy_until(value.end + 1)
                         self.transcriber.mark_section_end()
@@ -143,7 +159,7 @@ class JsonHandler(Handler):
                         self.transcriber.mark_section_end()
                         self.transcriber.remove_section()
                 elif isinstance(item, DumbJson):
-                    all_removed = self.intract(item)
+                    all_removed = self._intract(item)
                     if all_removed:
                         self.transcriber.copy_until(item.end + 1)
                         self.transcriber.mark_section_end()
@@ -156,8 +172,14 @@ class JsonHandler(Handler):
                     at_least_one = True
         return not at_least_one
 
-    def clean_compiled(self, compiled):
-        "If sections were removed, clean leftover commas, brackets etc"
+    def _clean_empties(self, compiled):
+        """ If sections were removed, clean leftover commas, brackets etc.
+
+            Eg:
+                '{"a": "b", ,"c": "d"}' -> '{"a": "b", "c": "d"}'
+                '{, "a": "b", "c": "d"}' -> '{"a": "b", "c": "d"}'
+                '["a", , "b"]' -> '["a", "b"]'
+        """
         while True:
             # First key-value of a dict was removed
             match = re.search(r'{\s*,', compiled)
