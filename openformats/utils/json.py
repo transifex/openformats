@@ -29,7 +29,7 @@ class DumbJson(object):
         dictionary (`{"second": "string"}`). The item positions yielded while
         iterating will be in respect to the outer string, so:
 
-            >>> assert next(dumb_json) == ('second', 19, 'dict', 29)
+            >>> assert list(dumb_json) == [('second', 19, 'dict', 29)]
 
         If the DumbJson object is a dictionary, then iterating it will yield
         4-tuples with `(key, key_position, value, value_position)`. If it's a
@@ -37,6 +37,15 @@ class DumbJson(object):
 
             >>> assert list(DumbJson('{"a": "b"}')) == [('a', 2, 'b', 7)]
             >>> assert list(DumbJson('["a", "b"]')) == [('a', 2), ('b', 7)]
+
+        Encountering an embedded JSON structure while iterating will yield a
+        DumbJson object:
+
+            >>> embedded, _ = list(DumbJson('[["a"]]'))[0]
+            >>> assert isinstance(embedded, DumbJson)
+            >>> assert list(embedded) == [("a", 3)]
+
+            # Note that the position (3) is in respect to the root JSON string
 
         When the items or values are not strings but objects allowed by JSON,
         like numbers, booleans or null, they will be yielded normally:

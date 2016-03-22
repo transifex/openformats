@@ -72,11 +72,11 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(compiled, source)
 
     def test_python_values_are_ignored(self):
-        source = '[true, "%s", false]' % self.random_string
+        source = '[true, "%s", 5e12]' % self.random_string
         random_openstring = OpenString('..1..', self.random_string, order=0)
         random_hash = random_openstring.template_replacement
         template, stringset = self.handler.parse(source)
-        self.assertEquals(template, '[true, "%s", false]' % random_hash)
+        self.assertEquals(template, '[true, "%s", 5e12]' % random_hash)
         self.assertEquals(len(stringset), 1)
         self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
 
@@ -162,15 +162,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         random_openstring = OpenString('a..1..', random_string, order=0)
         random_hash = random_openstring.template_replacement
 
-        source = '{"a": [true, "%s"]}' % random_string
+        source = '{"a": [null, "%s"]}' % random_string
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
 
-        self.assertEquals(template, '{"a": [true, "%s"]}' % random_hash)
+        self.assertEquals(template, '{"a": [null, "%s"]}' % random_hash)
         self.assertEquals(len(stringset), 1)
         self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, '{"a": [true]}')
+        self.assertEquals(compiled, '{"a": [null]}')
 
     def test_remove_all_strings_removed_from_dict_but_non_strings_exist(self):
         random_string = self.random_string
