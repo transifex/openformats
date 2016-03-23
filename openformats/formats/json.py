@@ -100,6 +100,8 @@ class JsonHandler(Handler):
         # sequences left. The result will be used as the actual template for
         # the compilation process
 
+        stringset = list(stringset)
+
         fake_stringset = [OpenString(openstring.key,
                                      openstring.template_replacement,
                                      order=openstring.order)
