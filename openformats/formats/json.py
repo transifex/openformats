@@ -12,7 +12,7 @@ from ..utils.json import DumbJson
 
 
 class JsonHandler(Handler):
-    name = "json"
+    name = "BETA_KEYVALUEJSON"
     extension = "json"
 
     def parse(self, content):

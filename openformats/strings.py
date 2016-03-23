@@ -92,7 +92,7 @@ class OpenString(object):
         return hash((self.key, self.context, self.rule))
 
     def __repr__(self):
-        return '"{}"'.format(self._strings[5].encode('utf-8'))  # pragma: nocover
+        return '"{}"'.format(self._strings[5].encode('utf-8'))  # pragma: nocover # noqa
 
     @property
     def string(self):

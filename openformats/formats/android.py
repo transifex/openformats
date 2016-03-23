@@ -9,7 +9,7 @@ from ..utils.xml import DumbXml
 
 
 class AndroidHandler(Handler):
-    name = "Android"
+    name = "BETA_ANDROID"
     extension = "xml"
 
     plural_template = u'<item quantity="{rule}">{string}</item>'
@@ -163,6 +163,7 @@ class AndroidHandler(Handler):
         if strings is not None:
             context = plurals_tag.attrs.get('product', "")
             string = OpenString(plurals_tag.attrs['name'], strings,
+                                pluralized=True,
                                 context=context, order=self._order,
                                 developer_comment=comment)
             self._order += 1
