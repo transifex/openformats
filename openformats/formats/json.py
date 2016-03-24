@@ -42,13 +42,13 @@ class JsonHandler(Handler):
             for key, key_position, value, value_position in parsed:
                 key = self._escape_key(key)
                 if nest is not None:
-                    key = "{}.{}".format(nest, key)
+                    key = u"{}.{}".format(nest, key)
 
                 # 'key' should be unique
                 if key in self.existing_keys:
                     # Need this for line number
                     self.transcriber.copy_until(key_position)
-                    raise ParseError("Duplicate string key ('{}') in line {}".
+                    raise ParseError(u"Duplicate string key ('{}') in line {}".
                                      format(key, self.transcriber.line_number))
                 self.existing_keys.add(key)
 
@@ -67,9 +67,9 @@ class JsonHandler(Handler):
         elif parsed.type == list:
             for index, (item, item_position) in enumerate(parsed):
                 if nest is None:
-                    key = "..{}..".format(index)
+                    key = u"..{}..".format(index)
                 else:
-                    key = "{}..{}..".format(nest, index)
+                    key = u"{}..{}..".format(nest, index)
                 if isinstance(item, (str, unicode)):
                     openstring = OpenString(key, item, order=next(self._order))
                     self.transcriber.copy_until(item_position)
@@ -86,8 +86,8 @@ class JsonHandler(Handler):
 
     @staticmethod
     def _escape_key(key):
-        key = key.replace("\\", "\\\\")
-        key = key.replace(".", "\\.")
+        key = key.replace(u"\\", u"\\\\")
+        key = key.replace(u".", u"\\.")
         return key
 
     def compile(self, template, stringset):
@@ -206,36 +206,36 @@ class JsonHandler(Handler):
             # First key-value of a dict was removed
             match = re.search(r'{\s*,', compiled)
             if match:
-                compiled = "{}{{{}".format(compiled[:match.start()],
-                                           compiled[match.end():])
+                compiled = u"{}{{{}".format(compiled[:match.start()],
+                                            compiled[match.end():])
                 continue
 
             # Last key-value of a dict was removed
             match = re.search(r',\s*}', compiled)
             if match:
-                compiled = "{}}}{}".format(compiled[:match.start()],
-                                           compiled[match.end():])
+                compiled = u"{}}}{}".format(compiled[:match.start()],
+                                            compiled[match.end():])
                 continue
 
             # First item of a list was removed
             match = re.search(r'\[\s*,', compiled)
             if match:
-                compiled = "{}[{}".format(compiled[:match.start()],
-                                          compiled[match.end():])
+                compiled = u"{}[{}".format(compiled[:match.start()],
+                                           compiled[match.end():])
                 continue
 
             # Last item of a list was removed
             match = re.search(r',\s*\]', compiled)
             if match:
-                compiled = "{}]{}".format(compiled[:match.start()],
-                                          compiled[match.end():])
+                compiled = u"{}]{}".format(compiled[:match.start()],
+                                           compiled[match.end():])
                 continue
 
             # Intermediate key-value of a dict or list was removed
             match = re.search(r',\s*,', compiled)
             if match:
-                compiled = "{},{}".format(compiled[:match.start()],
-                                          compiled[match.end():])
+                compiled = u"{},{}".format(compiled[:match.start()],
+                                           compiled[match.end():])
                 continue
 
             # No substitutions happened, break
