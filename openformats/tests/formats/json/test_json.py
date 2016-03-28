@@ -278,9 +278,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(template, '{"false": false}')
 
     def test_not_json_container(self):
-        self._test_parse_error('"hello"', "Input is not a JSON container")
-        self._test_parse_error('3', "Input is not a JSON container")
-        self._test_parse_error('false', "Input is not a JSON container")
+        self._test_parse_error('"hello"',
+                               'Was expecting whitespace or one of `{[` on '
+                               'line 1, found `"` instead')
+        self._test_parse_error('3',
+                               "Was expecting whitespace or one of `{[` on "
+                               "line 1, found `3` instead")
+        self._test_parse_error('false',
+                               "Was expecting whitespace or one of `{[` on "
+                               "line 1, found `f` instead")
 
     def test_skipping_stuff_within_strings(self):
         source = '{"a": "b,  ,c"}'

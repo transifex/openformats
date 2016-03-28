@@ -186,10 +186,12 @@ class DumbJson(object):
                     continue
                 return candidate, ptr
             if require_whitespace and not candidate.isspace():
+                newline_count = self.source.count('\n', 0, ptr)
                 raise ValueError(
-                    u"Was expecting whitespace or one of `{symbols}`, found "
-                    u"`{candidate}` instead".format(
+                    u"Was expecting whitespace or one of `{symbols}` on line "
+                    u"{line_no}, found `{candidate}` instead".format(
                         symbols=''.join(symbols),
+                        line_no=newline_count + 1,
                         candidate=candidate,
                     )
                 )
