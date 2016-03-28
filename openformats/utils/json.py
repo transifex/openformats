@@ -185,10 +185,10 @@ class DumbJson(object):
                         self.source[ptr - 1] == '\\'):
                     continue
                 return candidate, ptr
-            if (require_whitespace and not re.search(r'^\s$', candidate)):
+            if require_whitespace and not candidate.isspace():
                 raise ValueError(
                     u"Was expecting whitespace or one of `{symbols}`, found "
-                    u"'{candidate}' instead".format(
+                    u"`{candidate}` instead".format(
                         symbols=''.join(symbols),
                         candidate=candidate,
                     )
