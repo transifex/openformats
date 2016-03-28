@@ -1,0 +1,22 @@
+{
+  "first_string": "First string",
+  "second_string": "Second string",
+  "array": ["First item",
+            {"first_subarray_key": "First subarray item",
+             "second_subarray_key": "Second subarray item"},
+            "Third item"],
+  "key.that": "needs.escaping",
+  "string\"with": "escaped\"quotes",
+  "dict": {
+    "first_key_array": ["First subarray item", "Second subarray item",
+                        "Third subarray item", "Fourth subarray item",
+                        "Fifth subarray item"],
+    "second_key": "Second value",
+    "third_key_dict": {
+      "first_subkey": "First subvalue",
+      "second_subkey": "Second subvalue"
+    },
+    "list with weird things": [null, 34e-12, "inside weird list", false, -4],
+    "fourth_key": "Fourth value"
+  }
+}

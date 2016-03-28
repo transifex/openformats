@@ -7,11 +7,15 @@ Example:
     $ ./bin/create_files.py openformats/tests/srt/files/1_en.srt
 """
 
+from __future__ import absolute_import
+
 import argparse
 import os
 import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from openformats.formats import (plaintext, srt, android)
+
+from openformats.formats import plaintext, srt, android, json
 from openformats.tests.utils import translate_stringset
 
 args = argparse.ArgumentParser
@@ -23,6 +27,7 @@ def get_handler(ext):
         'txt': plaintext.PlaintextHandler(),
         'srt': srt.SrtHandler(),
         'xml': android.AndroidHandler(),
+        'json': json.JsonHandler(),
     }[ext]
 
 

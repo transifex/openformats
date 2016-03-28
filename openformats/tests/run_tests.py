@@ -10,7 +10,7 @@ def run_all(args=None):
             'nosetests', '--with-xunit', '--with-xcoverage',
             '--cover-package=openformats', '--cover-erase',
             '--logging-filter=openformats', '--logging-level=DEBUG',
-            '--verbose'
+            '--verbose',
         ]
 
     nose.run_exit(
