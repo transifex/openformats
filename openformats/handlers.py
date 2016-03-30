@@ -19,6 +19,8 @@ class Handler(object):
         'other': 5
     }
 
+    EXTRACTS_RAW = True
+
     _RULES_ITOA = {value: key for key, value in _RULES_ATOI.iteritems()}
 
     _RULE_ERROR_MSG = (

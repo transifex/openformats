@@ -345,3 +345,17 @@ class AndroidHandler(Handler):
             # didn't find it, must remove by skipping it
             self.transcriber.skip_until(plurals_offset +
                                         len(plurals_tag.content))
+
+    @staticmethod
+    def escape(string):
+        escaped_string = string.replace('"', r'\"'). \
+                                replace("'", r"\'")
+
+        return escaped_string
+
+    @staticmethod
+    def unescape(string):
+        unescaped_string = string.replace(r'\"', '"'). \
+                                replace(r"\'", "'")
+
+        return unescaped_string

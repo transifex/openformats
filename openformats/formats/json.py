@@ -248,3 +248,21 @@ class JsonHandler(Handler):
             return self.stringset[self.stringset_index]
         except IndexError:
             return None
+
+    @staticmethod
+    def escape(string):
+        escaped_string = string.replace('\\', r'\\'). \
+                                replace('.', r'\.'). \
+                                replace('"', '\\"'). \
+                                replace('/', '\/"')
+
+        return escaped_string
+
+    @staticmethod
+    def unescape(string):
+        unescaped_string = string.replace(r'\\', '\\'). \
+                                replace(r'\.', '.'). \
+                                replace(r'\"', '"'). \
+                                replace(r'\/', '/"')
+
+        return unescaped_string
