@@ -251,18 +251,12 @@ class JsonHandler(Handler):
 
     @staticmethod
     def escape(string):
-        escaped_string = string.replace('\\', r'\\'). \
-                                replace('.', r'\.'). \
-                                replace('"', '\\"'). \
-                                replace('/', '\/"')
+        escaped_string = string.replace('\\', r'\\').replace('"', '\\"')
 
         return escaped_string
 
     @staticmethod
     def unescape(string):
-        unescaped_string = string.replace(r'\\', '\\'). \
-                                replace(r'\.', '.'). \
-                                replace(r'\"', '"'). \
-                                replace(r'\/', '/"')
+        unescaped_string = string.replace(r'\\', '\\').replace(r'\"', '"')
 
         return unescaped_string

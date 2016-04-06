@@ -268,6 +268,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_invalid_json(self):
         self._test_parse_error('jaosjf', "No JSON object could be decoded")
 
+    def test_invalid_json_type(self):
+        template, stringset = self.handler.parse('[false]')
+        self.assertEqual(stringset, [])
+        self.assertEqual(template, '[false]')
+
+        template, stringset = self.handler.parse('{"false": false}')
+        self.assertEqual(stringset, [])
+        self.assertEqual(template, '{"false": false}')
+
     def test_not_json_container(self):
         self._test_parse_error('"hello"', "Input is not a JSON container")
         self._test_parse_error('3', "Input is not a JSON container")
@@ -287,3 +296,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self._test_parse_error('["]',
                                "Unterminated string starting at: line 1 "
                                "column 2 (char 1)")
+
+    def test_escape_json(self):
+        self.assertEqual(
+            self.handler.escape("a \\ string. with \"quotes\""),
+            "a \\\\ string. with \\\"quotes\\\""
+        )
+
+    def test_unescape_json(self):
+        self.assertEqual(
+            self.handler.unescape("a \\\\ string. with \\\"quotes\\\""),
+            "a \\ string. with \"quotes\""
+        )
