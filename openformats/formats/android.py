@@ -19,6 +19,8 @@ class AndroidHandler(Handler):
         'translatable': 'false'
     }
 
+    EXTRACTS_RAW = False
+
     def parse(self, content):
         stringset = []
         if type(content) == str:
