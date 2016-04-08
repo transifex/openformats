@@ -57,8 +57,7 @@ class DumbJson(object):
     def __init__(self, source, start=0):
         self.source = source
         self._end = None
-        starting_symbol, self.start = self._find_next('{[', start,
-                                                      require_whitespace=True)
+        starting_symbol, self.start = self._find_next('{[', start)
         if starting_symbol == '{':
             self.type = dict
         elif starting_symbol == '[':
@@ -78,20 +77,19 @@ class DumbJson(object):
         start = self.start + 1
 
         # Maybe it's an empty dict
-        end, end_p = self._find_next('"}', start, require_whitespace=True)
+        end, end_p = self._find_next('"}', start)
         if end == "}":
             self.end = end_p
             return
 
         while True:
             # Lets find our key
-            _, start_key_quote_p = self._find_next('"', start,
-                                                   require_whitespace=True)
+            _, start_key_quote_p = self._find_next('"', start)
             key_p = start_key_quote_p + 1
-            _, end_key_quote_p = self._find_next('"', key_p)
+            _, end_key_quote_p = self._find_next('"', key_p,
+                                                 require_whitespace=False)
             key = self.source[key_p:end_key_quote_p]
-            _, colon_p = self._find_next(':', end_key_quote_p + 1,
-                                         require_whitespace=True)
+            _, colon_p = self._find_next(':', end_key_quote_p + 1)
             value_start_string, value_start_computed, value_start_p =\
                 self._process_value(colon_p + 1)
 
@@ -100,7 +98,9 @@ class DumbJson(object):
             if value_start_string == '"':
                 # We found a string!
                 value_p = value_start_p + 1
-                _, value_end_quote_p = self._find_next('"', value_p)
+                _, value_end_quote_p = self._find_next(
+                    '"', value_p, require_whitespace=False
+                )
                 value = self.source[value_p:value_end_quote_p]
                 yield key, key_p, value, value_p
                 next_p = value_end_quote_p + 1
@@ -118,9 +118,7 @@ class DumbJson(object):
                 # Something went wrong
                 raise ValueError("No JSON value could be decoded")
 
-            next_symbol, next_symbol_p = self._find_next(
-                ',}', next_p, require_whitespace=True,
-            )
+            next_symbol, next_symbol_p = self._find_next(',}', next_p)
             if next_symbol == ',':
                 start = next_symbol_p + 1
             elif next_symbol == '}':
@@ -149,7 +147,8 @@ class DumbJson(object):
             if item_start_string == '"':
                 # We found a string!
                 item_p = item_start_p + 1
-                _, end_item_quote_p = self._find_next('"', item_p)
+                _, end_item_quote_p = self._find_next('"', item_p,
+                                                      require_whitespace=False)
                 item = self.source[item_p:end_item_quote_p]
                 yield item, item_p
                 next_p = end_item_quote_p + 1
@@ -167,16 +166,14 @@ class DumbJson(object):
                 # Something went wrong
                 raise ValueError("No JSON value could be decoded")
 
-            next_symbol, next_symbol_p = self._find_next(
-                ',]', next_p, require_whitespace=True,
-            )
+            next_symbol, next_symbol_p = self._find_next(',]', next_p)
             if next_symbol == ',':
                 start = next_symbol_p + 1
             elif next_symbol == ']':
                 self.end = next_symbol_p
                 break
 
-    def _find_next(self, symbols, start=0, require_whitespace=False):
+    def _find_next(self, symbols, start=0, require_whitespace=True):
         symbols = {s for s in symbols}
         for ptr in xrange(start, len(self.source)):
             candidate = self.source[ptr]
