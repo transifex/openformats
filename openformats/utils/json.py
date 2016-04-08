@@ -86,7 +86,8 @@ class DumbJson(object):
             # Lets find our key
             _, start_key_quote_p = self._find_next('"', start)
             key_p = start_key_quote_p + 1
-            _, end_key_quote_p = self._find_next('"', key_p)
+            _, end_key_quote_p = self._find_next('"', key_p,
+                                                 require_whitespace=False)
             key = self.source[key_p:end_key_quote_p]
             _, colon_p = self._find_next(':', end_key_quote_p + 1)
             value_start_string, value_start_computed, value_start_p =\
@@ -97,7 +98,9 @@ class DumbJson(object):
             if value_start_string == '"':
                 # We found a string!
                 value_p = value_start_p + 1
-                _, value_end_quote_p = self._find_next('"', value_p)
+                _, value_end_quote_p = self._find_next(
+                    '"', value_p, require_whitespace=False
+                )
                 value = self.source[value_p:value_end_quote_p]
                 yield key, key_p, value, value_p
                 next_p = value_end_quote_p + 1
@@ -144,7 +147,8 @@ class DumbJson(object):
             if item_start_string == '"':
                 # We found a string!
                 item_p = item_start_p + 1
-                _, end_item_quote_p = self._find_next('"', item_p)
+                _, end_item_quote_p = self._find_next('"', item_p,
+                                                      require_whitespace=False)
                 item = self.source[item_p:end_item_quote_p]
                 yield item, item_p
                 next_p = end_item_quote_p + 1
@@ -169,7 +173,7 @@ class DumbJson(object):
                 self.end = next_symbol_p
                 break
 
-    def _find_next(self, symbols, start=0):
+    def _find_next(self, symbols, start=0, require_whitespace=True):
         symbols = {s for s in symbols}
         for ptr in xrange(start, len(self.source)):
             candidate = self.source[ptr]
@@ -178,6 +182,16 @@ class DumbJson(object):
                         self.source[ptr - 1] == '\\'):
                     continue
                 return candidate, ptr
+            if require_whitespace and not candidate.isspace():
+                newline_count = self.source.count('\n', 0, ptr)
+                raise ValueError(
+                    u"Was expecting whitespace or one of `{symbols}` on line "
+                    u"{line_no}, found `{candidate}` instead".format(
+                        symbols=''.join(symbols),
+                        line_no=newline_count + 1,
+                        candidate=candidate,
+                    )
+                )
         return None, None
 
     def _process_value(self, start):
