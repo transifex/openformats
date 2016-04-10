@@ -189,6 +189,10 @@ class NewDumbXml(object):
         - `dumb_xml.text_position`: The starting point of the tag's contents
           (in our example: `15`)
 
+            - For single tags (eg '<br />'), `text` and `text_position` will be
+              None; for empty tags (eg, '<li></li>'), `text` will be `''` and
+              `text_position` will be the expected value
+
         - `dumb_xml.text`: The text content of the tag (in our example: `'b'`)
 
             - If the contents begin with text but also have other xml tags, we
@@ -219,8 +223,8 @@ class NewDumbXml(object):
     COMMENT = '!--'
 
     def __init__(self, source, start=0):
-        self.start = start
         self.source = source
+        self.start = start
         self._position = self._tag = self._attrib = self._attrib_string =\
             self._text_position = self._text = self._tail_position =\
             self._tail = self.NOT_CACHED
@@ -260,7 +264,7 @@ class NewDumbXml(object):
         if self._attrib is not self.NOT_CACHED:
             return self._attrib
 
-        attrib_start_p = self.position + len(self.tag) + 1
+        attrib_start_p = self.position + 1 + len(self.tag)
         in_quotes = False
         for ptr in xrange(attrib_start_p, len(self.source)):
             candidate = self.source[ptr]
@@ -296,7 +300,7 @@ class NewDumbXml(object):
         if self._attrib_string is self.NOT_CACHED:
             self.attrib  # This will generate self._attrib_string
 
-        ptr = self.position + len(self.tag) + len(self._attrib_string) + 1
+        ptr = self.position + 1 + len(self.tag) + len(self._attrib_string)
         candidate = self.source[ptr]
         # Based on how we calculated '_attrib_string', this should either be
         # '/' or '>'
@@ -341,8 +345,7 @@ class NewDumbXml(object):
 
         start = self.text_position + len(self.text)
         while True:
-            assert self.source[start] == '<'
-            if self.source[start + 1] == '/':
+            if self.source[start + 1] == '/':  # We found the closing tag
                 if (self.source[start + 2: start + 2 + len(self.tag)] !=
                         self.tag):
                     raise ValueError("Closing tag does not match opening tag")
@@ -389,14 +392,14 @@ class NewDumbXml(object):
     def end(self):
         return self.tail_position + len(self.tail)
 
-    def find_children(self, tag):
+    def find_children(self, tag=None):
         for child in self:
-            if child.tag == tag:
+            if tag is None or child.tag == tag:
                 yield child
 
-    def find_descendants(self, tag):
+    def find_descendants(self, tag=None):
         for child in self:
-            if child.tag == tag:
+            if tag is None or child.tag == tag:
                 yield child
             for inner in child.find_descendants(tag):
                 yield inner

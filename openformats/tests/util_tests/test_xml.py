@@ -175,6 +175,28 @@ class DumbXmlTestCase(unittest.TestCase):
              ('li', {'highlight': "true"}, "three")]
         )
 
+    def test_find_all_children(self):
+        root = NewDumbXml("""
+            <ul>
+                <li>one</li>
+                <something_else>something else</something_else>
+                <li>two</li>
+                <div>
+                    <li>This won't be collected</li>
+                </div>
+                <li highlight="true">three</li>
+            </ul>
+        """)
+        self.assertEquals(
+            [(inner.tag, inner.attrib, inner.text.strip())
+             for inner in root.find_children()],
+            [('li', {}, "one"),
+             ('something_else', {}, "something else"),
+             ('li', {}, "two"),
+             ('div', {}, ""),
+             ('li', {'highlight': "true"}, "three")]
+        )
+
     def test_find_descendants(self):
         root = NewDumbXml("""
             <div>
@@ -190,4 +212,23 @@ class DumbXmlTestCase(unittest.TestCase):
              for inner in root.find_descendants('p')],
             [('p', {}, "Header"),
              ('p', {'class': "icon icon-subheader"}, "Subheader")]
+        )
+
+    def test_find_all_descendants(self):
+        root = NewDumbXml("""
+            <div>
+                <p>Header</p>
+                <div>
+                    <p class="icon icon-subheader">Subheader</p>
+                    <img src="foo" alt="bar" />
+                </div>
+            </div>
+        """)
+        self.assertEquals(
+            [(inner.tag, inner.attrib, inner.text and inner.text.strip())
+             for inner in root.find_descendants()],
+            [('p', {}, "Header"),
+             ('div', {}, ""),
+             ('p', {'class': "icon icon-subheader"}, "Subheader"),
+             ('img', {'src': "foo", 'alt': "bar"}, None)]
         )
