@@ -53,13 +53,13 @@ class DumbXmlTestCase(unittest.TestCase):
 
     def test_no_embeds_errors(self):
         cases = (('<a', "Opening tag not closed"),
-                 ('<a b="c"', "Opening tag not closed"),
+                 ('<a b="c"', "Opening tag 'a' not closed"),
                  ('<a', "Opening tag not closed"),
-                 ('<a/', "Opening tag not closed"),
-                 ('<a /', "Opening tag not closed"),
-                 ('<a/oiajod', "Opening tag not closed"),
-                 ('<a>', "Tag not closed"),
-                 ('<a>hello world', "Tag not closed"),
+                 ('<a/', "Opening tag 'a' not closed"),
+                 ('<a /', "Opening tag 'a' not closed"),
+                 ('<a/oiajod', "Opening tag 'a' not closed"),
+                 ('<a>', "Tag 'a' not closed"),
+                 ('<a>hello world', "Tag 'a' not closed"),
                  ('<!---', "Comment not closed"),
                  ('<!--jafosijdfoas-', "Comment not closed"))
         for source, error_msg in cases:
@@ -141,9 +141,9 @@ class DumbXmlTestCase(unittest.TestCase):
 
     def test_iter_errors(self):
         cases = (
-            ('<a></b>', "Closing tag does not match opening tag"),
-            ('<a></a', "Invalid closing of tag"),
-            ('<a></a aosdjfio', "Invalid closing of tag"),
+            ('<a></b>', "Closing tag 'b' does not match opening tag 'a'"),
+            ('<a></a', "Invalid closing of tag 'a'"),
+            ('<a></a aosdjfio', "Invalid closing of tag 'a'"),
         )
         for source, error_msg in cases:
             with self.assertRaisesRegexp(ValueError, re.escape(error_msg)):

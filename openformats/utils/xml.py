@@ -279,7 +279,7 @@ class NewDumbXml(object):
                 attrib_end_p = ptr
                 break
         else:
-            raise ValueError("Opening tag not closed")
+            raise ValueError("Opening tag '{}' not closed".format(self.tag))
 
         self._attrib_string = self.source[attrib_start_p:attrib_end_p]
         pat = re.compile(r"""(?P<key>[^\s=]+)
@@ -320,8 +320,9 @@ class NewDumbXml(object):
                     self._tail_position = ptr + 1
                     return self._text_position
                 else:
-                    raise ValueError("Opening tag not closed")
-            raise ValueError("Opening tag not closed")
+                    raise ValueError("Opening tag '{}' not closed".
+                                     format(self.tag))
+            raise ValueError("Opening tag '{}' not closed".format(self.tag))
         elif candidate == '>':
             self._text_position = ptr + 1
             return self._text_position
@@ -339,7 +340,7 @@ class NewDumbXml(object):
 
         next_tag_position = self._find_next_gt(self.text_position)
         if next_tag_position == len(self.source):
-            raise ValueError("Tag not closed")
+            raise ValueError("Tag '{}' not closed".format(self.tag))
 
         self._text = self.source[self.text_position:next_tag_position]
         return self._text
@@ -351,9 +352,10 @@ class NewDumbXml(object):
         start = self.text_position + len(self.text)
         while True:
             if self.source[start + 1] == '/':  # We found the closing tag
-                if (self.source[start + 2: start + 2 + len(self.tag)] !=
-                        self.tag):
-                    raise ValueError("Closing tag does not match opening tag")
+                closing_tag = self.source[start + 2: start + 2 + len(self.tag)]
+                if closing_tag != self.tag:
+                    raise ValueError("Closing tag '{}' does not match opening "
+                                     "tag '{}'".format(closing_tag, self.tag))
                 for ptr in xrange(start + 2 + len(self.tag), len(self.source)):
                     candidate = self.source[ptr]
                     if candidate.isspace():
@@ -362,8 +364,10 @@ class NewDumbXml(object):
                         self._tail_position = ptr + 1
                         return
                     else:
-                        raise ValueError("Invalid closing of tag")
-                raise ValueError("Invalid closing of tag")
+                        raise ValueError("Invalid closing of tag '{}'".
+                                         format(self.tag))
+                raise ValueError("Invalid closing of tag '{}'".
+                                 format(self.tag))
             else:
                 inner = NewDumbXml(self.source, start)
                 yield inner
