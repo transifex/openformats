@@ -175,6 +175,21 @@ class DumbXmlTestCase(unittest.TestCase):
              ('li', {'highlight': "true"}, "three")]
         )
 
+    def test_find_children_multitag(self):
+        root = NewDumbXml("""
+            <root>
+                <a>AAA</a>
+                <b>BBB</b>
+                <c>CCC</c>
+            </root>
+        """)
+        self.assertEquals(
+            [(inner.tag, inner.attrib, inner.text)
+             for inner in root.find_children(('a', 'b'))],
+            [('a', {}, "AAA"),
+             ('b', {}, "BBB")]
+        )
+
     def test_find_all_children(self):
         root = NewDumbXml("""
             <ul>
@@ -212,6 +227,24 @@ class DumbXmlTestCase(unittest.TestCase):
              for inner in root.find_descendants('p')],
             [('p', {}, "Header"),
              ('p', {'class': "icon icon-subheader"}, "Subheader")]
+        )
+
+    def test_find_descendants_multitag(self):
+        root = NewDumbXml("""
+            <root>
+                <a>first child</a>
+                <b>
+                    <a>first grandchild</a>
+                    <c>second grandchild</c>
+                </b>
+            </root>
+        """)
+        self.assertEquals(
+            [(inner.tag, inner.attrib, inner.text)
+             for inner in root.find_descendants(('a', 'c'))],
+            [('a', {}, "first child"),
+             ('a', {}, "first grandchild"),
+             ('c', {}, "second grandchild")]
         )
 
     def test_find_all_descendants(self):

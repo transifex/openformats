@@ -215,6 +215,11 @@ class NewDumbXml(object):
 
         - `dumb_xml.end`: the end of the tail (should be the start of the next
           tag, if there is one)
+
+        Two finding methods are supported, `find_children` and
+        `find_descendants`, which accept a tag name or list of tag names as
+        argument. If the argument is left None, all children and descendants
+        will be yielded.
     """
 
     class NOT_CACHED:
@@ -392,16 +397,26 @@ class NewDumbXml(object):
     def end(self):
         return self.tail_position + len(self.tail)
 
-    def find_children(self, tag=None):
+    def find_children(self, tag_or_tags=None):
+        if isinstance(tag_or_tags, (str, unicode)):
+            tags = [tag_or_tags]
+        elif tag_or_tags is not None:
+            tags = tag_or_tags
+
         for child in self:
-            if tag is None or child.tag == tag:
+            if tag_or_tags is None or child.tag in tags:
                 yield child
 
-    def find_descendants(self, tag=None):
+    def find_descendants(self, tag_or_tags=None):
+        if isinstance(tag_or_tags, (str, unicode)):
+            tags = [tag_or_tags]
+        elif tag_or_tags is not None:
+            tags = tag_or_tags
+
         for child in self:
-            if tag is None or child.tag == tag:
+            if tag_or_tags is None or child.tag in tags:
                 yield child
-            for inner in child.find_descendants(tag):
+            for inner in child.find_descendants(tag_or_tags):
                 yield inner
 
     def _find_next_gt(self, start):
