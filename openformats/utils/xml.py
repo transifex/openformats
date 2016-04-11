@@ -401,26 +401,16 @@ class NewDumbXml(object):
     def end(self):
         return self.tail_position + len(self.tail)
 
-    def find_children(self, tag_or_tags=None):
-        if isinstance(tag_or_tags, (str, unicode)):
-            tags = [tag_or_tags]
-        elif tag_or_tags is not None:
-            tags = tag_or_tags
-
+    def find_children(self, *tags):
         for child in self:
-            if tag_or_tags is None or child.tag in tags:
+            if not tags or child.tag in tags:
                 yield child
 
-    def find_descendants(self, tag_or_tags=None):
-        if isinstance(tag_or_tags, (str, unicode)):
-            tags = [tag_or_tags]
-        elif tag_or_tags is not None:
-            tags = tag_or_tags
-
+    def find_descendants(self, *tags):
         for child in self:
-            if tag_or_tags is None or child.tag in tags:
+            if not tags or child.tag in tags:
                 yield child
-            for inner in child.find_descendants(tag_or_tags):
+            for inner in child.find_descendants(*tags):
                 yield inner
 
     def _find_next_gt(self, start):

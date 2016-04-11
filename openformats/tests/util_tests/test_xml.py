@@ -185,7 +185,7 @@ class DumbXmlTestCase(unittest.TestCase):
         """)
         self.assertEquals(
             [(inner.tag, inner.attrib, inner.text)
-             for inner in root.find_children(('a', 'b'))],
+             for inner in root.find_children('a', 'b')],
             [('a', {}, "AAA"),
              ('b', {}, "BBB")]
         )
@@ -241,7 +241,7 @@ class DumbXmlTestCase(unittest.TestCase):
         """)
         self.assertEquals(
             [(inner.tag, inner.attrib, inner.text)
-             for inner in root.find_descendants(('a', 'c'))],
+             for inner in root.find_descendants('a', 'c')],
             [('a', {}, "first child"),
              ('a', {}, "first grandchild"),
              ('c', {}, "second grandchild")]
