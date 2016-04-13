@@ -347,3 +347,11 @@ class AndroidHandler(Handler):
             # didn't find it, must remove by skipping it
             self.transcriber.skip_until(plurals_offset +
                                         len(plurals_tag.content))
+
+
+class NewAndroidHandlers(Handler):
+    name = "ANDROID"
+    extension = "xml"
+
+    def parse(self, content):
+        return content, []

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <!-- Testing simple string -->
+    <string name="a_string">ac2562b9f825de04b7ae4736274b1e5f_tr</string>
+
+    <!-- Testing with product attribute -->
+    <string name="a_string" product="a_product">160db9c24b122af9e0f4218ad732d0ce_tr</string>
+
+    <!-- Testing string arrays -->
+    <string-array name="an_array">
+        <item>d17f8d4290d7e38d5f366823996c3941_tr</item>
+        <item>8853e0c1adaf62ea091ff96b6f9cef93_tr</item>
+    </string-array>
+
+    <!-- Testing string arrays with product -->
+    <string-array name="an_array" product="a_product">
+        <item>43eaef1774ce539d9eaebcad8495e81c_tr</item>
+        <item>52b109326a6eb5aecd0e92fa86f9e790_tr</item>
+    </string-array>
+
+    <!-- Testing plurals -->
+    <plurals name="some_plurals">
+        ba10d2ac20f85b6cd360ed60ad7a6d68_pl
+    </plurals>
+
+    <!-- Testing plurals with product -->
+    <plurals name="some_plurals" product="a_product">
+        37e2fbe40ddc00946c516530aa8aeef9_pl
+    </plurals>
+</resources>
