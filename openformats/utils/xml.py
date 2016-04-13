@@ -243,7 +243,7 @@ class NewDumbXml(object):
         if self._position is not self.NOT_CACHED:
             return self._position
 
-        self._position = self._find_next_gt(self.start)
+        self._position = self._find_next_lt(self.start)
         return self._position
 
     @property
@@ -338,7 +338,7 @@ class NewDumbXml(object):
             self._text = None
             return self._text
 
-        next_tag_position = self._find_next_gt(self.text_position)
+        next_tag_position = self._find_next_lt(self.text_position)
         if next_tag_position == len(self.source):
             raise ValueError("Tag '{}' not closed".format(self.tag))
 
@@ -396,7 +396,7 @@ class NewDumbXml(object):
             return self._tail
 
         self._tail = self.source[self.tail_position:
-                                 self._find_next_gt(self.tail_position)]
+                                 self._find_next_lt(self.tail_position)]
         return self.tail
 
     @property
@@ -415,7 +415,7 @@ class NewDumbXml(object):
             for inner in child.find_descendants(*tags):
                 yield inner
 
-    def _find_next_gt(self, start):
+    def _find_next_lt(self, start):
         in_cdata = False
         for ptr in xrange(start, len(self.source)):
             candidate = self.source[ptr]
