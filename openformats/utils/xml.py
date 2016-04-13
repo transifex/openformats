@@ -369,7 +369,9 @@ class NewDumbXml(object):
                 raise ValueError("Invalid closing of tag '{}'".
                                  format(self.tag))
             else:
-                inner = NewDumbXml(self.source, start)
+                # Use `self.__class__` in case this is a subclass (eg to handle
+                # HTML)
+                inner = self.__class__(self.source, start)
                 yield inner
                 start = inner.end
 
