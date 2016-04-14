@@ -264,13 +264,11 @@ class JsonHandler(Handler):
             #   strings are always ascii
             # - unicode_escape will take care of escaping the backslashes (\),
             #   we only need to escape the double quotes after that
-            escaped_string = string.\
-                encode('unicode_escape').\
-                decode('ascii').\
-                replace('"', '\\"')
+            escaped_string = string.encode('unicode_escape').decode('ascii')
         except (UnicodeEncodeError, UnicodeDecodeError):
-            escaped_string = string.replace('\\', r'\\').replace('"', '\\"')
+            escaped_string = string.replace('\\', r'\\')
 
+        escaped_string = escaped_string.replace('"', '\\"')
         return escaped_string
 
     @staticmethod
@@ -280,11 +278,9 @@ class JsonHandler(Handler):
             # - First we convert it to str, using ascii; unicode-escaped
             #   strings are always ascii
             # - Then we convert it to unicode, unescaped, eg 'θ'
-            unescaped_string = string.\
-                encode('ascii').\
-                decode('unicode_escape').\
-                replace(r'\"', '"')
+            unescaped_string = string.encode('ascii').decode('unicode_escape')
         except (UnicodeEncodeError, UnicodeDecodeError):
-            unescaped_string = string.replace(r'\\', '\\').replace(r'\"', '"')
+            unescaped_string = string.replace(r'\\', '\\')
 
+        unescaped_string = unescaped_string.replace(r'\"', '"')
         return unescaped_string

@@ -322,15 +322,21 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             self.handler.escape("a \\ string. with \"quotes\""),
             "a \\\\ string. with \\\"quotes\\\""
         )
+
         self.assertEqual(self.handler.escape(u'καλημέρα'),
-                         json.dumps(u'καλημέρα')[1:-1])
+                         self._escape_with_json(u'καλημέρα'))
 
     def test_unescape_json(self):
         self.assertEqual(
             self.handler.unescape("a \\\\ string. with \\\"quotes\\\""),
             "a \\ string. with \"quotes\""
         )
+
         self.assertEqual(
-            self.handler.unescape(json.loads(u'"{}"'.format(u'καλημέρα'))),
+            self.handler.unescape(self._escape_with_json(u'καλημέρα')),
             u'καλημέρα'
         )
+
+    @staticmethod
+    def _escape_with_json(s):
+        return json.dumps(s)[1:-1].decode()
