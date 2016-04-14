@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 
 import json
@@ -260,10 +262,16 @@ class JsonHandler(Handler):
             # - First we convert to unicode-escaped-string, eg '\u03b8'
             # - Then we convert back to unicode, using ascii; unicode-escaped
             #   strings are always ascii
-            return string.encode('unicode_escape').decode('ascii')
+            # - unicode_escape will take care of escaping the backslashes (\),
+            #   we only need to escape the double quotes after that
+            escaped_string = string.\
+                encode('unicode_escape').\
+                decode('ascii').\
+                replace('"', '\\"')
         except (UnicodeEncodeError, UnicodeDecodeError):
             escaped_string = string.replace('\\', r'\\').replace('"', '\\"')
-            return escaped_string
+
+        return escaped_string
 
     @staticmethod
     def unescape(string):
@@ -272,7 +280,11 @@ class JsonHandler(Handler):
             # - First we convert it to str, using ascii; unicode-escaped
             #   strings are always ascii
             # - Then we convert it to unicode, unescaped, eg 'θ'
-            return string.encode('ascii').decode('unicode_escape')
+            unescaped_string = string.\
+                encode('ascii').\
+                decode('unicode_escape').\
+                replace(r'\"', '"')
         except (UnicodeEncodeError, UnicodeDecodeError):
             unescaped_string = string.replace(r'\\', '\\').replace(r'\"', '"')
-            return unescaped_string
+
+        return unescaped_string

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+import json
 import unittest
 
 from openformats.strings import OpenString
@@ -319,9 +322,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             self.handler.escape("a \\ string. with \"quotes\""),
             "a \\\\ string. with \\\"quotes\\\""
         )
+        self.assertEqual(self.handler.escape(u'καλημέρα'),
+                         json.dumps(u'καλημέρα')[1:-1])
 
     def test_unescape_json(self):
         self.assertEqual(
             self.handler.unescape("a \\\\ string. with \\\"quotes\\\""),
             "a \\ string. with \"quotes\""
+        )
+        self.assertEqual(
+            self.handler.unescape(json.loads(u'"{}"'.format(u'καλημέρα'))),
+            u'καλημέρα'
         )
