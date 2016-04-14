@@ -255,12 +255,24 @@ class JsonHandler(Handler):
 
     @staticmethod
     def escape(string):
-        escaped_string = string.replace('\\', r'\\').replace('"', '\\"')
-
-        return escaped_string
+        try:
+            # We assume string is unicode and unescaped, eg u'θ':
+            # - First we convert to unicode-escaped-string, eg '\u03b8'
+            # - Then we convert back to unicode, using ascii; unicode-escaped
+            #   strings are always ascii
+            return string.encode('unicode_escape').decode('ascii')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            escaped_string = string.replace('\\', r'\\').replace('"', '\\"')
+            return escaped_string
 
     @staticmethod
     def unescape(string):
-        unescaped_string = string.replace(r'\\', '\\').replace(r'\"', '"')
-
-        return unescaped_string
+        try:
+            # We assume string is unicode and unicode-escaped, eg u'\u03b8'
+            # - First we convert it to str, using ascii; unicode-escaped
+            #   strings are always ascii
+            # - Then we convert it to unicode, unescaped, eg 'θ'
+            return string.encode('ascii').decode('unicode_escape')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            unescaped_string = string.replace(r'\\', '\\').replace(r'\"', '"')
+            return unescaped_string
