@@ -523,6 +523,7 @@ class NewDumbXml(object):
         for ptr in xrange(self._text_position, len(self.source)):
             candidate = self.source[ptr]
             if candidate == '-' and self.source[ptr:ptr + len("-->")] == "-->":
+                self._content_end = ptr
                 self._text = self.source[self.text_position:ptr]
                 self._tail_position = ptr + len("-->")
                 return
