@@ -402,6 +402,8 @@ class NewDumbXml(object):
     def content_end(self):
         if self._content_end is not self.NOT_CACHED:
             return self._content_end
+        if self.text_position is None:
+            return None
         for _ in self:
             pass
         return self._content_end
@@ -410,6 +412,8 @@ class NewDumbXml(object):
     def content(self):
         if self.tag == self.COMMENT:
             return self.text
+        if self.content_end is None:
+            return None
         return self.source[self.text_position:self.content_end]
 
     @property
