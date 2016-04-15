@@ -132,12 +132,14 @@ class AndroidHandler(Handler):
                 self.transcriber.skip(len(item_tag.inner))
             else:
                 self.transcriber.copy_until(string_array_offset + item_offset +
-                                            len(item_tag.inner))
+                                            item_tag.inner_offset)
 
             # orld</item>   <it...
             #            ^
-            self.transcriber.copy_until(string_array_offset + item_offset +
-                                        len(item_tag.content))
+            self.transcriber.copy_until(
+                string_array_offset + item_offset + item_tag.inner_offset +
+                len(item_tag.content)
+            )
 
         # </item>  </string-array>
         #                         ^
@@ -304,16 +306,27 @@ class AndroidHandler(Handler):
             # only spaces, we have to remember it's indent
             self._stringset_index += 1
 
-            hash_position = plurals_offset + plurals_tag.inner_offset +\
-                plurals_tag.inner.index(next_string.template_replacement)
-            indent_length = self.source[hash_position::-1].\
-                index('\n') - 1
-            indent = self.source[hash_position - indent_length:hash_position]
-            end_of_hash = hash_position + len(next_string.template_replacement)
-            tail_length = self.source[end_of_hash:].index('\n')
-            tail = self.source[end_of_hash:end_of_hash + tail_length]
+            is_multiline = True
+            indent_length = tail_length = 0
+            try:
+                hash_position = plurals_offset + plurals_tag.inner_offset +\
+                    plurals_tag.inner.index(next_string.template_replacement)
+                indent_length = self.source[hash_position::-1].\
+                    index('\n') - 1
+                indent = self.source[hash_position -
+                                     indent_length:hash_position]
+                end_of_hash = (hash_position +
+                               len(next_string.template_replacement))
+                tail_length = self.source[end_of_hash:].index('\n')
+                tail = self.source[end_of_hash:end_of_hash + tail_length]
+            except ValueError:
+                is_multiline = False
 
-            if (self.SPACE_PAT.search(indent) and self.SPACE_PAT.search(tail)):
+            is_multiline = (is_multiline and
+                            (self.SPACE_PAT.search(indent) and
+                             self.SPACE_PAT.search(tail)))
+
+            if is_multiline:
                 # write until beginning of hash
                 self.transcriber.copy_until(hash_position - indent_length)
                 for rule, value in next_string.string.items():
@@ -324,6 +337,9 @@ class AndroidHandler(Handler):
                         ) +
                         tail + '\n'
                     )
+                self.transcriber.skip(indent_length +
+                                      len(next_string.template_replacement) +
+                                      tail_length + 1)
 
             else:
                 # string is not on its own, simply replace hash with all plural
@@ -335,9 +351,9 @@ class AndroidHandler(Handler):
                             rule=self.get_rule_string(rule), string=value
                         )
                     )
-            self.transcriber.skip(indent_length +
-                                  len(next_string.template_replacement) +
-                                  tail_length + 1)
+                self.transcriber.skip(indent_length +
+                                      len(next_string.template_replacement) +
+                                      tail_length)
 
             # finish up by copying until the end of </plurals>
             self.transcriber.copy_until(plurals_offset +
@@ -345,6 +361,7 @@ class AndroidHandler(Handler):
 
         else:
             # didn't find it, must remove by skipping it
+            self.transcriber.copy_until(plurals_offset)
             self.transcriber.skip_until(plurals_offset +
                                         len(plurals_tag.content))
 
