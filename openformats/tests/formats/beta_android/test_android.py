@@ -7,16 +7,16 @@ from openformats.tests.utils.strings import (
     generate_random_string, strip_leading_spaces
 )
 
-from openformats.formats.android import AndroidHandler
+from openformats.formats.beta_android import BetaAndroidHandler
 
 
 class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
-    HANDLER_CLASS = AndroidHandler
+    HANDLER_CLASS = BetaAndroidHandler
     TESTFILE_BASE = "openformats/tests/formats/beta_android/files"
 
     def setUp(self):
         super(AndroidTestCase, self).setUp()
-        self.handler = AndroidHandler()
+        self.handler = BetaAndroidHandler()
 
     def test_string(self):
         random_key = generate_random_string()
