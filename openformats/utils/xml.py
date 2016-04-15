@@ -247,11 +247,12 @@ class NewDumbXml(object):
 
     @property
     def position(self):
-        """The starting position of the tag.
+        """ The starting position of the tag.
 
-        <atag>Some text</atag>
-        ^
+            <atag>Some text</atag>
+            ^
         """
+
         if self._position is not self.NOT_CACHED:
             return self._position
 
@@ -260,11 +261,12 @@ class NewDumbXml(object):
 
     @property
     def tag(self):
-        """The name of the tag.
+        """ The name of the tag.
 
-        <atag>Some text</atag>
-         ^^^^
+            <atag>Some text</atag>
+             ^^^^
         """
+
         if self._tag is not self.NOT_CACHED:
             return self._tag
 
@@ -316,11 +318,12 @@ class NewDumbXml(object):
 
     @property
     def text_position(self):
-        """The start position of the text.
+        """ The start position of the text.
 
-        <atag>Some text</atag>
-              ^
+            <atag>Some text</atag>
+                  ^
         """
+
         if self._text_position is not self.NOT_CACHED:
             return self._text_position
 
@@ -353,6 +356,12 @@ class NewDumbXml(object):
 
     @property
     def text(self):
+        """ The text of the tag (up until the first child tag).
+
+            <atag>Some <b>text</b></atag>
+                  ^^^^^
+        """
+
         if self._text is not self.NOT_CACHED:
             return self._text
 
@@ -400,6 +409,12 @@ class NewDumbXml(object):
 
     @property
     def content_end(self):
+        """ The end of all contents of a tag (both text and children tags)
+
+            <a>goobye <b>cruel</b> world</a>
+                                        ^
+        """
+
         if self._content_end is not self.NOT_CACHED:
             return self._content_end
         if self.text_position is None:
@@ -410,6 +425,12 @@ class NewDumbXml(object):
 
     @property
     def content(self):
+        """ All the contents of a tag (both text and children tags)
+
+            <a>goobye <b>cruel</b> world</a>
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+        """
+
         if self.tag == self.COMMENT:
             return self.text
         if self.content_end is None:
@@ -418,11 +439,12 @@ class NewDumbXml(object):
 
     @property
     def tail_position(self):
-        """The position just after the tag.
+        """ The position just after the tag.
 
-        <atag>Some text</atag>|
-                              ^
+            <atag>Some text</atag> newlines etc <anothertag>...
+                                  ^
         """
+
         if self._tail_position is not self.NOT_CACHED:
             return self._tail_position
 
@@ -440,9 +462,10 @@ class NewDumbXml(object):
     def tail(self):
         """The text that follows the tag untill the start of a news one.
 
-        <atag>Some text</atag> newlines etc <anothertag>...
-                              ^^^^^^^^^^^^^^
+            <atag>Some text</atag> newlines etc <anothertag>...
+                                  ^^^^^^^^^^^^^^
         """
+
         if self._tail is not self.NOT_CACHED:
             return self._tail
 
@@ -454,9 +477,10 @@ class NewDumbXml(object):
     def end(self):
         """The starting position of the next tag.
 
-        <atag>Some text</atag> newlines etc <anothertag>...
-                                            ^
+            <atag>Some text</atag> newlines etc <anothertag>...
+                                                ^
         """
+
         return self.tail_position + len(self.tail)
 
     def find_children(self, *tags):
