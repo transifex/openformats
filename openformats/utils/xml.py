@@ -207,6 +207,13 @@ class NewDumbXml(object):
             - The positions returned by the inner tags' properties will be
               relative to the root string.
 
+        - `dumb_xml.content`: If the tag contains children tags, `content` is
+          the whole contents in string form, otherwise it's the same as `text`
+          (in our example `'b'`)
+
+        - `dumb_xml.content_end`: the position where the contents of the tag
+          end (in our example, `16`)
+
         - `dumb_xml.tail`: The text contained between the end of this tag and
           either the start of the next one or the end of the source string (in
           our example: `' tail here'`)
@@ -231,8 +238,8 @@ class NewDumbXml(object):
         self.source = source
         self.start = start
         self._position = self._tag = self._attrib = self._attrib_string =\
-            self._text_position = self._text = self._tail_position =\
-            self._tail = self.NOT_CACHED
+            self._text_position = self._text = self._content_end =\
+            self._tail_position = self._tail = self.NOT_CACHED
 
         # Start with tag because if this is a comment, it will mess up with the
         # retrieving of other attributes
@@ -367,6 +374,7 @@ class NewDumbXml(object):
         start = self.text_position + len(self.text)
         while True:
             if self.source[start + 1] == '/':  # We found the closing tag
+                self._content_end = start
                 closing_tag = self.source[start + 2: start + 2 + len(self.tag)]
                 if closing_tag != self.tag:
                     raise ValueError("Closing tag '{}' does not match opening "
@@ -389,6 +397,20 @@ class NewDumbXml(object):
                 inner = self.__class__(self.source, start)
                 yield inner
                 start = inner.end
+
+    @property
+    def content_end(self):
+        if self._content_end is not self.NOT_CACHED:
+            return self._content_end
+        for _ in self:
+            pass
+        return self._content_end
+
+    @property
+    def content(self):
+        if self.tag == self.COMMENT:
+            return self.text
+        return self.source[self.text_position:self.content_end]
 
     @property
     def tail_position(self):
