@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import itertools
+
 from ..handlers import Handler
 from ..exceptions import ParseError
-from openformats.exceptions import RuleError
 from openformats.strings import OpenString
 from openformats.transcribers import Transcriber
 from ..utils.xml import NewDumbXml
@@ -34,25 +35,23 @@ class AndroidHandler(Handler):
         resources_tag_position = content.index(self.PARSE_START)
 
         self.transcriber = Transcriber(content[resources_tag_position:])
-        stringset = []
         self.current_comment = None
-        self.order = 0
+        self.order_counter = itertools.count()
 
         source = self.transcriber.source
         parsed = NewDumbXml(source)
-        children_itterator = self._get_children_itterator(
-            parsed,
+        children_itterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
             self.STRING_PLURAL,
             NewDumbXml.COMMENT
         )
+        stringset = []
 
         for child in children_itterator:
             strings = self._handle_child(child)
             if strings is not None:
                 stringset.extend(strings)
-                self.order += len(strings)
                 self.current_comment = None
 
         self.transcriber.copy_until(len(source))
@@ -65,7 +64,7 @@ class AndroidHandler(Handler):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
 
-        :returns: An list of OpenString objects if an were created else None.
+        :returns: An list of OpenString objects if any were created else None.
         """
         if not self._should_ignore(child):
             if child.tag == self.STRING:
@@ -80,6 +79,7 @@ class AndroidHandler(Handler):
 
     def _handle_string(self, child):
         """Handles child element that has the `string` tag.
+
         If it contains a string it will create an OpenString object.
 
         :returns: An list of containing the OpenString object
@@ -89,13 +89,16 @@ class AndroidHandler(Handler):
         string = self._create_string(
             name,
             child.content,
-            self.order,
             self.current_comment,
             product
         )
         if string is not None:
+            # <string>My Text</string>
+            #         ^
             self.transcriber.copy_until(child.text_position)
             self.transcriber.add(string.template_replacement)
+            # <string>My Text</string>
+            #                ^
             self.transcriber.skip(len(child.content))
             return [string]
         return None
@@ -106,19 +109,23 @@ class AndroidHandler(Handler):
         It will find children with the `item` tag and create an OpenString
         object out of them.
 
-        :raises: Rule error if the `quantity` attribute is missing from any
+        :raises: Parse error if the `quantity` attribute is missing from any
                     of the child's children
         :returns: An list containing the OpenString object if one was created
                     else None.
         """
-        children_itterator = self._get_children_itterator(
-            child, self.STRING_ITEM
-        )
         string_rules_text = {}
+        children_itterator = child.find_children(self.STRING_ITEM)
+        # Itterate through the children with the item tag.
         for new_child in children_itterator:
             rule = new_child.attrib.get('quantity')
             if rule is None:
-                raise RuleError("")
+                # If quantity is missing the plural is unknown
+                raise ParseError(
+                    "Missing the `quantity` attribute on line {}".format(
+                        self.transcriber.line_number
+                    )
+                )
             rule_number = self.get_rule_number(rule)
             string_rules_text[rule_number] = new_child.content
 
@@ -126,10 +133,8 @@ class AndroidHandler(Handler):
         string = self._create_string(
             name,
             string_rules_text,
-            self.order,
             self.current_comment,
-            product,
-            plural=True
+            product
         )
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
@@ -140,6 +145,7 @@ class AndroidHandler(Handler):
             # ...</item>   </plurals>...
             #           ^
             self.transcriber.skip_until(new_child.tail_position)
+            # FYI: new_child is the last iterated child from the loop before.
             return [string]
         return None
 
@@ -152,10 +158,8 @@ class AndroidHandler(Handler):
         :returns: An list containing the OpenString objects if any were created
                     else None.
         """
-        children_itterator = self._get_children_itterator(
-            child, self.STRING_ITEM
-        )
         strings = []
+        children_itterator = child.find_children(self.STRING_ITEM)
         name, product = self._get_child_attributes(child)
         # Itterate through the children with the item tag.
         for index, new_child in enumerate(children_itterator):
@@ -163,7 +167,6 @@ class AndroidHandler(Handler):
             string = self._create_string(
                 child_name,
                 new_child.content,
-                self.order + index,
                 self.current_comment,
                 product
             )
@@ -187,50 +190,74 @@ class AndroidHandler(Handler):
         """Will assign the comment found as the current comment."""
         self.current_comment = child.content
 
-    """ Compile Methods """
-
-    def compile(self, template, stringset):
-        resources_tag_position = template.index(self.PARSE_START)
-        self.transcriber = Transcriber(template[resources_tag_position:])
-        return self.transcriber.source
-
-    @staticmethod
-    def _create_string(name, text, order, comment, product, plural=False):
+    def _create_string(self, name, text, comment, product):
         """Creates a string and returns it. If empty string it returns None.
 
         :param text: The strings text.
         :param name: The name of the string.
-        :param order: The order the string should appear in the file.
         :param comment: The developer's comment the string might have.
         :param product: Extra context for the string.
-        :param plural: Flag tha checks if the string is pluralized.
         :returns: Returns an OpenString object if the text is not empty
                   else None.
-        :raises: Raises a ParseError if not all plurals of the strings
-                 are complete.
         """
-        if plural:
+        if self._validate_not_empty:
+            # Create OpenString
+            string = OpenString(
+                name,
+                text,
+                context=product,
+                order=self.order_counter.next(),
+                developer_comment=comment
+            )
+            return string
+        return None
+
+    def _validate_not_empty(self, text):
+        """Validates that a string is not empty.
+
+        :param text: The string to validate. Can be a basestring or a dict for
+                        for pluralized strings.
+        :raises: Raises a ParseError if not all plurals of a pluralized string
+                 are complete.
+        :returns: True if the string is not empty else False.
+        """
+        # If dict then it's pluralized
+        if isinstance(text, dict):
+            # If there is plural missing raise error.
             for key, string in text.iteritems():
                 if string.strip() == "":
-                    raise ParseError(key)
+                    raise ParseError(
+                        'Missing plural string before the line {}'.format(
+                            self.transcriber.line_number
+                        )
+                    )
         elif text.strip() == "":
-            return None
+            return False
+        return True
 
-        string = OpenString(
-            name,
-            text,
-            context=product,
-            order=order,
-            developer_comment=comment
-        )
-        return string
+    def _get_child_attributes(self, child):
+        """Retrieves child's `name` and `product` attributes.
+
+        :param child: The child to retrieve the attributes from.
+        :returns: Returns a tuple (`name`, `product`)
+        :raises: It raises a ParseError if no `name` attribute is present.
+        """
+        name = child.attrib.get('name')
+        if name is None:
+            raise ParseError(
+                'Missing the `name` attribute on line'.format(
+                    self.transcriber.line_number
+                )
+            )
+        product = child.attrib.get('product', '')
+        return name, product
 
     @staticmethod
     def _should_ignore(child):
         """Checks if the child contains any key:value pair from the
             SKIP_ATTRIBUTES dict.
 
-            :returns: True if it contains any else false.
+        :returns: True if it contains any else false.
         """
         for key, value in AndroidHandler.SKIP_ATTRIBUTES.iteritems():
             filter_attr = child.attrib.get(key)
@@ -238,27 +265,9 @@ class AndroidHandler(Handler):
                 return True
         return False
 
-    @staticmethod
-    def _get_child_attributes(child):
-        """Retrieves child's `name` and `product` attributes.
+    """ Compile Methods """
 
-        :param child: The child to retrieve the attributes from.
-        :returns: Returns a tuple (name, product)
-        :raises: It raises a parse error if no `name` attribute is present.
-        """
-        name = child.attrib.get('name')
-        if name is None:
-            raise KeyError()
-        product = child.attrib.get('product', '')
-        return name, product
-
-    @staticmethod
-    def _get_children_itterator(dump_xml_object,  *args):
-        """Constructs and returns an itterator containing children of
-            the dump_xml_object.
-
-        :args: A list of children tags as strings to find and itterate over.
-               If None it will contain all the dump_xml_object's children.
-        :returns: An itterator containing the dump_xml_object's children.
-        """
-        return dump_xml_object.find_children(*args)
+    def compile(self, template, stringset):
+        resources_tag_position = template.index(self.PARSE_START)
+        self.transcriber = Transcriber(template[resources_tag_position:])
+        return self.transcriber.source
