@@ -53,6 +53,8 @@ class JsonHandler(Handler):
                 self.existing_keys.add(key)
 
                 if isinstance(value, (str, unicode)):
+                    if not value.strip():
+                        continue
                     openstring = OpenString(key, value,
                                             order=next(self._order))
                     self.transcriber.copy_until(value_position)
@@ -71,6 +73,8 @@ class JsonHandler(Handler):
                 else:
                     key = u"{}..{}..".format(nest, index)
                 if isinstance(item, (str, unicode)):
+                    if not item.strip():
+                        continue
                     openstring = OpenString(key, item, order=next(self._order))
                     self.transcriber.copy_until(item_position)
                     self.transcriber.add(openstring.template_replacement)
