@@ -145,6 +145,10 @@ if __name__ == "__main__":
     print "{}: {}".format(string.attrs['name'], string.inner)
 
 
+class DumbXmlSyntaxError(Exception):
+    pass
+
+
 class NewDumbXml(object):
     """ A utility to help process an XML string. The main focuses are:
 
@@ -270,8 +274,9 @@ class NewDumbXml(object):
         if self._tag is not self.NOT_CACHED:
             return self._tag
 
-        if self.source[self.position:
-                       self.position + len("<!--")] == "<!--":
+        start = self.position
+        end = start + len("<!--")
+        if self.source[start:end] == "<!--":
             self._tag = self.COMMENT
             self._process_comment()
             return self._tag
@@ -281,7 +286,7 @@ class NewDumbXml(object):
             if candidate in ('/', '>') or candidate.isspace():
                 self._tag = self.source[self.position + 1:ptr]
                 return self._tag
-        raise ValueError("Opening tag not closed")
+        raise DumbXmlSyntaxError("Opening tag not closed")
 
     @property
     def attrib(self):
@@ -298,7 +303,8 @@ class NewDumbXml(object):
                 attrib_end_p = ptr
                 break
         else:
-            raise ValueError("Opening tag '{}' not closed".format(self.tag))
+            raise DumbXmlSyntaxError("Opening tag '{}' not closed".
+                                     format(self.tag))
 
         self._attrib_string = self.source[attrib_start_p:attrib_end_p]
         pat = re.compile(r"""(?P<key>[^\s=]+)
@@ -345,14 +351,15 @@ class NewDumbXml(object):
                     self._tail_position = ptr + 1
                     return self._text_position
                 else:
-                    raise ValueError("Opening tag '{}' not closed".
+                    raise DumbXmlSyntaxError("Opening tag '{}' not closed".
+                                             format(self.tag))
+            raise DumbXmlSyntaxError("Opening tag '{}' not closed".
                                      format(self.tag))
-            raise ValueError("Opening tag '{}' not closed".format(self.tag))
         elif candidate == '>':
             self._text_position = ptr + 1
             return self._text_position
         else:
-            raise ValueError("Something went wrong")
+            raise DumbXmlSyntaxError("Something went wrong")
 
     @property
     def text(self):
@@ -371,7 +378,7 @@ class NewDumbXml(object):
 
         next_tag_position = self._find_next_lt(self.text_position)
         if next_tag_position == len(self.source):
-            raise ValueError("Tag '{}' not closed".format(self.tag))
+            raise DumbXmlSyntaxError("Tag '{}' not closed".format(self.tag))
 
         self._text = self.source[self.text_position:next_tag_position]
         return self._text
@@ -386,8 +393,10 @@ class NewDumbXml(object):
                 self._content_end = start
                 closing_tag = self.source[start + 2: start + 2 + len(self.tag)]
                 if closing_tag != self.tag:
-                    raise ValueError("Closing tag '{}' does not match opening "
-                                     "tag '{}'".format(closing_tag, self.tag))
+                    raise DumbXmlSyntaxError(
+                        "Closing tag '{}' does not match opening tag '{}'".
+                        format(closing_tag, self.tag)
+                    )
                 for ptr in xrange(start + 2 + len(self.tag), len(self.source)):
                     candidate = self.source[ptr]
                     if candidate.isspace():
@@ -396,10 +405,10 @@ class NewDumbXml(object):
                         self._tail_position = ptr + 1
                         return
                     else:
-                        raise ValueError("Invalid closing of tag '{}'".
+                        raise DumbXmlSyntaxError("Invalid closing of tag '{}'".
+                                                 format(self.tag))
+                raise DumbXmlSyntaxError("Invalid closing of tag '{}'".
                                          format(self.tag))
-                raise ValueError("Invalid closing of tag '{}'".
-                                 format(self.tag))
             else:
                 # Use `self.__class__` in case this is a subclass (eg to handle
                 # HTML)
@@ -527,4 +536,4 @@ class NewDumbXml(object):
                 self._text = self.source[self.text_position:ptr]
                 self._tail_position = ptr + len("-->")
                 return
-        raise ValueError("Comment not closed")
+        raise DumbXmlSyntaxError("Comment not closed")

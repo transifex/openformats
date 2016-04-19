@@ -1,7 +1,7 @@
 import re
 import unittest
 
-from openformats.utils.xml import NewDumbXml
+from openformats.utils.xml import NewDumbXml, DumbXmlSyntaxError
 
 
 class DumbXmlTestCase(unittest.TestCase):
@@ -67,7 +67,8 @@ class DumbXmlTestCase(unittest.TestCase):
                  ('<!---', "Comment not closed"),
                  ('<!--jafosijdfoas-', "Comment not closed"))
         for source, error_msg in cases:
-            with self.assertRaisesRegexp(ValueError, re.escape(error_msg)):
+            with self.assertRaisesRegexp(DumbXmlSyntaxError,
+                                         re.escape(error_msg)):
                 dumb_xml = NewDumbXml(source)
                 dumb_xml.end  # should expand all properties eventually
 
@@ -163,7 +164,8 @@ class DumbXmlTestCase(unittest.TestCase):
             ('<a></a aosdjfio', "Invalid closing of tag 'a'"),
         )
         for source, error_msg in cases:
-            with self.assertRaisesRegexp(ValueError, re.escape(error_msg)):
+            with self.assertRaisesRegexp(DumbXmlSyntaxError,
+                                         re.escape(error_msg)):
                 list(NewDumbXml(source))
 
     def test_inbetweens(self):
