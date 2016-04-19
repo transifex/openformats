@@ -29,6 +29,9 @@ class AndroidHandler(Handler):
         'translatable': 'false'
     }
 
+    # Compile plural template
+    PLURAL_TEMPLATE = u'<item quantity="{rule}">{string}</item>'
+
     """ Parse Methods """
 
     def parse(self, content):
@@ -269,5 +272,100 @@ class AndroidHandler(Handler):
 
     def compile(self, template, stringset):
         resources_tag_position = template.index(self.PARSE_START)
+
         self.transcriber = Transcriber(template[resources_tag_position:])
-        return self.transcriber.source
+        source = self.transcriber.source
+
+        parsed = NewDumbXml(source)
+        children_itterator = parsed.find_children(
+            self.STRING,
+            self.STRING_ARRAY,
+            self.STRING_PLURAL
+        )
+        # stringset = list(stringset)[:1]
+        self.stringset = iter(stringset)
+        self.next_string = self._get_next_string()
+        print self.next_string
+        for child in children_itterator:
+            self._compile_child(child)
+
+        self.transcriber.copy_until(len(source))
+        compiled = template[:resources_tag_position] +\
+            self.transcriber.get_destination()
+
+        return compiled
+
+    def _compile_child(self, child):
+        """Do basic checks on the child and assigns the appropriate method to
+            handle it based on the child's tag.
+
+        :returns: An list of OpenString objects if any were created else None.
+        """
+        if not self._should_ignore(child):
+            if child.tag == self.STRING:
+                return self._compile_string(child)
+            elif child.tag == self.STRING_ARRAY:
+                return self._compile_string_array(child)
+            elif child.tag == self.STRING_PLURAL:
+                return self._compile_string_plural(child)
+        return False
+
+    def _compile_string(self, child):
+        if self._should_compile(child):
+            self.transcriber.copy_until(child.text_position)
+            self.transcriber.add(self.next_string.string)
+            self.transcriber.skip_until(child.content_end)
+            self.next_string = self._get_next_string()
+        else:
+            self._skip_tag(child)
+
+    def _compile_string_array(self, child):
+        children_itterator = child.find_children(self.STRING_ITEM)
+        for new_child in children_itterator:
+            self._compile_string(new_child)
+
+    def _compile_string_plural(self, child):
+
+        if self._should_compile(child):
+            self.transcriber.copy_until(child.text_position)
+
+            splited_content = child.content.split(
+                self.next_string.template_replacement
+            )
+            start = splited_content[0]
+            end = splited_content[1]
+
+            # If newline formating
+            if start.startswith(end):
+                start = start.replace(end, '', 1)
+                self.transcriber.add(end)
+
+            for rule, string in self.next_string.string.items():
+                self.transcriber.add(
+                    start +
+                    self.PLURAL_TEMPLATE.format(
+                        rule=self.get_rule_string(rule), string=string
+                    )
+                    + end
+                )
+            self.transcriber.skip_until(child.content_end)
+            self.next_string = self._get_next_string()
+        else:
+            self._skip_tag(child)
+
+    def _should_compile(self, child):
+        return (
+            self.next_string is not None and
+            self.next_string.template_replacement == child.content.strip()
+        )
+
+    def _skip_tag(self, child):
+        self.transcriber.copy_until(child.position)
+        self.transcriber.skip_until(child.tail_position)
+
+    def _get_next_string(self):
+        try:
+            next_string = self.stringset.next()
+        except StopIteration:
+            next_string = None
+        return next_string
