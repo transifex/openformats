@@ -203,7 +203,7 @@ class AndroidHandler(Handler):
         :returns: Returns an OpenString object if the text is not empty
                   else None.
         """
-        if self._validate_not_empty:
+        if self._validate_not_empty(text):
             # Create OpenString
             string = OpenString(
                 name,
@@ -226,6 +226,8 @@ class AndroidHandler(Handler):
         """
         # If dict then it's pluralized
         if isinstance(text, dict):
+            if len(text) == 0:
+                return False
             # If there is plural missing raise error.
             for key, string in text.iteritems():
                 if string.strip() == "":
@@ -255,19 +257,6 @@ class AndroidHandler(Handler):
         product = child.attrib.get('product', '')
         return name, product
 
-    @staticmethod
-    def _should_ignore(child):
-        """Checks if the child contains any key:value pair from the
-            SKIP_ATTRIBUTES dict.
-
-        :returns: True if it contains any else false.
-        """
-        for key, value in AndroidHandler.SKIP_ATTRIBUTES.iteritems():
-            filter_attr = child.attrib.get(key)
-            if filter_attr is not None and filter_attr == value:
-                return True
-        return False
-
     """ Compile Methods """
 
     def compile(self, template, stringset):
@@ -282,10 +271,18 @@ class AndroidHandler(Handler):
             self.STRING_ARRAY,
             self.STRING_PLURAL
         )
-        # stringset = list(stringset)[:1]
+
+        # Uncomment to skip array
+        # stringset = list(stringset)[0:2] + list(stringset)[4:]
+
+        # Uncomment to skip string
+        # stringset = list(stringset)[2:]
+
+        # Uncomment to skip plurals
+        # stringset = list(stringset)[0:-2]
+
         self.stringset = iter(stringset)
         self.next_string = self._get_next_string()
-        print self.next_string
         for child in children_itterator:
             self._compile_child(child)
 
@@ -298,19 +295,21 @@ class AndroidHandler(Handler):
     def _compile_child(self, child):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
-
-        :returns: An list of OpenString objects if any were created else None.
         """
         if not self._should_ignore(child):
             if child.tag == self.STRING:
-                return self._compile_string(child)
+                self._compile_string(child)
             elif child.tag == self.STRING_ARRAY:
-                return self._compile_string_array(child)
+                self._compile_string_array(child)
             elif child.tag == self.STRING_PLURAL:
-                return self._compile_string_plural(child)
-        return False
+                self._compile_string_plural(child)
 
     def _compile_string(self, child):
+        """Handles child element that has the `string` and `item` tag.
+
+        It will compile the tag if matching string exists. Otherwise it will
+        skip it.
+        """
         if self._should_compile(child):
             self.transcriber.copy_until(child.text_position)
             self.transcriber.add(self.next_string.string)
@@ -320,11 +319,43 @@ class AndroidHandler(Handler):
             self._skip_tag(child)
 
     def _compile_string_array(self, child):
-        children_itterator = child.find_children(self.STRING_ITEM)
+        """Handles child element that has the `string-array` tag.
+
+        It will find children with the `item` tag that should be compiled and
+        will compile them. If no matching string is found for a child it will
+        remove it. If the `string-array` tag will be empty after compilation
+        it will remove it as well.
+
+        :NOTE: If the `string-array` was empty to begin with it will leave it
+                as it is.
+        """
+        children_itterator = list(child.find_children(self.STRING_ITEM))
+
+        # Check if child was empty to begin with
+        if len(children_itterator) == 0:
+            return
+
+        # Check if any string matches array items
+        not_empty = False
         for new_child in children_itterator:
-            self._compile_string(new_child)
+            if self._should_compile(new_child):
+                not_empty = True
+                break
+
+        if not_empty:
+            # Compile found children. Remove the rest.
+            for new_child in children_itterator:
+                self._compile_string(new_child)
+        else:
+            # Remove the `string-array` tag
+            self._skip_tag(child)
 
     def _compile_string_plural(self, child):
+        """
+        """
+        # Check if child was empty to begin with
+        if child.content.strip() == '':
+            return
 
         if self._should_compile(child):
             self.transcriber.copy_until(child.text_position)
@@ -354,18 +385,47 @@ class AndroidHandler(Handler):
             self._skip_tag(child)
 
     def _should_compile(self, child):
+        """Checks if the current child should be compiled.
+
+        :param child: The child to check if it should be compiled.
+        :returns: True if the child should be compiled else False.
+        """
         return (
             self.next_string is not None and
             self.next_string.template_replacement == child.content.strip()
         )
 
     def _skip_tag(self, child):
+        """Skips a tag from the compilation.
+
+        :param child: The tag to be skipped.
+        """
         self.transcriber.copy_until(child.position)
         self.transcriber.skip_until(child.tail_position)
 
     def _get_next_string(self):
+        """Gets the next string from stringset itterable.
+
+        :returns: An openstring object or None if it has reached the end of
+                    the itterable.
+        """
         try:
             next_string = self.stringset.next()
         except StopIteration:
             next_string = None
         return next_string
+
+    """ Util Methods """
+
+    @staticmethod
+    def _should_ignore(child):
+        """Checks if the child contains any key:value pair from the
+            SKIP_ATTRIBUTES dict.
+
+        :returns: True if it contains any else false.
+        """
+        for key, value in AndroidHandler.SKIP_ATTRIBUTES.iteritems():
+            filter_attr = child.attrib.get(key)
+            if filter_attr is not None and filter_attr == value:
+                return True
+        return False
