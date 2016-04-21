@@ -38,7 +38,7 @@ class AndroidHandler(Handler):
         resources_tag_position = content.index(self.PARSE_START)
 
         self.transcriber = Transcriber(content[resources_tag_position:])
-        self.current_comment = None
+        self.current_comment = u""
         self.order_counter = itertools.count()
 
         source = self.transcriber.source
@@ -55,7 +55,7 @@ class AndroidHandler(Handler):
             strings = self._handle_child(child)
             if strings is not None:
                 stringset.extend(strings)
-                self.current_comment = None
+                self.current_comment = u""
 
         self.transcriber.copy_until(len(source))
         template = content[:resources_tag_position] +\
