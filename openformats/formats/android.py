@@ -3,13 +3,21 @@ from __future__ import absolute_import
 import itertools
 
 from ..handlers import Handler
-from ..exceptions import ParseError
-from openformats.strings import OpenString
-from openformats.transcribers import Transcriber
+from ..strings import OpenString
 from ..utils.xml import NewDumbXml
+from ..exceptions import RuleError
+from ..exceptions import ParseError
+from ..transcribers import Transcriber
 
 
 class AndroidHandler(Handler):
+    """A handler class that parses and compiles String Resources for ANDROID
+    applications. The String Resources file is in XML format.
+
+    String Resources file documentation can be found here:
+    http://developer.android.com/guide/topics/resources/string-resource.html
+    """
+
     name = "ANDROID"
     extension = "xml"
 
@@ -35,14 +43,15 @@ class AndroidHandler(Handler):
     """ Parse Methods """
 
     def parse(self, content):
-        resources_tag_position = content.index(self.PARSE_START)
-
-        self.transcriber = Transcriber(content[resources_tag_position:])
+        self.transcriber = Transcriber(content)
         self.current_comment = u""
         self.order_counter = itertools.count()
 
         source = self.transcriber.source
-        parsed = NewDumbXml(source)
+        # Skip xml info declaration
+        resources_tag_position = content.index(self.PARSE_START)
+        parsed = NewDumbXml(source, resources_tag_position)
+
         children_itterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
@@ -50,7 +59,7 @@ class AndroidHandler(Handler):
             NewDumbXml.COMMENT
         )
         stringset = []
-
+        self.existing_hashes = set()
         for child in children_itterator:
             strings = self._handle_child(child)
             if strings is not None:
@@ -58,8 +67,7 @@ class AndroidHandler(Handler):
                 self.current_comment = u""
 
         self.transcriber.copy_until(len(source))
-        template = content[:resources_tag_position] +\
-            self.transcriber.get_destination()
+        template = self.transcriber.get_destination()
 
         return template, stringset
 
@@ -93,7 +101,8 @@ class AndroidHandler(Handler):
             name,
             child.content,
             self.current_comment,
-            product
+            product,
+            child
         )
         if string is not None:
             # <string>My Text</string>
@@ -118,26 +127,39 @@ class AndroidHandler(Handler):
                     else None.
         """
         string_rules_text = {}
-        children_itterator = child.find_children(self.STRING_ITEM)
+        item_itterator = child.find_children(self.STRING_ITEM)
         # Itterate through the children with the item tag.
-        for new_child in children_itterator:
-            rule = new_child.attrib.get('quantity')
+        for item_tag in item_itterator:
+            rule = item_tag.attrib.get('quantity')
             if rule is None:
-                # If quantity is missing the plural is unknown
+                # If quantity is missing, the plural is unknown
+                # Find the line number
+                self.transcriber.copy_until(item_tag.position)
                 raise ParseError(
                     "Missing the `quantity` attribute on line {}".format(
                         self.transcriber.line_number
                     )
                 )
-            rule_number = self.get_rule_number(rule)
-            string_rules_text[rule_number] = new_child.content
+            try:
+                rule_number = self.get_rule_number(rule)
+            except RuleError:
+                self.transcriber.copy_until(item_tag.position)
+                raise ParseError(
+                    "The `quantity` attribute on line {} contains an invalid "
+                    "plural: `{}`".format(
+                        self.transcriber.line_number,
+                        rule
+                    )
+                )
+            string_rules_text[rule_number] = item_tag.content
 
         name, product = self._get_child_attributes(child)
         string = self._create_string(
             name,
             string_rules_text,
             self.current_comment,
-            product
+            product,
+            child
         )
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
@@ -147,8 +169,8 @@ class AndroidHandler(Handler):
             self.transcriber.add(string.template_replacement)
             # ...</item>   </plurals>...
             #           ^
-            self.transcriber.skip_until(new_child.tail_position)
-            # FYI: new_child is the last iterated child from the loop before.
+            self.transcriber.skip_until(item_tag.tail_position)
+            # FYI: item_tag is the last iterated item from the loop before.
             return [string]
         return None
 
@@ -162,29 +184,30 @@ class AndroidHandler(Handler):
                     else None.
         """
         strings = []
-        children_itterator = child.find_children(self.STRING_ITEM)
+        item_itterator = child.find_children(self.STRING_ITEM)
         name, product = self._get_child_attributes(child)
         # Itterate through the children with the item tag.
-        for index, new_child in enumerate(children_itterator):
+        for index, item_tag in enumerate(item_itterator):
             child_name = u"{}[{}]".format(name, index)
             string = self._create_string(
                 child_name,
-                new_child.content,
+                item_tag.content,
                 self.current_comment,
-                product
+                product,
+                child
             )
 
             if string is not None:
                 # ... <item>Hello...
                 #           ^
-                self.transcriber.copy_until(new_child.text_position)
+                self.transcriber.copy_until(item_tag.text_position)
 
                 strings.append(string)
                 self.transcriber.add(string.template_replacement)
 
                 # ...ello world</item>...
                 #              ^
-                self.transcriber.skip(len(new_child.content))
+                self.transcriber.skip(len(item_tag.content))
         if strings:
             return strings
         return None
@@ -193,17 +216,19 @@ class AndroidHandler(Handler):
         """Will assign the comment found as the current comment."""
         self.current_comment = child.content
 
-    def _create_string(self, name, text, comment, product):
+    def _create_string(self, name, text, comment, product, child):
         """Creates a string and returns it. If empty string it returns None.
 
         :param text: The strings text.
         :param name: The name of the string.
         :param comment: The developer's comment the string might have.
         :param product: Extra context for the string.
+        :param child: The child tag that the string is created from.
+                        Used to find line numbers when errors occur.
         :returns: Returns an OpenString object if the text is not empty
                   else None.
         """
-        if self._validate_not_empty(text):
+        if self._validate_not_empty(text, child=child):
             # Create OpenString
             string = OpenString(
                 name,
@@ -212,14 +237,36 @@ class AndroidHandler(Handler):
                 order=self.order_counter.next(),
                 developer_comment=comment
             )
+            # If duplicate hash raise ParseError
+            if string.string_hash in self.existing_hashes:
+                self.transcriber.copy_until(child.position)
+                if not product:
+                    msg = (
+                        u"Duplicate `name` ({}) property found on the "
+                        "line {}. Specify a the `product` to differentiate"
+                    ).format(
+                        name, self.transcriber.line_number
+                    )
+                else:
+                    msg = (
+                        u"Duplicate `name` ({}) and `product` ({}) "
+                        "properties found on the line {}"
+                    ).format(
+                        name, product, self.transcriber.line_number
+                    )
+                raise ParseError(msg)
+            self.existing_hashes.add(string.string_hash)
             return string
         return None
 
-    def _validate_not_empty(self, text):
+    def _validate_not_empty(self, text, child=None):
         """Validates that a string is not empty.
 
         :param text: The string to validate. Can be a basestring or a dict for
                         for pluralized strings.
+        :param child: The child tag that the string is created from.
+                        It is passed only for pluralized strings to show the
+                        appropriate line number in case an error occurs.
         :raises: Raises a ParseError if not all plurals of a pluralized string
                  are complete.
         :returns: True if the string is not empty else False.
@@ -231,9 +278,18 @@ class AndroidHandler(Handler):
             # If there is plural missing raise error.
             for key, string in text.iteritems():
                 if string.strip() == "":
+                    # Find start line
+                    self.transcriber.copy_until(child.text_position)
+                    first_line = self.transcriber.line_number
+                    # Find end line
+                    self.transcriber.copy_until(child.tail_position)
+                    last_line = self.transcriber.line_number
                     raise ParseError(
-                        'Missing plural string before the line {}'.format(
-                            self.transcriber.line_number
+                        u'Missing plural string between lines {}-{}, '
+                        'on item with `quantity`: {}'.format(
+                            first_line,
+                            last_line,
+                            self.get_rule_string(key)
                         )
                     )
         elif text.strip() == "":
@@ -249,11 +305,14 @@ class AndroidHandler(Handler):
         """
         name = child.attrib.get('name')
         if name is None:
+            # Find the line number
+            self.transcriber.copy_until(child.position)
             raise ParseError(
-                'Missing the `name` attribute on line'.format(
+                'Missing the `name` attribute on line {}'.format(
                     self.transcriber.line_number
                 )
             )
+        name = name.replace('\\', '\\\\').replace('[', '\\[')
         product = child.attrib.get('product', '')
         return name, product
 
@@ -329,23 +388,23 @@ class AndroidHandler(Handler):
         :NOTE: If the `string-array` was empty to begin with it will leave it
                 as it is.
         """
-        children_itterator = list(child.find_children(self.STRING_ITEM))
+        item_itterator = list(child.find_children(self.STRING_ITEM))
 
         # Check if child was empty to begin with
-        if len(children_itterator) == 0:
+        if len(item_itterator) == 0:
             return
 
         # Check if any string matches array items
-        not_empty = False
-        for new_child in children_itterator:
-            if self._should_compile(new_child):
-                not_empty = True
+        has_match = False
+        for item_tag in item_itterator:
+            if self._should_compile(item_tag):
+                has_match = True
                 break
 
-        if not_empty:
-            # Compile found children. Remove the rest.
-            for new_child in children_itterator:
-                self._compile_string(new_child)
+        if has_match:
+            # Compile found item nodes. Remove the rest.
+            for item_tag in item_itterator:
+                self._compile_string(item_tag)
         else:
             # Remove the `string-array` tag
             self._skip_tag(child)
