@@ -12,7 +12,7 @@ from openformats.formats.android import AndroidHandler
 
 class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = AndroidHandler
-    TESTFILE_BASE = "openformats/tests/formats/beta_android/files"
+    TESTFILE_BASE = "openformats/tests/formats/android/files"
 
     def setUp(self):
         super(AndroidTestCase, self).setUp()
@@ -123,6 +123,46 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(stringset, [])
         self.assertEquals(template, source)
         self.assertEquals(compiled, source)
+
+    def test_order_is_kept(self):
+        source = '''
+            <resources>
+                <string name="a">a</string>
+                <string-array name="b">
+                    <item>b</item>
+                    <item>c</item>
+                </string-array>
+                <plurals name="c">
+                    <item quantity="one">d</item>
+                    <item quantity="other">e</item>
+                </plurals>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        self.assertEquals([(string.key, string.order) for string in stringset],
+                          [('a', 0), ('b[0]', 1), ('b[1]', 2), ('c', 3)])
+
+    def test_string_inner_tags_are_collected(self):
+        source = '''
+            <resources>
+                <string name="a">hello <b>world</b></string>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        string = stringset[0]
+        self.assertEquals(string.key, 'a')
+        self.assertEquals(string.string, "hello <b>world</b>")
+
+    def test_string_content_must_be_valid_xml(self):
+        source = '''
+            <resources>
+                <string name="a">hello <b>world</b></string>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        string = stringset[0]
+        self.assertEquals(string.key, 'a')
+        self.assertEquals(string.string, "hello <b>world</b>")
 
     def test_empty_string_ignored(self):
         random_key = generate_random_string()
@@ -287,3 +327,239 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
         self.assertEquals(compiled, source)
+
+    def test_missing_quantity_raises_error(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <plurals name="a">
+                        <item>a</item>
+                        <item quantity="other>b</item>
+                    </plurals>
+                </resources>
+            ''',
+            u"Missing the `quantity` attribute on line 4"
+        )
+
+    def test_unknown_quantity(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <plurals name="a">
+                        <item quantity="one">a</item>
+                        <item quantity="three-hundred-and-fifty-four">b</item>
+                    </plurals>
+                </resources>
+            ''',
+            u"The `quantity` attribute on line 5 contains an invalid plural: "
+            u"`three-hundred-and-fifty-four`"
+        )
+
+    def test_missing_other_quantity(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <plurals name="a">
+                        <item quantity="one">a</item>
+                        <item quantity="two">b</item>
+                    </plurals>
+                </resources>
+            ''',
+            u"Quantity 'other' is missing from <plurals> tag in lines 3-6"
+        )
+
+    def test_duplicate_names(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <string name="a">hello</string>
+                    <string name="a">world</string>
+                </resources>
+            ''',
+            u"Duplicate `name` (a) attribute found on line 4. Perhaps you "
+            u"want to specify a `product` attribute to differentiate"
+        )
+
+    def test_duplicate_names_and_products(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <string name="a" product="b">hello</string>
+                    <string name="a" product="b">>world</string>
+                </resources>
+            ''',
+            u"Duplicate `name` (a) and `product` (b) attributes found on line "
+            u"4"
+        )
+
+    def test_name_escaping_helps_with_duplication_cornercases(self):
+        source = '''
+            <resources>
+                <string name="a[0]">hello</string>
+                <string-array name="a">
+                    <!-- Normally this string would get the name: 'a[0]' which
+                         would be identical to the previous one -->
+                    <item>goodbye</item>
+                </string-array>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(stringset[0].key, "a\\[0]")
+        self.assertEquals(stringset[1].key, "a[0]")
+
+        source = r'''
+            <resources>
+                <string name="a[0]">hello</string>
+                <!-- If we were only escaping the '[' char, this would still
+                     confuse stuff since the item below would get the name:
+                     `a\[0]` -->
+                <string-array name="a\">
+                    <item>goodbye</item>
+                </string-array>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(stringset[0].key, "a\\[0]")
+        self.assertEquals(stringset[1].key, "a\\\\[0]")
+
+    def test_missing_name(self):
+        self._test_parse_error('<resources><string>hello</string></resources>',
+                               u"Missing the `name` attribute on line 1")
+
+    def test_compile_removes_missing_strings(self):
+        source = strip_leading_spaces('''
+            <resources>
+                <string name="a">hello</string>
+                <string name="b">goodbye</string>
+            </resources>
+        ''')
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset[:1])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces('''
+                <resources>
+                    <string name="a">hello</string>
+
+                </resources>
+            ''')
+        )
+
+    def test_compile_removes_missing_string_array_items(self):
+        source = strip_leading_spaces('''
+            <resources>
+                <string-array name="a">
+                    <item>hello</item>
+                    <item>world</item>
+                </string-array>
+            </resources>
+        ''')
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset[:1])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces('''
+                <resources>
+                    <string-array name="a">
+                        <item>hello</item>
+
+                    </string-array>
+                </resources>
+            ''')
+        )
+
+    def test_compile_removes_missing_string_arrays(self):
+        source = strip_leading_spaces('''
+            <resources>
+                <string-array name="a">
+                    <item>hello</item>
+                    <item>world</item>
+                </string-array>
+            </resources>
+        ''')
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces('''
+                <resources>
+
+                </resources>
+            ''')
+        )
+
+    def test_compile_doesnt_remove_already_empty_string_array(self):
+        source = strip_leading_spaces('''
+            <resources>
+                <string-array name="a"></string-array>
+                <string-array name="b">
+                    <item>hello</item>
+                    <item>world</item>
+                </string-array>
+            </resources>
+        ''')
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces('''
+                <resources>
+                    <string-array name="a"></string-array>
+
+                </resources>
+            ''')
+        )
+
+    def test_compile_removes_missing_plurals(self):
+        source = strip_leading_spaces('''
+            <resources>
+                <plurals name="a">
+                    <item quantity="one">hello</item>
+                    <item quantity="other">world</item>
+                </plurals>
+            </resources>
+        ''')
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces('''
+                <resources>
+
+                </resources>
+            ''')
+        )
+
+    def test_compile_doesnt_remove_already_empty_plurals(self):
+        source = strip_leading_spaces('''
+            <resources>
+                <plurals name="a">
+                    <item quantity="one">hello</item>
+                    <item quantity="other">world</item>
+                </plurals>
+                <plurals name="b">
+                    <item quantity="one"></item>
+                    <item quantity="other"></item>
+                </plurals>
+            </resources>
+        ''')
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces('''
+                <resources>
+
+                    <plurals name="b">
+                        <item quantity="one"></item>
+                        <item quantity="other"></item>
+                    </plurals>
+                </resources>
+            ''')
+        )
+
+    def test_parser_doesnt_like_text_where_it_shouldnt_be(self):
+        self._test_parse_error(
+            u'<resources>hello<string name="a">world</string></resources>',
+            u"Unhandled text outside of valid tags in line 1"
+        )
