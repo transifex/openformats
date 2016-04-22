@@ -10,7 +10,7 @@ from openformats.formats.json import JsonHandler
 
 class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = JsonHandler
-    TESTFILE_BASE = "openformats/tests/formats/json/files"
+    TESTFILE_BASE = "openformats/tests/formats/beta_keyvaluejson/files"
 
     def setUp(self):
         super(JsonTestCase, self).setUp()
@@ -31,6 +31,17 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(stringset[0].__dict__,
                           self.random_openstring.__dict__)
         self.assertEquals(compiled, '{"a": "%s"}' % self.random_string)
+
+    def test_empty_string_ignored(self):
+        template, stringset = self.handler.parse(
+            '{"not_empty": "hello there", "empty": ""}'
+        )
+        self.assertEquals(len(stringset), 1)
+
+        template, stringset = self.handler.parse(
+            '{"not_empty": "hello there", "empty": [""]}'
+        )
+        self.assertEquals(len(stringset), 1)
 
     def test_root_object_is_list(self):
         source = '["%s"]' % self.random_string
