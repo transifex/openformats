@@ -286,7 +286,8 @@ class NewDumbXml(object):
             if candidate in ('/', '>') or candidate.isspace():
                 self._tag = self.source[self.position + 1:ptr]
                 return self._tag
-        raise DumbXmlSyntaxError("Opening tag not closed")
+        raise DumbXmlSyntaxError(u"Opening tag not closed on line {}".
+                                 format(self._find_line_number()))
 
     @property
     def attrib(self):
@@ -303,8 +304,10 @@ class NewDumbXml(object):
                 attrib_end_p = ptr
                 break
         else:
-            raise DumbXmlSyntaxError("Opening tag '{}' not closed".
-                                     format(self.tag))
+            raise DumbXmlSyntaxError(
+                u"Opening tag '{}' not closed on line {}".
+                format(self.tag, self._find_line_number())
+            )
 
         self._attrib_string = self.source[attrib_start_p:attrib_end_p]
         pat = re.compile(r"""(?P<key>[^\s=]+)
@@ -351,15 +354,19 @@ class NewDumbXml(object):
                     self._tail_position = ptr + 1
                     return self._text_position
                 else:
-                    raise DumbXmlSyntaxError("Opening tag '{}' not closed".
-                                             format(self.tag))
-            raise DumbXmlSyntaxError("Opening tag '{}' not closed".
-                                     format(self.tag))
+                    raise DumbXmlSyntaxError(
+                        u"Opening tag '{}' not closed on line {}".
+                        format(self.tag, self._find_line_number())
+                    )
+            raise DumbXmlSyntaxError(
+                u"Opening tag '{}' not closed on line {}".
+                format(self.tag, self._find_line_number())
+            )
         elif candidate == '>':
             self._text_position = ptr + 1
             return self._text_position
         else:
-            raise DumbXmlSyntaxError("Something went wrong")
+            raise DumbXmlSyntaxError(u"Something went wrong")
 
     @property
     def text(self):
@@ -378,7 +385,10 @@ class NewDumbXml(object):
 
         next_tag_position = self._find_next_lt(self.text_position)
         if next_tag_position == len(self.source):
-            raise DumbXmlSyntaxError("Tag '{}' not closed".format(self.tag))
+            raise DumbXmlSyntaxError(
+                u"Tag '{}' not closed on line {}".
+                format(self.tag, self._find_line_number())
+            )
 
         self._text = self.source[self.text_position:next_tag_position]
         return self._text
@@ -394,8 +404,9 @@ class NewDumbXml(object):
                 closing_tag = self.source[start + 2: start + 2 + len(self.tag)]
                 if closing_tag != self.tag:
                     raise DumbXmlSyntaxError(
-                        "Closing tag '{}' does not match opening tag '{}'".
-                        format(closing_tag, self.tag)
+                        u"Closing tag '{}' does not match opening tag '{}' on "
+                        u"line {}".
+                        format(closing_tag, self.tag, self._find_line_number())
                     )
                 for ptr in xrange(start + 2 + len(self.tag), len(self.source)):
                     candidate = self.source[ptr]
@@ -405,10 +416,14 @@ class NewDumbXml(object):
                         self._tail_position = ptr + 1
                         return
                     else:
-                        raise DumbXmlSyntaxError("Invalid closing of tag '{}'".
-                                                 format(self.tag))
-                raise DumbXmlSyntaxError("Invalid closing of tag '{}'".
-                                         format(self.tag))
+                        raise DumbXmlSyntaxError(
+                            u"Invalid closing of tag '{}' on line {}".
+                            format(self.tag, self._find_line_number)
+                        )
+                raise DumbXmlSyntaxError(
+                    u"Invalid closing of tag '{}' on line {}".
+                    format(self.tag, self._find_line_number)
+                )
             else:
                 # Use `self.__class__` in case this is a subclass (eg to handle
                 # HTML)
@@ -536,4 +551,9 @@ class NewDumbXml(object):
                 self._text = self.source[self.text_position:ptr]
                 self._tail_position = ptr + len("-->")
                 return
-        raise DumbXmlSyntaxError("Comment not closed")
+        raise DumbXmlSyntaxError(u"Comment not closed on line {}".
+                                 format(self._find_line_number()))
+
+    def _find_line_number(self, ptr=None):
+        ptr = ptr or self.position
+        return self.source[:ptr].count('\n') + 1
