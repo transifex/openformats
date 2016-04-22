@@ -38,6 +38,11 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         )
         self.assertEquals(len(stringset), 1)
 
+        template, stringset = self.handler.parse(
+            '{"not_empty": "hello there", "empty": [""]}'
+        )
+        self.assertEquals(len(stringset), 1)
+
     def test_root_object_is_list(self):
         source = '["%s"]' % self.random_string
         random_openstring = OpenString('..0..', self.random_string, order=0)
