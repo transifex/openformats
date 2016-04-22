@@ -152,21 +152,38 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(stringset, [])
         self.assertEquals(template, source)
 
-    def test_empty_plural_ignored(self):
-        random_key = generate_random_string()
-        source = strip_leading_spaces(u'''
+    def test_empty_plural_raises_error(self):
+        self._test_parse_error(
+            '<resources><plurals name="a"></plurals></resources>',
+            u"Empty <plurals> tag on line 1"
+        )
+
+    def test_empty_plural_item_raises_error(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <plurals name="a">
+                        <item quantity="one"></item>
+                        <item quantity="other">hello</item>
+                    </plurals>
+                </resources>
+            ''',
+            u"Not all <item> tags are filled in lines 3-6"
+        )
+
+    def test_all_plural_items_empty_get_skipped(self):
+        source = u'''
             <resources>
-                <plurals name="{key}">
+                <plurals name="a">
                     <item quantity="one"></item>
                     <item quantity="other"></item>
                 </plurals>
             </resources>
-        '''.format(key=random_key))
-
+        '''
         template, stringset = self.handler.parse(source)
 
-        self.assertEquals(stringset, [])
         self.assertEquals(template, source)
+        self.assertEquals(stringset, [])
 
     def test_missing_translated_strings_removed(self):
         random_key = generate_random_string()
