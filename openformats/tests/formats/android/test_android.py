@@ -575,5 +575,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_parser_doesnt_like_text_where_it_shouldnt_be(self):
         self._test_parse_error(
             u'<resources>hello<string name="a">world</string></resources>',
-            u"Unhandled text outside of valid tags in line 1"
+            (
+                u"None whitespace characters found following the <resources> "
+                u"tag on line 1"
+            )
         )

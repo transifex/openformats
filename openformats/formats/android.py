@@ -52,7 +52,8 @@ class AndroidHandler(Handler):
         resources_tag_position = content.index(self.PARSE_START)
         try:
             parsed = NewDumbXml(source, resources_tag_position)
-
+            self._validate_no_text_characters(parsed)
+            self._validate_no_tail_characters(parsed)
             children_itterator = parsed.find_children(
                 self.STRING,
                 self.STRING_ARRAY,
@@ -81,14 +82,18 @@ class AndroidHandler(Handler):
         :returns: An list of OpenString objects if any were created else None.
         """
         if not self._should_ignore(child):
-            if child.tag == self.STRING:
-                return self._handle_string(child)
-            elif child.tag == self.STRING_ARRAY:
-                return self._handle_string_array(child)
-            elif child.tag == self.STRING_PLURAL:
-                return self._handle_string_plural(child)
-            elif child.tag == NewDumbXml.COMMENT:
+            if child.tag == NewDumbXml.COMMENT:
                 self._handle_comment(child)
+            else:
+                self._validate_no_tail_characters(child)
+                if child.tag == self.STRING:
+                    return self._handle_string(child)
+                elif child.tag == self.STRING_ARRAY:
+                    self._validate_no_text_characters(child)
+                    return self._handle_string_array(child)
+                elif child.tag == self.STRING_PLURAL:
+                    self._validate_no_text_characters(child)
+                    return self._handle_string_plural(child)
         return None
 
     def _handle_string(self, child):
@@ -129,17 +134,12 @@ class AndroidHandler(Handler):
         :returns: An list containing the OpenString object if one was created
                     else None.
         """
-        if child.tail.strip() != "":
-            msg = (
-                u"None whitespace characters found tailing `plural` "
-                "tag on line {line_number}"
-            )
-            self._raise_error(child, msg)
 
         string_rules_text = {}
         item_itterator = child.find_children(self.STRING_ITEM)
         # Itterate through the children with the item tag.
         for item_tag in item_itterator:
+            self._validate_no_tail_characters(item_tag)
             if item_tag.tag != self.STRING_ITEM:
                 msg = (
                     u"Wrong tag type found on line {line_number}. Was "
@@ -207,6 +207,7 @@ class AndroidHandler(Handler):
         name, product = self._get_child_attributes(child)
         # Itterate through the children with the item tag.
         for index, item_tag in enumerate(item_itterator):
+            self._validate_no_tail_characters(item_tag)
             child_name = u"{}[{}]".format(name, index)
             string = self._create_string(
                 child_name,
@@ -331,11 +332,43 @@ class AndroidHandler(Handler):
         product = child.attrib.get('product', '')
         return name, product
 
+    def _validate_no_tail_characters(self, child):
+        if child.tail.strip() != "":
+            # Check for tail characters
+            self.transcriber.copy_until(child.tail_position)
+            msg = (
+                u"None whitespace characters found following the closing "
+                u"</{tag}> tag on line {line_number}"
+            )
+            self._raise_error(
+                child, msg,
+                context={
+                    'tag': child.tag,
+                    'line_number': self.transcriber.line_number
+                }
+            )
+
+    def _validate_no_text_characters(self, child):
+        if child.text.strip() != "":
+            # Check for text characters
+            self.transcriber.copy_until(child.text_position)
+            msg = (
+                u"None whitespace characters found following the <{tag}> "
+                u"tag on line {line_number}"
+            )
+            self._raise_error(
+                child, msg,
+                context={
+                    'tag': child.tag,
+                    'line_number': self.transcriber.line_number
+                }
+            )
+
     def _raise_error(self, child, message, context=None):
-        if context is None:
-            context = {}
-        self.transcriber.copy_until(child.position)
-        context['line_number'] = self.transcriber.line_number
+        context = context or {}
+        if 'line_number' not in context:
+            self.transcriber.copy_until(child.position)
+            context['line_number'] = self.transcriber.line_number
         raise ParseError(message.format(**context))
 
     """ Compile Methods """
