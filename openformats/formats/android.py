@@ -129,31 +129,47 @@ class AndroidHandler(Handler):
         :returns: An list containing the OpenString object if one was created
                     else None.
         """
+        if child.tail.strip() != "":
+            msg = (
+                u"None whitespace characters found tailing `plural` "
+                "tag on line {line_number}"
+            )
+            self._raise_error(child, msg)
+
         string_rules_text = {}
         item_itterator = child.find_children(self.STRING_ITEM)
         # Itterate through the children with the item tag.
         for item_tag in item_itterator:
+            if item_tag.tag != self.STRING_ITEM:
+                msg = (
+                    u"Wrong tag type found on line {line_number}. Was "
+                    u"expecting <item> but found <{wrong_tag}>"
+                )
+                self._raise_error(
+                    item_tag, msg, context={'wrong_tag': item_tag.tag}
+                )
+
+            if item_tag.tail.strip() != "":
+                msg = (
+                    u"None whitespace characters found tailing `item` "
+                    u"tag on line {line_number}"
+                )
+                self._raise_error(item_tag, msg)
+
             rule = item_tag.attrib.get('quantity')
             if rule is None:
                 # If quantity is missing, the plural is unknown
-                # Find the line number
-                self.transcriber.copy_until(item_tag.position)
-                raise ParseError(
-                    "Missing the `quantity` attribute on line {}".format(
-                        self.transcriber.line_number
-                    )
-                )
+                msg = u"Missing the `quantity` attribute on line {line_number}"
+                self._raise_error(item_tag, msg)
             try:
                 rule_number = self.get_rule_number(rule)
             except RuleError:
-                self.transcriber.copy_until(item_tag.position)
-                raise ParseError(
-                    "The `quantity` attribute on line {} contains an invalid "
-                    "plural: `{}`".format(
-                        self.transcriber.line_number,
-                        rule
-                    )
+                msg = (
+                    u"The `quantity` attribute on line {line_number} contains "
+                    u"an invalid plural: `{rule}`"
                 )
+                self._raise_error(item_tag, msg, context={'rule': rule})
+
             string_rules_text[rule_number] = item_tag.content
 
         name, product = self._get_child_attributes(child)
@@ -242,22 +258,19 @@ class AndroidHandler(Handler):
             )
             # If duplicate hash raise ParseError
             if string.string_hash in self.existing_hashes:
-                self.transcriber.copy_until(child.position)
+                format_dict = {'name': name}
                 if not product:
                     msg = (
-                        u"Duplicate `name` ({}) attribute found on "
-                        u"line {}. Specify a `product` to differentiate"
-                    ).format(
-                        name, self.transcriber.line_number
+                        u"Duplicate `name` ({name}) attribute found on line "
+                        u"{line_number}. Specify a `product` to differentiate"
                     )
                 else:
+                    format_dict['product'] = product
                     msg = (
-                        u"Duplicate `name` ({}) and `product` ({}) "
-                        u"attributes found on line {}"
-                    ).format(
-                        name, product, self.transcriber.line_number
+                        u"Duplicate `name` ({name}) and `product` ({product}) "
+                        u"attributes found on line {line_number}"
                     )
-                raise ParseError(msg)
+                self._raise_error(child, msg, context=format_dict)
             self.existing_hashes.add(string.string_hash)
             return string
         return None
@@ -276,34 +289,29 @@ class AndroidHandler(Handler):
         # If dict then it's pluralized
         if isinstance(text, dict):
             if len(text) == 0:
-                self.transcriber.copy_until(child.text_position)
-                raise ParseError(
-                    u"Empty <plurals> tag on line {}".format(
-                        self.transcriber.line_number
-                    )
-                )
+                msg = u"Empty <plurals> tag on line {line_number}"
+                self._raise_error(child, msg)
+
             # Find the plurals that have empty string
             text_value_set = set(value.strip() for value in text.itervalues())
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
-
-                self.transcriber.copy_until(child.text_position)
-                raise ParseError(
+                msg = (
                     u'Missing string(s) in <item> tag(s) in the <plural> tag '
-                    'on line {}'.format(
-                        self.transcriber.line_number
-                    )
+                    u'on line {line_number}'
                 )
+                self._raise_error(child, msg)
             elif "" in text_value_set:
                 # All plurals are empty so skip `plurals` tag
                 return False
+
             # Validate `other` rule is present
             if self._RULES_ATOI['other'] not in text.keys():
-                self.transcriber.copy_until(child.position)
-                raise ParseError(
-                    "Quantity 'other' is missing from <plurals> tag on line {}"
-                    .format(self.transcriber.line_number)
+                msg = (
+                    u"Quantity 'other' is missing from <plurals> tag "
+                    u"on line {line_number}"
                 )
+                self._raise_error(child, msg)
         elif text.strip() == "":
             return False
         return True
@@ -317,16 +325,18 @@ class AndroidHandler(Handler):
         """
         name = child.attrib.get('name')
         if name is None:
-            # Find the line number
-            self.transcriber.copy_until(child.position)
-            raise ParseError(
-                'Missing the `name` attribute on line {}'.format(
-                    self.transcriber.line_number
-                )
-            )
+            msg = u'Missing the `name` attribute on line {line_number}'
+            self._raise_error(child, msg)
         name = name.replace('\\', '\\\\').replace('[', '\\[')
         product = child.attrib.get('product', '')
         return name, product
+
+    def _raise_error(self, child, message, context=None):
+        if context is None:
+            context = {}
+        self.transcriber.copy_until(child.position)
+        context['line_number'] = self.transcriber.line_number
+        raise ParseError(message.format(**context))
 
     """ Compile Methods """
 
@@ -413,7 +423,13 @@ class AndroidHandler(Handler):
             self._skip_tag(child)
 
     def _compile_string_plural(self, child):
-        """
+        """Handles child element that has the `plurals` tag.
+
+        It will check if pluralized string exists and add every plural as an
+        `item` child. If no matching string is found it will remove the tag.
+
+        :NOTE: If the `plurals` had empty `item` tags to begin with we leave
+                it as it is.
         """
         # If placeholder (has empty children) skip
         if len(list(child.find_children(self.STRING_ITEM))):
