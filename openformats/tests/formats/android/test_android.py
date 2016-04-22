@@ -153,7 +153,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(string.key, 'a')
         self.assertEquals(string.string, "hello <b>world</b>")
 
-    def test_string_content_must_be_valid_xml(self):
+    def test_string_content_is_valid_xml(self):
         source = '''
             <resources>
                 <string name="a">hello <b>world</b></string>
@@ -163,6 +163,16 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         string = stringset[0]
         self.assertEquals(string.key, 'a')
         self.assertEquals(string.string, "hello <b>world</b>")
+
+    def test_string_content_is_not_valid_xml(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <string name="a">hello <b>world</c></string>
+                </resources>
+            ''',
+            "Closing tag 'c' does not match opening tag 'b' on line 3"
+        )
 
     def test_empty_string_ignored(self):
         random_key = generate_random_string()

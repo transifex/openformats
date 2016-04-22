@@ -4,7 +4,7 @@ import itertools
 
 from ..handlers import Handler
 from ..strings import OpenString
-from ..utils.xml import NewDumbXml
+from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
 from ..exceptions import RuleError
 from ..exceptions import ParseError
 from ..transcribers import Transcriber
@@ -50,21 +50,24 @@ class AndroidHandler(Handler):
         source = self.transcriber.source
         # Skip xml info declaration
         resources_tag_position = content.index(self.PARSE_START)
-        parsed = NewDumbXml(source, resources_tag_position)
+        try:
+            parsed = NewDumbXml(source, resources_tag_position)
 
-        children_itterator = parsed.find_children(
-            self.STRING,
-            self.STRING_ARRAY,
-            self.STRING_PLURAL,
-            NewDumbXml.COMMENT
-        )
-        stringset = []
-        self.existing_hashes = set()
-        for child in children_itterator:
-            strings = self._handle_child(child)
-            if strings is not None:
-                stringset.extend(strings)
-                self.current_comment = u""
+            children_itterator = parsed.find_children(
+                self.STRING,
+                self.STRING_ARRAY,
+                self.STRING_PLURAL,
+                NewDumbXml.COMMENT
+            )
+            stringset = []
+            self.existing_hashes = set()
+            for child in children_itterator:
+                strings = self._handle_child(child)
+                if strings is not None:
+                    stringset.extend(strings)
+                    self.current_comment = u""
+        except DumbXmlSyntaxError, e:
+            raise ParseError(unicode(e))
 
         self.transcriber.copy_until(len(source))
         template = self.transcriber.get_destination()
