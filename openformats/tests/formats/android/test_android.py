@@ -204,11 +204,15 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                 <resources>
                     <plurals name="a">
                         <item quantity="one"></item>
+                        <item quantity="two"></item>
                         <item quantity="other">hello</item>
                     </plurals>
                 </resources>
             ''',
-            u"Not all <item> tags are filled in lines 3-6"
+            (
+                'Missing string(s) in <item> tag(s) in the <plural> tag '
+                'on line 3'
+            )
         )
 
     def test_all_plural_items_empty_get_skipped(self):
@@ -365,7 +369,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     </plurals>
                 </resources>
             ''',
-            u"Quantity 'other' is missing from <plurals> tag in lines 3-6"
+            u"Quantity 'other' is missing from <plurals> tag on line 3"
         )
 
     def test_duplicate_names(self):
@@ -376,8 +380,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <string name="a">world</string>
                 </resources>
             ''',
-            u"Duplicate `name` (a) attribute found on line 4. Perhaps you "
-            u"want to specify a `product` attribute to differentiate"
+            u"Duplicate `name` (a) attribute found on line 4. Specify a "
+            "`product` to differentiate"
         )
 
     def test_duplicate_names_and_products(self):

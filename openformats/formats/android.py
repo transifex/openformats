@@ -228,7 +228,7 @@ class AndroidHandler(Handler):
         :returns: Returns an OpenString object if the text is not empty
                   else None.
         """
-        if self._validate_not_empty(text, child=child):
+        if self._validate_not_empty(text, child):
             # Create OpenString
             string = OpenString(
                 name,
@@ -242,15 +242,15 @@ class AndroidHandler(Handler):
                 self.transcriber.copy_until(child.position)
                 if not product:
                     msg = (
-                        u"Duplicate `name` ({}) property found on the "
-                        "line {}. Specify a the `product` to differentiate"
+                        u"Duplicate `name` ({}) attribute found on "
+                        u"line {}. Specify a `product` to differentiate"
                     ).format(
                         name, self.transcriber.line_number
                     )
                 else:
                     msg = (
                         u"Duplicate `name` ({}) and `product` ({}) "
-                        "properties found on the line {}"
+                        u"attributes found on line {}"
                     ).format(
                         name, product, self.transcriber.line_number
                     )
@@ -259,13 +259,12 @@ class AndroidHandler(Handler):
             return string
         return None
 
-    def _validate_not_empty(self, text, child=None):
+    def _validate_not_empty(self, text, child):
         """Validates that a string is not empty.
 
         :param text: The string to validate. Can be a basestring or a dict for
                         for pluralized strings.
-        :param child: The child tag that the string is created from.
-                        It is passed only for pluralized strings to show the
+        :param child: The tag that the string is created from.Used to show the
                         appropriate line number in case an error occurs.
         :raises: Raises a ParseError if not all plurals of a pluralized string
                  are complete.
@@ -274,24 +273,34 @@ class AndroidHandler(Handler):
         # If dict then it's pluralized
         if isinstance(text, dict):
             if len(text) == 0:
-                return False
-            # If there is plural missing raise error.
-            for key, string in text.iteritems():
-                if string.strip() == "":
-                    # Find start line
-                    self.transcriber.copy_until(child.text_position)
-                    first_line = self.transcriber.line_number
-                    # Find end line
-                    self.transcriber.copy_until(child.tail_position)
-                    last_line = self.transcriber.line_number
-                    raise ParseError(
-                        u'Missing plural string between lines {}-{}, '
-                        'on item with `quantity`: {}'.format(
-                            first_line,
-                            last_line,
-                            self.get_rule_string(key)
-                        )
+                self.transcriber.copy_until(child.text_position)
+                raise ParseError(
+                    u"Empty <plurals> tag on line {}".format(
+                        self.transcriber.line_number
                     )
+                )
+            # Find the plurals that have empty string
+            text_value_set = set(value.strip() for value in text.itervalues())
+            if "" in text_value_set and len(text_value_set) != 1:
+                # If not all plurals have empty strings raise ParseError
+
+                self.transcriber.copy_until(child.text_position)
+                raise ParseError(
+                    u'Missing string(s) in <item> tag(s) in the <plural> tag '
+                    'on line {}'.format(
+                        self.transcriber.line_number
+                    )
+                )
+            elif "" in text_value_set:
+                # All plurals are empty so skip `plurals` tag
+                return False
+            # Validate `other` rule is present
+            if self._RULES_ATOI['other'] not in text.keys():
+                self.transcriber.copy_until(child.position)
+                raise ParseError(
+                    "Quantity 'other' is missing from <plurals> tag on line {}"
+                    .format(self.transcriber.line_number)
+                )
         elif text.strip() == "":
             return False
         return True
@@ -330,15 +339,6 @@ class AndroidHandler(Handler):
             self.STRING_ARRAY,
             self.STRING_PLURAL
         )
-
-        # Uncomment to skip array
-        # stringset = list(stringset)[0:2] + list(stringset)[4:]
-
-        # Uncomment to skip string
-        # stringset = list(stringset)[2:]
-
-        # Uncomment to skip plurals
-        # stringset = list(stringset)[0:-2]
 
         self.stringset = iter(stringset)
         self.next_string = self._get_next_string()
@@ -390,7 +390,7 @@ class AndroidHandler(Handler):
         """
         item_itterator = list(child.find_children(self.STRING_ITEM))
 
-        # Check if child was empty to begin with
+        # If placeholder (has no children) skip
         if len(item_itterator) == 0:
             return
 
@@ -412,8 +412,8 @@ class AndroidHandler(Handler):
     def _compile_string_plural(self, child):
         """
         """
-        # Check if child was empty to begin with
-        if child.content.strip() == '':
+        # If placeholder (has empty children) skip
+        if len(list(child.find_children(self.STRING_ITEM))):
             return
 
         if self._should_compile(child):
