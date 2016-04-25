@@ -21,6 +21,8 @@ class AndroidHandler(Handler):
     name = "ANDROID"
     extension = "xml"
 
+    EXTRACTS_RAW = False
+
     # Where to start parsing the file
     PARSE_START = "<resources"
 
