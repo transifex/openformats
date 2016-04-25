@@ -348,7 +348,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                 <resources>
                     <plurals name="a">
                         <item>a</item>
-                        <item quantity="other>b</item>
+                        <item quantity="other">b</item>
                     </plurals>
                 </resources>
             ''',
@@ -380,6 +380,38 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                 </resources>
             ''',
             u"Quantity 'other' is missing from <plurals> tag on line 3"
+        )
+
+    def test_wrong_tag_type_in_plurals_tag(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <plurals name="a">
+                        <item quantity="other">a</item>
+                        <stuff quantity="one">b</stuff>
+                    </plurals>
+                </resources>
+            ''',
+            (
+                u"Wrong tag type found on line 5. Was "
+                u"expecting <item> but found <stuff>"
+            )
+        )
+
+    def test_tail_characters_where_they_should_not_be(self):
+        self._test_parse_error(
+            '''
+                <resources>
+                    <plurals name="a">
+                        <item quantity="other">a</item>My tail chars
+                        <item quantity="one">b</item>
+                    </plurals>
+                </resources>
+            ''',
+            (
+                u"None whitespace characters found following the closing "
+                u"</item> tag on line 4"
+            )
         )
 
     def test_duplicate_names(self):

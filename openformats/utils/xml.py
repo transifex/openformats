@@ -418,11 +418,11 @@ class NewDumbXml(object):
                     else:
                         raise DumbXmlSyntaxError(
                             u"Invalid closing of tag '{}' on line {}".
-                            format(self.tag, self._find_line_number)
+                            format(self.tag, self._find_line_number())
                         )
                 raise DumbXmlSyntaxError(
                     u"Invalid closing of tag '{}' on line {}".
-                    format(self.tag, self._find_line_number)
+                    format(self.tag, self._find_line_number())
                 )
             else:
                 # Use `self.__class__` in case this is a subclass (eg to handle

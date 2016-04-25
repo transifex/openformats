@@ -136,40 +136,10 @@ class AndroidHandler(Handler):
         """
 
         string_rules_text = {}
-        item_itterator = child.find_children(self.STRING_ITEM)
+        item_itterator = child.find_children()
         # Itterate through the children with the item tag.
         for item_tag in item_itterator:
-            self._validate_no_tail_characters(item_tag)
-            if item_tag.tag != self.STRING_ITEM:
-                msg = (
-                    u"Wrong tag type found on line {line_number}. Was "
-                    u"expecting <item> but found <{wrong_tag}>"
-                )
-                self._raise_error(
-                    item_tag, msg, context={'wrong_tag': item_tag.tag}
-                )
-
-            if item_tag.tail.strip() != "":
-                msg = (
-                    u"None whitespace characters found tailing `item` "
-                    u"tag on line {line_number}"
-                )
-                self._raise_error(item_tag, msg)
-
-            rule = item_tag.attrib.get('quantity')
-            if rule is None:
-                # If quantity is missing, the plural is unknown
-                msg = u"Missing the `quantity` attribute on line {line_number}"
-                self._raise_error(item_tag, msg)
-            try:
-                rule_number = self.get_rule_number(rule)
-            except RuleError:
-                msg = (
-                    u"The `quantity` attribute on line {line_number} contains "
-                    u"an invalid plural: `{rule}`"
-                )
-                self._raise_error(item_tag, msg, context={'rule': rule})
-
+            rule_number = self._validate_plural_item(item_tag)
             string_rules_text[rule_number] = item_tag.content
 
         name, product = self._get_child_attributes(child)
@@ -275,6 +245,39 @@ class AndroidHandler(Handler):
             self.existing_hashes.add(string.string_hash)
             return string
         return None
+
+    def _validate_plural_item(self, item_tag):
+        """ Performs a number of checks on the plural item to see its validity.
+
+        :param item_tag: The item to perform the checks on.
+        :raises: ParseError if the item tag does not meet the requirments.
+        :returns: The plural number of the validated item tag.
+        """
+        if item_tag.tag != self.STRING_ITEM:
+            msg = (
+                u"Wrong tag type found on line {line_number}. Was "
+                u"expecting <item> but found <{wrong_tag}>"
+            )
+            self._raise_error(
+                item_tag, msg, context={'wrong_tag': item_tag.tag}
+            )
+
+        self._validate_no_tail_characters(item_tag)
+
+        rule = item_tag.attrib.get('quantity')
+        if rule is None:
+            # If quantity is missing, the plural is unknown
+            msg = u"Missing the `quantity` attribute on line {line_number}"
+            self._raise_error(item_tag, msg)
+        try:
+            rule_number = self.get_rule_number(rule)
+        except RuleError:
+            msg = (
+                u"The `quantity` attribute on line {line_number} contains "
+                u"an invalid plural: `{rule}`"
+            )
+            self._raise_error(item_tag, msg, context={'rule': rule})
+        return rule_number
 
     def _validate_not_empty(self, text, child):
         """Validates that a string is not empty.
