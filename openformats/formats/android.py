@@ -83,11 +83,11 @@ class AndroidHandler(Handler):
 
         :returns: An list of OpenString objects if any were created else None.
         """
+        self._validate_no_tail_characters(child)
         if not self._should_ignore(child):
             if child.tag == NewDumbXml.COMMENT:
                 self._handle_comment(child)
             else:
-                self._validate_no_tail_characters(child)
                 if child.tag == self.STRING:
                     return self._handle_string(child)
                 elif child.tag == self.STRING_ARRAY:
@@ -341,32 +341,28 @@ class AndroidHandler(Handler):
         if child.tail.strip() != "":
             # Check for tail characters
             self.transcriber.copy_until(child.tail_position)
-            msg = (
-                u"None whitespace characters found following the closing "
-                u"</{tag}> tag on line {line_number}"
-            )
+            msg = (u"Found trailing characters after '{tag}' tag on line "
+                   u"{line_number}")
+            tag = child.tag
+            if tag == NewDumbXml.COMMENT:
+                tag = u"comment"
             self._raise_error(
-                child, msg,
-                context={
-                    'tag': child.tag,
-                    'line_number': self.transcriber.line_number
-                }
+                child,
+                msg,
+                context={'tag': tag,
+                         'line_number': self.transcriber.line_number}
             )
 
     def _validate_no_text_characters(self, child):
         if child.text.strip() != "":
             # Check for text characters
             self.transcriber.copy_until(child.text_position)
-            msg = (
-                u"None whitespace characters found following the <{tag}> "
-                u"tag on line {line_number}"
-            )
+            msg = (u"Found leading characters inside '{tag}' tag on line "
+                   u"{line_number}")
             self._raise_error(
                 child, msg,
-                context={
-                    'tag': child.tag,
-                    'line_number': self.transcriber.line_number
-                }
+                context={'tag': child.tag,
+                         'line_number': self.transcriber.line_number}
             )
 
     def _raise_error(self, child, message, context=None):
