@@ -21,7 +21,7 @@ class AndroidHandler(Handler):
     name = "ANDROID"
     extension = "xml"
 
-    EXTRACTS_RAW = False
+    EXTRACTS_RAW = True
 
     # Where to start parsing the file
     PARSE_START = "<resources"
@@ -546,3 +546,20 @@ class AndroidHandler(Handler):
             if filter_attr is not None and filter_attr == value:
                 return True
         return False
+
+    # Escaping / Unescaping
+    # According to:
+    # http://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling  # noqa
+
+    @staticmethod
+    def escape(string):
+        return string.replace('\\', '\\\\').replace('"', '\\"').\
+            replace("'", "\\'")
+
+    @staticmethod
+    def unescape(string):
+        if len(string) and string[0] == string[-1] == '"':
+            return string[1:-1]
+        else:
+            return string.replace('\\"', '"').replace("\\'", "'").\
+                replace('\\\\', '\\')

@@ -618,3 +618,20 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             '''
         )
         self.assertTrue(stringset[0].pluralized)
+
+    def test_escape(self):
+        cases = (('double " quote', 'double \\" quote'),
+                 ("single ' quote", "single \\' quote"),
+                 ("back \\ slash", "back \\\\ slash"))
+        for rich, raw in cases:
+            self.assertEquals(AndroidHandler.escape(rich), raw)
+
+    def test_unescape(self):
+        cases = (('double " quote', 'double \\" quote'),
+                 ("single ' quote", "single \\' quote"),
+                 ("back \\ slash", "back \\\\ slash"),
+                 ('inside double quotes', '"inside double quotes"'),
+                 ("single ' quote", '"single \' quote"'),
+                 ("back \\ slash", '"back \\ slash"'))
+        for rich, raw in cases:
+            self.assertEquals(AndroidHandler.unescape(raw), rich)
