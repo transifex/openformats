@@ -56,19 +56,19 @@ class DumbXmlTestCase(unittest.TestCase):
             )
 
     def test_no_embeds_errors(self):
-        cases = (('<a', "Opening tag not closed"),
-                 ('<a b="c"', "Opening tag 'a' not closed"),
-                 ('<a', "Opening tag not closed"),
-                 ('<a/', "Opening tag 'a' not closed"),
-                 ('<a /', "Opening tag 'a' not closed"),
-                 ('<a/oiajod', "Opening tag 'a' not closed"),
-                 ('<a>', "Tag 'a' not closed"),
-                 ('<a>hello world', "Tag 'a' not closed"),
-                 ('<!---', "Comment not closed"),
-                 ('<!--jafosijdfoas-', "Comment not closed"))
+        cases = (('<a', "Opening tag not closed on line 1"),
+                 ('<a b="c"', "Opening tag 'a' not closed on line 1"),
+                 ('<a', "Opening tag not closed on line 1"),
+                 ('<a/', "Opening tag 'a' not closed on line 1"),
+                 ('<a /', "Opening tag 'a' not closed on line 1"),
+                 ('<a/oiajod', "Opening tag 'a' not closed on line 1"),
+                 ('<a>', "Tag 'a' not closed on line 1"),
+                 ('<a>hello world', "Tag 'a' not closed on line 1"),
+                 ('<!---', "Comment not closed on line 1"),
+                 ('<!--jafosijdfoas-', "Comment not closed on line 1"))
         for source, error_msg in cases:
             with self.assertRaisesRegexp(DumbXmlSyntaxError,
-                                         re.escape(error_msg)):
+                                         r'^{}$'.format(re.escape(error_msg))):
                 dumb_xml = NewDumbXml(source)
                 dumb_xml.end  # should expand all properties eventually
 
@@ -159,13 +159,14 @@ class DumbXmlTestCase(unittest.TestCase):
 
     def test_iter_errors(self):
         cases = (
-            ('<a></b>', "Closing tag 'b' does not match opening tag 'a'"),
-            ('<a></a', "Invalid closing of tag 'a'"),
-            ('<a></a aosdjfio', "Invalid closing of tag 'a'"),
+            ('<a></b>',
+             "Closing tag 'b' does not match opening tag 'a' on line 1"),
+            ('<a></a', "Invalid closing of tag 'a' on line 1"),
+            ('<a></a aosdjfio', "Invalid closing of tag 'a' on line 1"),
         )
         for source, error_msg in cases:
             with self.assertRaisesRegexp(DumbXmlSyntaxError,
-                                         re.escape(error_msg)):
+                                         r'^{}$'.format(re.escape(error_msg))):
                 list(NewDumbXml(source))
 
     def test_inbetweens(self):

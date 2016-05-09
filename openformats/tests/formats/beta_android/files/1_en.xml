@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <!-- Testing simple string -->
+    <string name="a_string">Simple string</string>
+
+    <!-- Testing with product attribute -->
+    <string name="a_string" product="a_product">Simple string with product</string>
+
+    <!-- Testing string arrays -->
+    <string-array name="an_array">
+        <item>First item of string array</item>
+        <item>Second item of string array</item>
+    </string-array>
+
+    <!-- Testing string arrays with product -->
+    <string-array name="an_array" product="a_product">
+        <item>First item of string array with product</item>
+        <item>Second item of string array with product</item>
+    </string-array>
+
+    <!-- Testing plurals -->
+    <plurals name="some_plurals">
+        <item quantity="one">Singular form of plural string</item>
+        <item quantity="other">Plural form of plural string</item>
+    </plurals>
+
+    <!-- Testing plurals with product -->
+    <plurals name="some_plurals" product="a_product">
+        <item quantity="one">Singular form of plural string with product</item>
+        <item quantity="other">Plural form of plural string with product</item>
+    </plurals>
+</resources>
