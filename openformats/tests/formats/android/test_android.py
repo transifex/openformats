@@ -606,3 +606,15 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             u'<resources>hello<string name="a">world</string></resources>',
             u"Found leading characters inside 'resources' tag on line 1"
         )
+
+    def test_strings_from_plurals_are_always_pluralized(self):
+        _, stringset = self.handler.parse(
+            u'''
+                <resources>
+                    <plurals name="a">
+                        <item quantity="other">hello</item>
+                    </plurals>
+                </resources>
+            '''
+        )
+        self.assertTrue(stringset[0].pluralized)

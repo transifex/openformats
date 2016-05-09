@@ -150,7 +150,10 @@ class AndroidHandler(Handler):
             string_rules_text,
             self.current_comment,
             product,
-            child
+            child,
+            # <plurals> tags always define plurals, even if the language has
+            # one plural form and thus there's only one <item>
+            pluralized=True,
         )
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
@@ -208,7 +211,8 @@ class AndroidHandler(Handler):
         """Will assign the comment found as the current comment."""
         self.current_comment = child.content
 
-    def _create_string(self, name, text, comment, product, child):
+    def _create_string(self, name, text, comment, product, child,
+                       pluralized=False):
         """Creates a string and returns it. If empty string it returns None.
 
         :param text: The strings text.
@@ -227,7 +231,8 @@ class AndroidHandler(Handler):
                 text,
                 context=product,
                 order=self.order_counter.next(),
-                developer_comment=comment
+                developer_comment=comment,
+                pluralized=pluralized,
             )
             # If duplicate hash raise ParseError
             if string.string_hash in self.existing_hashes:
