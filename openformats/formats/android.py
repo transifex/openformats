@@ -68,7 +68,7 @@ class AndroidHandler(Handler):
                 strings = self._handle_child(child)
                 if strings is not None:
                     stringset.extend(strings)
-                    self.current_comment = u""
+                self.current_comment = u""
         except DumbXmlSyntaxError, e:
             raise ParseError(unicode(e))
 
@@ -158,7 +158,7 @@ class AndroidHandler(Handler):
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
             #                        ^
-            first_plural_position = child.text_position + len(child.text)
+            first_plural_position = child.text_position + len(child.text or [])
             self.transcriber.copy_until(first_plural_position)
             self.transcriber.add(string.template_replacement)
             # ...</item>   </plurals>...
@@ -359,7 +359,7 @@ class AndroidHandler(Handler):
             )
 
     def _validate_no_text_characters(self, child):
-        if child.text.strip() != "":
+        if child.text and child.text.strip() != "":
             # Check for text characters
             self.transcriber.copy_until(child.text_position)
             msg = (u"Found leading characters inside '{tag}' tag on line "
