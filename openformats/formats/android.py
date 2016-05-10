@@ -419,7 +419,7 @@ class AndroidHandler(Handler):
             elif child.tag == self.STRING_PLURAL:
                 self._compile_string_plural(child)
 
-    def _compile_string(self, child):
+    def _compile_string(self, child, string_array=False):
         """Handles child element that has the `string` and `item` tag.
 
         It will compile the tag if matching string exists. Otherwise it will
@@ -430,6 +430,10 @@ class AndroidHandler(Handler):
             self.transcriber.add(self.next_string.string)
             self.transcriber.skip_until(child.content_end)
             self.next_string = self._get_next_string()
+        elif string_array and not child.text:
+            # In the case of a string-array we don't want to skip an
+            # empty array element that was initially empty.
+            pass
         else:
             self._skip_tag(child)
 
@@ -460,7 +464,7 @@ class AndroidHandler(Handler):
         if has_match:
             # Compile found item nodes. Remove the rest.
             for item_tag in item_itterator:
-                self._compile_string(item_tag)
+                self._compile_string(item_tag, string_array=True)
         else:
             # Remove the `string-array` tag
             self._skip_tag(child)
@@ -510,7 +514,7 @@ class AndroidHandler(Handler):
         :param child: The child to check if it should be compiled.
         :returns: True if the child should be compiled else False.
         """
-        child_content = child.content and child.content.strip() or None
+        child_content = child.content and child.content.strip() or ''
         return (
             self.next_string is not None and
             self.next_string.template_replacement == child_content
