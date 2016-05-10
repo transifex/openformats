@@ -68,7 +68,7 @@ class AndroidHandler(Handler):
                 strings = self._handle_child(child)
                 if strings is not None:
                     stringset.extend(strings)
-                self.current_comment = u""
+                    self.current_comment = u""
         except DumbXmlSyntaxError, e:
             raise ParseError(unicode(e))
 
@@ -96,6 +96,8 @@ class AndroidHandler(Handler):
                 elif child.tag == self.STRING_PLURAL:
                     self._validate_no_text_characters(child)
                     return self._handle_string_plural(child)
+        else:
+            self.current_comment = u""
         return None
 
     def _handle_string(self, child):
@@ -508,7 +510,7 @@ class AndroidHandler(Handler):
         :param child: The child to check if it should be compiled.
         :returns: True if the child should be compiled else False.
         """
-        child_content = child and child.content.strip() or None
+        child_content = child.content and child.content.strip() or None
         return (
             self.next_string is not None and
             self.next_string.template_replacement == child_content
