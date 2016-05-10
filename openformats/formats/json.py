@@ -14,7 +14,7 @@ from ..utils.json import DumbJson
 
 
 class JsonHandler(Handler):
-    name = "BETA_KEYVALUEJSON"
+    name = "KEYVALUEJSON"
     extension = "json"
 
     def parse(self, content):
