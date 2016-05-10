@@ -304,7 +304,9 @@ class AndroidHandler(Handler):
                 self._raise_error(child, msg)
 
             # Find the plurals that have empty string
-            text_value_set = set(value.strip() for value in text.itervalues())
+            text_value_set = set(
+                value and value.strip() or "" for value in text.itervalues()
+            )
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
                 msg = (
@@ -323,7 +325,7 @@ class AndroidHandler(Handler):
                     u"on line {line_number}"
                 )
                 self._raise_error(child, msg)
-        elif text.strip() == "":
+        elif not text or text.strip() == "":
             return False
         return True
 
@@ -493,8 +495,7 @@ class AndroidHandler(Handler):
                     start +
                     self.PLURAL_TEMPLATE.format(
                         rule=self.get_rule_string(rule), string=string
-                    )
-                    + end
+                    ) + end
                 )
             self.transcriber.skip_until(child.content_end)
             self.next_string = self._get_next_string()
@@ -507,9 +508,10 @@ class AndroidHandler(Handler):
         :param child: The child to check if it should be compiled.
         :returns: True if the child should be compiled else False.
         """
+        child_content = child and child.content.strip() or None
         return (
             self.next_string is not None and
-            self.next_string.template_replacement == child.content.strip()
+            self.next_string.template_replacement == child_content
         )
 
     def _skip_tag(self, child):
