@@ -146,7 +146,7 @@ $(function() {
         } else {
           this.$el.addClass('hidden');
         }
-        this.$pre.html(Globals.payload.get('parse_error'));
+        this.$pre.text(Globals.payload.get('parse_error'));
       });
     },
   });
@@ -313,7 +313,7 @@ $(function() {
         } else {
           this.$el.addClass('hidden');
         }
-        this.$pre.html(Globals.payload.get('compile_error'));
+        this.$pre.text(Globals.payload.get('compile_error'));
       });
     },
   });
