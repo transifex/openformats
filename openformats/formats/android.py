@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import itertools
 
 from ..handlers import Handler
@@ -22,6 +23,11 @@ class AndroidHandler(Handler):
     extension = "xml"
 
     EXTRACTS_RAW = True
+
+    SPECIFIER = re.compile(
+        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
+        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+    )
 
     # Where to start parsing the file
     PARSE_START = "<resources"
