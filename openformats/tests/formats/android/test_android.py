@@ -641,7 +641,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(source, template)
         self.assertEquals(len(stringset), 0)
         compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, source)
+        self.assertEquals(compiled, u'<resources></resources>')
 
     def test_single_string_array_skipped(self):
         source = u'<resources><string-array name="a" /></resources>'
@@ -654,7 +654,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_single_string_array_item_skipped(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
-        random_openstring = OpenString("{}[0]".format(random_key),
+        random_openstring = OpenString("{}[1]".format(random_key),
                                        random_string, order=0)
         random_hash = random_openstring.template_replacement
 
