@@ -251,8 +251,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, [])
         self.assertEquals(compiled, strip_leading_spaces(u'''
             <resources>
-
-            </resources>
+                </resources>
         '''))
 
     def test_missing_translated_string_array_items_removed(self):
@@ -275,7 +274,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             <resources>
                 <string-array name="{key}">
                     <item>{string1}</item>
-
                 </string-array>
             </resources>
         '''.format(key=random_key, string1=random_string1)))
@@ -298,8 +296,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, [])
         self.assertEquals(compiled, strip_leading_spaces(u'''
             <resources>
-
-            </resources>
+                </resources>
         '''.format(key=random_key, singular=random_singular,
                    plural=random_plural)))
 
@@ -318,8 +315,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, [])
         self.assertEquals(compiled, strip_leading_spaces(u'''
             <resources>
-
-            </resources>
+                </resources>
         '''))
 
     def test_compile_plurals_not_indented(self):
@@ -482,7 +478,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             strip_leading_spaces('''
                 <resources>
                     <string name="a">hello</string>
-
                 </resources>
             ''')
         )
@@ -504,7 +499,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                 <resources>
                     <string-array name="a">
                         <item>hello</item>
-
                     </string-array>
                 </resources>
             ''')
@@ -525,8 +519,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             compiled,
             strip_leading_spaces('''
                 <resources>
-
-                </resources>
+                    </resources>
             ''')
         )
 
@@ -547,7 +540,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             strip_leading_spaces('''
                 <resources>
                     <string-array name="a"></string-array>
-
                 </resources>
             ''')
         )
@@ -567,8 +559,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             compiled,
             strip_leading_spaces('''
                 <resources>
-
-                </resources>
+                    </resources>
             ''')
         )
 
@@ -591,7 +582,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             compiled,
             strip_leading_spaces('''
                 <resources>
-
                     <plurals name="b">
                         <item quantity="one"></item>
                         <item quantity="other"></item>

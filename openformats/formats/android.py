@@ -437,7 +437,10 @@ class AndroidHandler(Handler):
             self.transcriber.copy_until(child.text_position)
             self.transcriber.add(self.next_string.string)
             self.transcriber.skip_until(child.content_end)
+            self.transcriber.copy_until(child.tail_position)
+            self.transcriber.mark_section_start()
             self.transcriber.copy_until(child.end)
+            self.transcriber.mark_section_end()
             self.next_string = self._get_next_string()
         elif not child.text:
             # In the case of a string-array we don't want to skip an
@@ -461,6 +464,7 @@ class AndroidHandler(Handler):
 
         # If placeholder (has no children) skip
         if len(item_itterator) == 0:
+            self.transcriber.copy_until(child.end)
             return
 
         # Check if any string matches array items
@@ -474,6 +478,9 @@ class AndroidHandler(Handler):
             # Compile found item nodes. Remove the rest.
             for item_tag in item_itterator:
                 self._compile_string(item_tag)
+            self.transcriber.remove_section()
+            self.transcriber.add(item_itterator[-1].tail)
+            self.transcriber.copy_until(child.end)
         else:
             # Remove the `string-array` tag
             self._skip_tag(child)
