@@ -149,8 +149,9 @@ class AndroidHandler(Handler):
         item_itterator = child.find_children()
         # Itterate through the children with the item tag.
         for item_tag in item_itterator:
-            rule_number = self._validate_plural_item(item_tag)
-            string_rules_text[rule_number] = item_tag.content
+            if item_tag.tag != NewDumbXml.COMMENT:
+                rule_number = self._validate_plural_item(item_tag)
+                string_rules_text[rule_number] = item_tag.content
 
         name, product = self._get_child_attributes(child)
         string = self._create_string(
@@ -166,7 +167,7 @@ class AndroidHandler(Handler):
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
             #                        ^
-            first_plural_position = child.text_position + len(child.text or [])
+            first_plural_position = child.text_position + len(child.text or '')
             self.transcriber.copy_until(first_plural_position)
             self.transcriber.add(string.template_replacement)
             # ...</item>   </plurals>...
