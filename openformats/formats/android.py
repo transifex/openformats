@@ -390,6 +390,11 @@ class AndroidHandler(Handler):
         source = self.transcriber.source
 
         parsed = NewDumbXml(source)
+        # This is needed in case the first tag is skipped to retain
+        # the file's formating
+        first_tag_position = parsed.text_position + len(parsed.text)
+        self.transcriber.copy_until(first_tag_position)
+
         children_itterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
@@ -411,6 +416,7 @@ class AndroidHandler(Handler):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
         """
+
         if not self._should_ignore(child):
             if child.tag == self.STRING:
                 self._compile_string(child)
@@ -429,6 +435,7 @@ class AndroidHandler(Handler):
             self.transcriber.copy_until(child.text_position)
             self.transcriber.add(self.next_string.string)
             self.transcriber.skip_until(child.content_end)
+            self.transcriber.copy_until(child.end)
             self.next_string = self._get_next_string()
         elif not child.text:
             # In the case of a string-array we don't want to skip an
@@ -504,6 +511,7 @@ class AndroidHandler(Handler):
                     ) + end
                 )
             self.transcriber.skip_until(child.content_end)
+            self.transcriber.copy_until(child.end)
             self.next_string = self._get_next_string()
         else:
             self._skip_tag(child)
@@ -525,8 +533,7 @@ class AndroidHandler(Handler):
 
         :param child: The tag to be skipped.
         """
-        self.transcriber.copy_until(child.position)
-        self.transcriber.skip_until(child.tail_position)
+        self.transcriber.skip_until(child.end)
 
     def _get_next_string(self):
         """Gets the next string from stringset itterable.
