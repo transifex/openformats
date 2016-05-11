@@ -641,7 +641,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(source, template)
         self.assertEquals(len(stringset), 0)
         compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, u'<resources></resources>')
+        self.assertEquals(compiled, source)
 
     def test_single_string_array_skipped(self):
         source = u'<resources><string-array name="a" /></resources>'
