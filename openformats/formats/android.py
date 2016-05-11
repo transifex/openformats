@@ -96,6 +96,8 @@ class AndroidHandler(Handler):
                 elif child.tag == self.STRING_PLURAL:
                     self._validate_no_text_characters(child)
                     return self._handle_string_plural(child)
+        else:
+            self.current_comment = u""
         return None
 
     def _handle_string(self, child):
@@ -158,7 +160,7 @@ class AndroidHandler(Handler):
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
             #                        ^
-            first_plural_position = child.text_position + len(child.text)
+            first_plural_position = child.text_position + len(child.text or [])
             self.transcriber.copy_until(first_plural_position)
             self.transcriber.add(string.template_replacement)
             # ...</item>   </plurals>...
@@ -304,7 +306,9 @@ class AndroidHandler(Handler):
                 self._raise_error(child, msg)
 
             # Find the plurals that have empty string
-            text_value_set = set(value.strip() for value in text.itervalues())
+            text_value_set = set(
+                value and value.strip() or "" for value in text.itervalues()
+            )
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
                 msg = (
@@ -323,7 +327,7 @@ class AndroidHandler(Handler):
                     u"on line {line_number}"
                 )
                 self._raise_error(child, msg)
-        elif text.strip() == "":
+        elif not text or text.strip() == "":
             return False
         return True
 
@@ -359,7 +363,7 @@ class AndroidHandler(Handler):
             )
 
     def _validate_no_text_characters(self, child):
-        if child.text.strip() != "":
+        if child.text and child.text.strip() != "":
             # Check for text characters
             self.transcriber.copy_until(child.text_position)
             msg = (u"Found leading characters inside '{tag}' tag on line "
@@ -386,6 +390,11 @@ class AndroidHandler(Handler):
         source = self.transcriber.source
 
         parsed = NewDumbXml(source)
+        # This is needed in case the first tag is skipped to retain
+        # the file's formating
+        first_tag_position = parsed.text_position + len(parsed.text)
+        self.transcriber.copy_until(first_tag_position)
+
         children_itterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
@@ -407,6 +416,7 @@ class AndroidHandler(Handler):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
         """
+
         if not self._should_ignore(child):
             if child.tag == self.STRING:
                 self._compile_string(child)
@@ -414,6 +424,8 @@ class AndroidHandler(Handler):
                 self._compile_string_array(child)
             elif child.tag == self.STRING_PLURAL:
                 self._compile_string_plural(child)
+        else:
+            self.transcriber.copy_until(child.end)
 
     def _compile_string(self, child):
         """Handles child element that has the `string` and `item` tag.
@@ -425,7 +437,12 @@ class AndroidHandler(Handler):
             self.transcriber.copy_until(child.text_position)
             self.transcriber.add(self.next_string.string)
             self.transcriber.skip_until(child.content_end)
+            self.transcriber.copy_until(child.end)
             self.next_string = self._get_next_string()
+        elif not child.text:
+            # In the case of a string-array we don't want to skip an
+            # empty array element that was initially empty.
+            pass
         else:
             self._skip_tag(child)
 
@@ -493,10 +510,10 @@ class AndroidHandler(Handler):
                     start +
                     self.PLURAL_TEMPLATE.format(
                         rule=self.get_rule_string(rule), string=string
-                    )
-                    + end
+                    ) + end
                 )
             self.transcriber.skip_until(child.content_end)
+            self.transcriber.copy_until(child.end)
             self.next_string = self._get_next_string()
         else:
             self._skip_tag(child)
@@ -507,9 +524,10 @@ class AndroidHandler(Handler):
         :param child: The child to check if it should be compiled.
         :returns: True if the child should be compiled else False.
         """
+        child_content = child.content and child.content.strip() or ''
         return (
             self.next_string is not None and
-            self.next_string.template_replacement == child.content.strip()
+            self.next_string.template_replacement == child_content
         )
 
     def _skip_tag(self, child):
@@ -517,8 +535,7 @@ class AndroidHandler(Handler):
 
         :param child: The tag to be skipped.
         """
-        self.transcriber.copy_until(child.position)
-        self.transcriber.skip_until(child.tail_position)
+        self.transcriber.skip_until(child.end)
 
     def _get_next_string(self):
         """Gets the next string from stringset itterable.

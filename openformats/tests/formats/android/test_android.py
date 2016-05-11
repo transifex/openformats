@@ -21,8 +21,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_string(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
-        random_openstring = OpenString(random_key,
-                                       random_string, order=0)
+        random_openstring = OpenString(random_key, random_string, order=0)
         random_hash = random_openstring.template_replacement
 
         source_python_template = u'''
@@ -635,3 +634,51 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                  ("back \\ slash", '"back \\ slash"'))
         for rich, raw in cases:
             self.assertEquals(AndroidHandler.unescape(raw), rich)
+
+    def test_single_string_skipped(self):
+        source = u'<resources><string name="a" /></resources>'
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(source, template)
+        self.assertEquals(len(stringset), 0)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEquals(compiled, source)
+
+    def test_single_string_array_skipped(self):
+        source = u'<resources><string-array name="a" /></resources>'
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(source, template)
+        self.assertEquals(len(stringset), 0)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEquals(compiled, source)
+
+    def test_single_string_array_item_skipped(self):
+        random_key = generate_random_string()
+        random_string = generate_random_string()
+        random_openstring = OpenString("{}[1]".format(random_key),
+                                       random_string, order=0)
+        random_hash = random_openstring.template_replacement
+
+        source_template = u'''
+            <resources>
+                <string-array name="{key}">
+                    <item />
+                    <item>{string}</item>
+                </string-array>
+            </resources>
+        '''
+        source = source_template.format(key=random_key, string=random_string)
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset)
+
+        self.assertEquals(template, source_template.format(key=random_key,
+                                                           string=random_hash))
+        self.assertEquals(len(stringset), 1)
+        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEquals(compiled, source)
+
+    def test_single_plural_raises(self):
+        self._test_parse_error(
+            u'<resources><plurals name="a" /></resources>',
+            u'Empty <plurals> tag on line 1'
+        )
