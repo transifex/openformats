@@ -424,6 +424,8 @@ class AndroidHandler(Handler):
                 self._compile_string_array(child)
             elif child.tag == self.STRING_PLURAL:
                 self._compile_string_plural(child)
+        else:
+            self.transcriber.copy_until(child.end)
 
     def _compile_string(self, child):
         """Handles child element that has the `string` and `item` tag.
