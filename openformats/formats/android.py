@@ -57,7 +57,7 @@ class AndroidHandler(Handler):
 
         source = self.transcriber.source
         # Skip xml info declaration
-        resources_tag_position = content.index(self.PARSE_START)
+        resources_tag_position = source.index(self.PARSE_START)
         try:
             parsed = NewDumbXml(source, resources_tag_position)
             self._validate_no_text_characters(parsed)
