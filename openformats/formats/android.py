@@ -5,11 +5,11 @@ import itertools
 
 from ..handlers import Handler
 from ..strings import OpenString
-from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
 from ..exceptions import RuleError
 from ..exceptions import ParseError
+from ..utils.xmlutils import XMLUtils
 from ..transcribers import Transcriber
-
+from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
 
 class AndroidHandler(Handler):
     """A handler class that parses and compiles String Resources for ANDROID
@@ -233,7 +233,7 @@ class AndroidHandler(Handler):
         :returns: Returns an OpenString object if the text is not empty
                   else None.
         """
-        if self._validate_not_empty(text, child):
+        if XMLUtils.validate_not_empty_string(self.transcriber, text, child):
             # Create OpenString
             string = OpenString(
                 name,
@@ -294,49 +294,6 @@ class AndroidHandler(Handler):
             )
             self._raise_error(item_tag, msg, context={'rule': rule})
         return rule_number
-
-    def _validate_not_empty(self, text, child):
-        """Validates that a string is not empty.
-
-        :param text: The string to validate. Can be a basestring or a dict for
-                        for pluralized strings.
-        :param child: The tag that the string is created from.Used to show the
-                        appropriate line number in case an error occurs.
-        :raises: Raises a ParseError if not all plurals of a pluralized string
-                 are complete.
-        :returns: True if the string is not empty else False.
-        """
-        # If dict then it's pluralized
-        if isinstance(text, dict):
-            if len(text) == 0:
-                msg = u"Empty <plurals> tag on line {line_number}"
-                self._raise_error(child, msg)
-
-            # Find the plurals that have empty string
-            text_value_set = set(
-                value and value.strip() or "" for value in text.itervalues()
-            )
-            if "" in text_value_set and len(text_value_set) != 1:
-                # If not all plurals have empty strings raise ParseError
-                msg = (
-                    u'Missing string(s) in <item> tag(s) in the <plural> tag '
-                    u'on line {line_number}'
-                )
-                self._raise_error(child, msg)
-            elif "" in text_value_set:
-                # All plurals are empty so skip `plurals` tag
-                return False
-
-            # Validate `other` rule is present
-            if self._RULES_ATOI['other'] not in text.keys():
-                msg = (
-                    u"Quantity 'other' is missing from <plurals> tag "
-                    u"on line {line_number}"
-                )
-                self._raise_error(child, msg)
-        elif not text or text.strip() == "":
-            return False
-        return True
 
     def _get_child_attributes(self, child):
         """Retrieves child's `name` and `product` attributes.
@@ -544,12 +501,12 @@ class AndroidHandler(Handler):
             self.next_string.template_replacement == child_content
         )
 
-    def _skip_tag(self, child):
+    def _skip_tag(self, tag):
         """Skips a tag from the compilation.
 
-        :param child: The tag to be skipped.
+        :param tag: The tag to be skipped.
         """
-        self.transcriber.skip_until(child.end)
+        self.transcriber.skip_until(tag.end)
 
     def _get_next_string(self):
         """Gets the next string from stringset itterable.

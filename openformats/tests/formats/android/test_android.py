@@ -204,7 +204,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_empty_plural_raises_error(self):
         self._test_parse_error(
             '<resources><plurals name="a"></plurals></resources>',
-            u"Empty <plurals> tag on line 1"
+            u"No plurals found in <plurals> tag on line 1"
         )
 
     def test_empty_plural_item_raises_error(self):
@@ -670,5 +670,5 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_single_plural_raises(self):
         self._test_parse_error(
             u'<resources><plurals name="a" /></resources>',
-            u'Empty <plurals> tag on line 1'
+            u'No plurals found in <plurals> tag on line 1'
         )

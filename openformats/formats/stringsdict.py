@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 import itertools
 
+from ..utils.xmlutils import XMLUtils
+from ..exceptions import ParseError
 from ..handlers import Handler
 from ..strings import OpenString
 from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
 from ..exceptions import RuleError
-from ..exceptions import ParseError
+
 from ..transcribers import Transcriber
 
 
@@ -53,12 +55,12 @@ class StringsDictHandler(Handler):
         self.order_counter = itertools.count()
         source = self.transcriber.source
         # Skip xml info declaration
-        resources_tag_position = content.index(self.PARSE_START)
+        resources_tag_position = source.index(self.PARSE_START)
 
         try:
             parsed = NewDumbXml(source, resources_tag_position)
-            self._validate_no_text_characters(parsed)
-            self._validate_no_tail_characters(parsed)
+            XMLUtils.validate_no_text_characters(self.transcriber, parsed)
+            XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
             dict_iterator = parsed.find_children()
             stringset = []
             self.main_keys = set()
@@ -80,191 +82,165 @@ class StringsDictHandler(Handler):
         return template, stringset
 
     def _handle_child_pairs(self, key_tag, dict_tag):
+        """Handles the <key> tag and its <dict> value tag.
+
+        :param key_tag: The <key> tag to be handled.
+        :param dict_tag: The <dict> tag to be handled.
+        :returns: A list containing the openstrings created. If no strings were
+                    created the list is empty.
+        """
         # The first key tag contains the main key
         main_key = self._handle_key(key_tag, main_key=True)
-        # Create iterator
         dict_iterator = self._handle_dict(dict_tag)
 
         string_list = []
         for key_child in dict_iterator:
+            # The second key contains the secondary key.
             secondary_key = self._handle_key(key_child)
-            # Get the value of the key
             value_tag = self._get_key_value(dict_iterator)
             if secondary_key == self.KEY_FORMAT:
+                # If the key is the one of the stringsdict defaults skip it
                 continue
-            string = self._handle_strings(
+
+            openstring = self._handle_strings(
                 value_tag,
                 main_key,
                 secondary_key
             )
-            if string is not None:
-                string_list.append(string)
+            if openstring is not None:
+                # If an openstring was created append it to the list
+                string_list.append(openstring)
         return string_list
 
     def _handle_strings(self, dict_tag, main_key, secondary_key):
-        dict_iterator = self._handle_dict(dict_tag)
-        strings_dict = {}
+        """Handles the <dict> tag that contains the strings.
 
+        :param dict_tag: The <dict> tag containing the strings.
+        :param main_key: The main key. Used as the openstring's name.
+        :param secondary_key: The secondary key. Used as the openstring's
+                                context.
+        """
+        dict_iterator = self._handle_dict(dict_tag)
+
+        strings_dict = {}
         for key_tag in dict_iterator:
             key_content = self._handle_key(key_tag)
-            # Get the value of the key
             value_tag = self._get_key_value(dict_iterator)
 
-            # If key in ignored keys skip
             if key_content in [self.KEY_SPEC, self.KEY_VALUE]:
+                # If key in stringsdict's default keys skip it
                 self.transcriber.copy_until(value_tag.tail_position)
                 continue
+
             # Get rule number from the key content
             rule_number = self._validate_plural(key_content, key_tag)
             strings_dict[rule_number] = value_tag.content
             self.transcriber.skip_until(value_tag.tail_position)
 
-        # If strings where collected
-        if strings_dict:
-            string = self._create_string(
-                main_key,
-                strings_dict,
-                secondary_key,
-                value_tag
-            )
+        openstring = self._create_string(
+            main_key,
+            strings_dict,
+            secondary_key,
+            dict_tag
+        )
+
+        if openstring is not None:
             # In case we ended with an ignored key
             self.transcriber.skip_until(value_tag.end)
-
             self.transcriber.add(
                 key_tag.tail +
                 self.PLACEHOLDER_KEY +
                 key_tag.tail +
                 self.PLACEHOLDER_STRING.format(
-                    string.template_replacement
+                    openstring.template_replacement
                 )
                 + value_tag.tail
             )
         else:
-            msg = (
-                u'Did not find any strings in `dict` tag on line {line_number}'
-            )
-            self._raise_error(dict_tag, msg)
-        return string
+            # If no strings exist in <dict> tag assume placeholder and continue
+            self.transcriber.copy_until(value_tag.end)
+        return openstring
 
-    def _create_string(self, main_key, strings_dict, secondary_key, value_tag):
-        string = OpenString(
-            main_key,
+    def _create_string(self, main_key, strings_dict, secondary_key, tag):
+        """Validates and creates an OpenString.
+
+        :main_key: The name of the OpenString.
+        :strings_dict: A dictionary containing the plurals of the OpenString.
+        :secondary_key: The context of the OpenString.
+        :returns: An OpenString if one was created else None.
+        """
+        string_not_empty = XMLUtils.validate_not_empty_string(
+            self.transcriber,
             strings_dict,
-            context=secondary_key,
-            order=self.order_counter.next(),
-            pluralized=True
+            tag
         )
-        return string
+        if string_not_empty:
+            openstring = OpenString(
+                main_key,
+                strings_dict,
+                context=secondary_key,
+                order=self.order_counter.next(),
+                pluralized=True
+            )
+            return openstring
+        return None
 
     def _validate_plural(self, plural_string, key_tag):
         try:
             rule_number = self.get_rule_number(plural_string)
         except RuleError:
-            msg = (
-                u"The plural `key` tag on line {line_number} contains "
-                u"an invalid plural: `{rule}`"
+            message = (
+                u"The plural <key> tag on line {line_number} contains "
+                u"an invalid plural rule: `{rule}`"
             )
-            self._raise_error(key_tag, msg, context={'rule': plural_string})
+            XMLUtils.raise_error(
+                self.transcriber,
+                key_tag,
+                message,
+                context={'rule': plural_string}
+            )
 
         return rule_number
 
     def _handle_key(self, key_tag, main_key=False):
         if key_tag.tag != self.KEY:
-            msg = (
-                u"Was expecting `key` tag but found `{tag}` tag "
+            message = (
+                u"Was expecting <key> tag but found <{tag}> tag "
                 u"on line {line_number}"
             )
-            self._raise_error(key_tag, msg, context={'tag': key_tag.tag})
+            XMLUtils.raise_error(
+                self.transcriber,
+                key_tag,
+                message,
+                context={'tag': key_tag.tag}
+            )
 
         key_content = key_tag.content
         if main_key:
             if key_content in self.main_keys:
-                msg = u"Duplicate main key found on line {line_number}"
-                self._raise_error(key_tag, msg)
+                message = u"Duplicate main key found on line {line_number}"
+                XMLUtils.raise_error(
+                    self.transcriber,
+                    key_tag,
+                    message
+                )
             self.main_keys.add(key_content)
 
         return key_content
 
     def _handle_dict(self, dict_tag):
         if dict_tag.tag != self.DICT:
-            print dict_tag.content
-            msg = (
-                u"Was expecting `dict` tag but found `{tag}` tag on line "
+            message = (
+                u"Was expecting <dict> tag but found <{tag}> tag on line "
                 u"{line_number}"
             )
-            self._raise_error(dict_tag, msg, context={'tag': dict_tag.tag})
+            XMLUtils.raise_error(
+                self.transcriber,
+                dict_tag,
+                message,
+                context={'tag': dict_tag.tag}
+            )
         return dict_tag.find_children()
-
-    def _validate_no_tail_characters(self, child):
-        if child.tail.strip() != "":
-            # Check for tail characters
-            self.transcriber.copy_until(child.tail_position)
-            msg = (u"Found trailing characters after `{tag}` tag on line "
-                   u"{line_number}")
-            tag = child.tag
-            if tag == NewDumbXml.COMMENT:
-                tag = u"comment"
-            self._raise_error(
-                child,
-                msg,
-                context={'tag': tag,
-                         'line_number': self.transcriber.line_number}
-            )
-
-    def _validate_no_text_characters(self, child):
-        if child.text.strip() != "":
-            # Check for text characters
-            self.transcriber.copy_until(child.text_position)
-            msg = (u"Found leading characters inside '{tag}' tag on line "
-                   u"{line_number}")
-            self._raise_error(
-                child, msg,
-                context={'tag': child.tag,
-                         'line_number': self.transcriber.line_number}
-            )
-
-    def _validate_not_empty(self, text, child):
-        """Validates that a string is not empty.
-
-        :param text: The string to validate. Can be a basestring or a dict for
-                        for pluralized strings.
-        :param child: The tag that the string is created from.Used to show the
-                        appropriate line number in case an error occurs.
-        :raises: Raises a ParseError if not all plurals of a pluralized string
-                 are complete.
-        :returns: True if the string is not empty else False.
-        """
-        # If dict then it's pluralized
-        if isinstance(text, dict):
-            if len(text) == 0:
-                msg = u"Empty <plurals> tag on line {line_number}"
-                self._raise_error(child, msg)
-
-            # Find the plurals that have empty string
-            text_value_set = set(
-                value and value.strip() or "" for value in text.itervalues()
-            )
-            if "" in text_value_set and len(text_value_set) != 1:
-                # If not all plurals have empty strings raise ParseError
-                msg = (
-                    u'Missing string(s) in <item> tag(s) in the <plural> tag '
-                    u'on line {line_number}'
-                )
-                self._raise_error(child, msg)
-            elif "" in text_value_set:
-                # All plurals are empty so skip `plurals` tag
-                return False
-
-            # Validate `other` rule is present
-            if self._RULES_ATOI['other'] not in text.keys():
-                msg = (
-                    u"Quantity 'other' is missing from <plurals> tag "
-                    u"on line {line_number}"
-                )
-                self._raise_error(child, msg)
-        elif not text or text.strip() == "":
-            return False
-        return True
 
     """ Compile Methods """
 
@@ -309,8 +285,12 @@ class StringsDictHandler(Handler):
                     placeholder_value = self._get_key_value(
                         placeholder_iterator
                     )
-
-                    if self._should_compile(placeholder_value):
+                    should_compile = (
+                        XMLUtils.should_compile(
+                            placeholder_value,
+                            self.next_string)
+                    )
+                    if should_compile:
                         # If we have translation for the placeholder compile it
                         self._compile_plural_string(
                             placeholder_key, placeholder_value
@@ -328,6 +308,7 @@ class StringsDictHandler(Handler):
 
         :param placeholder_key: The placeholder key tag.
         :param placeholder_value: The placeholder value tag.
+        :NOTE: Assigns the self property `next_string` to the next OpenString.
         """
         self.transcriber.copy_until(placeholder_key.position)
         string_list = self.next_string.string.items()
@@ -347,18 +328,6 @@ class StringsDictHandler(Handler):
         self.transcriber.skip_until(placeholder_value.tail_position)
         self.next_string = self._get_next_string()
 
-    def _should_compile(self, tag):
-        """Checks if the current child should be compiled.
-
-        :param tag: The tag to check if it should be compiled.
-        :returns: True if the tag should be compiled else False.
-        """
-        return (
-            self.next_string is not None and
-            self.next_string.template_replacement ==
-            tag.content.strip()
-        )
-
     def _get_next_string(self):
         """Gets the next string from stringset itterable.
 
@@ -373,15 +342,12 @@ class StringsDictHandler(Handler):
 
     """ Util methods """
 
-    def _raise_error(self, child, message, context=None):
-        context = context or {}
-        if 'line_number' not in context:
-            self.transcriber.copy_until(child.position)
-            context['line_number'] = self.transcriber.line_number
-        raise ParseError(message.format(**context))
-
     @staticmethod
     def _get_key_value(iterator):
+        """Gets the value of the current <key> tag.
+
+        :param iterator: The iterator that contains <key> tag's value.
+        """
         try:
             value_tag = iterator.next()
         except StopIteration:

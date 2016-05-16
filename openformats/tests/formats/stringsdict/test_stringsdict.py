@@ -153,7 +153,7 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
                 </dict>
                 </plist>
             """,
-            u"Was expecting `dict` tag but found `string` tag on line 7"
+            u"Was expecting <dict> tag but found <string> tag on line 7"
         )
 
     def test_missing_strings(self):
@@ -170,7 +170,7 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
                 </dict>
                 </plist>
             """,
-            u"Did not find any strings in `dict` tag on line 7"
+            u"No plurals found in <dict> tag on line 7"
         )
 
     def test_wrong_plural_raises_error(self):
@@ -191,7 +191,7 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
                 </dict>
                 </plist>
             """,
-            u"The plural `key` tag on line 8 contains an invalid plural: "
+            u"The plural <key> tag on line 8 contains an invalid plural rule: "
             u"`wrong_plural`"
         )
 
@@ -213,5 +213,5 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
                 </dict>
                 </plist>
             """,
-            u"Was expecting `key` tag but found `no_key` tag on line 4"
+            u"Was expecting <key> tag but found <no_key> tag on line 4"
         )
