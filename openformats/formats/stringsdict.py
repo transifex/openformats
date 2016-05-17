@@ -185,9 +185,17 @@ class StringsDictHandler(Handler):
             return openstring
         return None
 
-    def _validate_plural(self, plural_string, key_tag):
+    def _validate_plural(self, plural_rule, key_tag):
+        """Validates the plural rule.
+
+        :param plural_rule: The string containing the plural rule.
+        :key_tag: The <key> tag that contains the plural rule.
+                    Used when validation fails to track the line number.
+        :raises: ParseError when the plural_rule is invalid.
+        :returns: An integer that matches the plural rule.
+        """
         try:
-            rule_number = self.get_rule_number(plural_string)
+            rule_number = self.get_rule_number(plural_rule)
         except RuleError:
             message = (
                 u"The plural <key> tag on line {line_number} contains "
@@ -197,12 +205,21 @@ class StringsDictHandler(Handler):
                 self.transcriber,
                 key_tag,
                 message,
-                context={'rule': plural_string}
+                context={'rule': plural_rule}
             )
 
         return rule_number
 
     def _handle_key(self, key_tag, main_key=False):
+        """Validates a <key> tag and returns it's content.
+
+        :param key_tag: The <key> tag to validate.
+        :param main_key: Specifies a key as main. If True it also validates
+                            the key uniqueness.
+        :raises: ParseError if the tag is not a <key>. Also raises a ParseError
+                    if main_key is True and the key is not unique.
+        :returns: A string containing the <key> tags content.
+        """
         if key_tag.tag != self.KEY:
             message = (
                 u"Was expecting <key> tag but found <{tag}> tag "
@@ -229,6 +246,12 @@ class StringsDictHandler(Handler):
         return key_content
 
     def _handle_dict(self, dict_tag):
+        """Validates a <dict> tag and returns it's children iterator.
+
+        :param dict_tag: The <dict> tag to validate.
+        :raises: ParseError if the tag is not <dict>.
+        :returns: An iterator containing the children of the <dict> tag.
+        """
         if dict_tag.tag != self.DICT:
             message = (
                 u"Was expecting <dict> tag but found <{tag}> tag on line "
