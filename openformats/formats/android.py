@@ -6,10 +6,11 @@ import itertools
 from ..handlers import Handler
 from ..strings import OpenString
 from ..exceptions import RuleError
+from ..utils.xml import NewDumbXml
 from ..exceptions import ParseError
-from ..utils.xmlutils import XMLUtils
 from ..transcribers import Transcriber
-from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
+from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
+
 
 class AndroidHandler(Handler):
     """A handler class that parses and compiles String Resources for ANDROID
@@ -50,6 +51,7 @@ class AndroidHandler(Handler):
 
     """ Parse Methods """
 
+    @reraise_syntax_as_parse_errors
     def parse(self, content):
         self.transcriber = Transcriber(content)
         self.current_comment = u""
@@ -58,25 +60,23 @@ class AndroidHandler(Handler):
         source = self.transcriber.source
         # Skip xml info declaration
         resources_tag_position = source.index(self.PARSE_START)
-        try:
-            parsed = NewDumbXml(source, resources_tag_position)
-            self._validate_no_text_characters(parsed)
-            self._validate_no_tail_characters(parsed)
-            children_itterator = parsed.find_children(
-                self.STRING,
-                self.STRING_ARRAY,
-                self.STRING_PLURAL,
-                NewDumbXml.COMMENT
-            )
-            stringset = []
-            self.existing_hashes = set()
-            for child in children_itterator:
-                strings = self._handle_child(child)
-                if strings is not None:
-                    stringset.extend(strings)
-                    self.current_comment = u""
-        except DumbXmlSyntaxError, e:
-            raise ParseError(unicode(e))
+
+        parsed = NewDumbXml(source, resources_tag_position)
+        XMLUtils.validate_no_text_characters(self.transcriber, parsed)
+        XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
+        children_itterator = parsed.find_children(
+            self.STRING,
+            self.STRING_ARRAY,
+            self.STRING_PLURAL,
+            NewDumbXml.COMMENT
+        )
+        stringset = []
+        self.existing_hashes = set()
+        for child in children_itterator:
+            strings = self._handle_child(child)
+            if strings is not None:
+                stringset.extend(strings)
+                self.current_comment = u""
 
         self.transcriber.copy_until(len(source))
         template = self.transcriber.get_destination()
@@ -89,7 +89,7 @@ class AndroidHandler(Handler):
 
         :returns: An list of OpenString objects if any were created else None.
         """
-        self._validate_no_tail_characters(child)
+        XMLUtils.validate_no_tail_characters(self.transcriber, child)
         if not self._should_ignore(child):
             if child.tag == NewDumbXml.COMMENT:
                 self._handle_comment(child)
@@ -97,10 +97,14 @@ class AndroidHandler(Handler):
                 if child.tag == self.STRING:
                     return self._handle_string(child)
                 elif child.tag == self.STRING_ARRAY:
-                    self._validate_no_text_characters(child)
+                    XMLUtils.validate_no_text_characters(
+                        self.transcriber, child
+                    )
                     return self._handle_string_array(child)
                 elif child.tag == self.STRING_PLURAL:
-                    self._validate_no_text_characters(child)
+                    XMLUtils.validate_no_text_characters(
+                        self.transcriber, child
+                    )
                     return self._handle_string_plural(child)
         else:
             self.current_comment = u""
@@ -191,7 +195,7 @@ class AndroidHandler(Handler):
         name, product = self._get_child_attributes(child)
         # Itterate through the children with the item tag.
         for index, item_tag in enumerate(item_itterator):
-            self._validate_no_tail_characters(item_tag)
+            XMLUtils.validate_no_tail_characters(self.transcriber, item_tag)
             child_name = u"{}[{}]".format(name, index)
             string = self._create_string(
                 child_name,
@@ -257,7 +261,12 @@ class AndroidHandler(Handler):
                         u"Duplicate `name` ({name}) and `product` ({product}) "
                         u"attributes found on line {line_number}"
                     )
-                self._raise_error(child, msg, context=format_dict)
+                XMLUtils.raise_error(
+                    self.transcriber,
+                    child,
+                    msg,
+                    context=format_dict
+                )
             self.existing_hashes.add(string.string_hash)
             return string
         return None
@@ -274,17 +283,24 @@ class AndroidHandler(Handler):
                 u"Wrong tag type found on line {line_number}. Was "
                 u"expecting <item> but found <{wrong_tag}>"
             )
-            self._raise_error(
-                item_tag, msg, context={'wrong_tag': item_tag.tag}
+            XMLUtils.raise_error(
+                self.transcriber,
+                item_tag,
+                msg,
+                context={'wrong_tag': item_tag.tag}
             )
 
-        self._validate_no_tail_characters(item_tag)
+        XMLUtils.validate_no_tail_characters(self.transcriber, item_tag)
 
         rule = item_tag.attrib.get('quantity')
         if rule is None:
             # If quantity is missing, the plural is unknown
             msg = u"Missing the `quantity` attribute on line {line_number}"
-            self._raise_error(item_tag, msg)
+            XMLUtils.raise_error(
+                self.transcriber,
+                item_tag,
+                msg
+            )
         try:
             rule_number = self.get_rule_number(rule)
         except RuleError:
@@ -292,7 +308,12 @@ class AndroidHandler(Handler):
                 u"The `quantity` attribute on line {line_number} contains "
                 u"an invalid plural: `{rule}`"
             )
-            self._raise_error(item_tag, msg, context={'rule': rule})
+            XMLUtils.raise_error(
+                self.transcriber,
+                item_tag,
+                msg,
+                context={'rule': rule}
+            )
         return rule_number
 
     def _get_child_attributes(self, child):
@@ -305,45 +326,14 @@ class AndroidHandler(Handler):
         name = child.attrib.get('name')
         if name is None:
             msg = u'Missing the `name` attribute on line {line_number}'
-            self._raise_error(child, msg)
+            XMLUtils.raise_error(
+                self.transcriber,
+                child,
+                msg
+            )
         name = name.replace('\\', '\\\\').replace('[', '\\[')
         product = child.attrib.get('product', '')
         return name, product
-
-    def _validate_no_tail_characters(self, child):
-        if child.tail.strip() != "":
-            # Check for tail characters
-            self.transcriber.copy_until(child.tail_position)
-            msg = (u"Found trailing characters after '{tag}' tag on line "
-                   u"{line_number}")
-            tag = child.tag
-            if tag == NewDumbXml.COMMENT:
-                tag = u"comment"
-            self._raise_error(
-                child,
-                msg,
-                context={'tag': tag,
-                         'line_number': self.transcriber.line_number}
-            )
-
-    def _validate_no_text_characters(self, child):
-        if child.text and child.text.strip() != "":
-            # Check for text characters
-            self.transcriber.copy_until(child.text_position)
-            msg = (u"Found leading characters inside '{tag}' tag on line "
-                   u"{line_number}")
-            self._raise_error(
-                child, msg,
-                context={'tag': child.tag,
-                         'line_number': self.transcriber.line_number}
-            )
-
-    def _raise_error(self, child, message, context=None):
-        context = context or {}
-        if 'line_number' not in context:
-            self.transcriber.copy_until(child.position)
-            context['line_number'] = self.transcriber.line_number
-        raise ParseError(message.format(**context))
 
     """ Compile Methods """
 

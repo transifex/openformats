@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import itertools
 
-from ..utils.xmlutils import XMLUtils
-from ..exceptions import ParseError
 from ..handlers import Handler
 from ..strings import OpenString
-from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
+from ..utils.xml import NewDumbXml
 from ..exceptions import RuleError
-
 from ..transcribers import Transcriber
+from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
 
 class StringsDictHandler(Handler):
@@ -50,6 +48,7 @@ class StringsDictHandler(Handler):
 
     """ Parse Methods """
 
+    @reraise_syntax_as_parse_errors
     def parse(self, content):
         self.transcriber = Transcriber(content)
         self.order_counter = itertools.count()
@@ -57,23 +56,19 @@ class StringsDictHandler(Handler):
         # Skip xml info declaration
         resources_tag_position = source.index(self.PARSE_START)
 
-        try:
-            parsed = NewDumbXml(source, resources_tag_position)
-            XMLUtils.validate_no_text_characters(self.transcriber, parsed)
-            XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
-            dict_iterator = parsed.find_children()
-            stringset = []
-            self.main_keys = set()
-            self.existing_hashes = set()
+        parsed = NewDumbXml(source, resources_tag_position)
+        XMLUtils.validate_no_text_characters(self.transcriber, parsed)
+        XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
+        dict_iterator = parsed.find_children()
+        stringset = []
+        self.main_keys = set()
+        self.existing_hashes = set()
 
-            for key_tag in dict_iterator:
-                dict_child = self._get_key_value(dict_iterator)
-                stringset.extend(
-                    self._handle_child_pairs(key_tag, dict_child)
-                )
-
-        except DumbXmlSyntaxError, e:
-            raise ParseError(unicode(e))
+        for key_tag in dict_iterator:
+            dict_child = self._get_key_value(dict_iterator, key_tag)
+            stringset.extend(
+                self._handle_child_pairs(key_tag, dict_child)
+            )
 
         # Finish copying and create template
         self.transcriber.copy_until(len(source))
@@ -97,7 +92,7 @@ class StringsDictHandler(Handler):
         for key_child in dict_iterator:
             # The second key contains the secondary key.
             secondary_key = self._handle_key(key_child)
-            value_tag = self._get_key_value(dict_iterator)
+            value_tag = self._get_key_value(dict_iterator, key_child)
             if secondary_key == self.KEY_FORMAT:
                 # If the key is the one of the stringsdict defaults skip it
                 continue
@@ -125,7 +120,7 @@ class StringsDictHandler(Handler):
         strings_dict = {}
         for key_tag in dict_iterator:
             key_content = self._handle_key(key_tag)
-            value_tag = self._get_key_value(dict_iterator)
+            value_tag = self._get_key_value(dict_iterator, key_tag)
 
             if key_content in [self.KEY_SPEC, self.KEY_VALUE]:
                 # If key in stringsdict's default keys skip it
@@ -135,7 +130,7 @@ class StringsDictHandler(Handler):
             # Get rule number from the key content
             rule_number = self._validate_plural(key_content, key_tag)
             strings_dict[rule_number] = value_tag.content
-            self.transcriber.skip_until(value_tag.tail_position)
+            # self.transcriber.skip_until(value_tag.tail_position)
 
         openstring = self._create_string(
             main_key,
@@ -235,11 +230,15 @@ class StringsDictHandler(Handler):
         key_content = key_tag.content
         if main_key:
             if key_content in self.main_keys:
-                message = u"Duplicate main key found on line {line_number}"
+                message = (
+                    u"Duplicate main key ({main_key}) "
+                    u"found on line {line_number}"
+                )
                 XMLUtils.raise_error(
                     self.transcriber,
                     key_tag,
-                    message
+                    message,
+                    context={'main_key': key_content}
                 )
             self.main_keys.add(key_content)
 
@@ -298,7 +297,7 @@ class StringsDictHandler(Handler):
         self.transcriber.copy_until(dict_tag.position)
         key_value_iterator = dict_tag.find_children()
         for key_tag in key_value_iterator:
-            value_tag = self._get_key_value(key_value_iterator)
+            value_tag = self._get_key_value(key_value_iterator, key_tag)
             if value_tag.tag == self.DICT:
                 # If child dict is found find the placeholders
                 placeholder_iterator = value_tag.find_children(
@@ -306,7 +305,8 @@ class StringsDictHandler(Handler):
                 )
                 for placeholder_key in placeholder_iterator:
                     placeholder_value = self._get_key_value(
-                        placeholder_iterator
+                        placeholder_iterator,
+                        placeholder_key
                     )
                     should_compile = (
                         XMLUtils.should_compile(
@@ -365,8 +365,7 @@ class StringsDictHandler(Handler):
 
     """ Util methods """
 
-    @staticmethod
-    def _get_key_value(iterator):
+    def _get_key_value(self, iterator, key_tag):
         """Gets the value of the current <key> tag.
 
         :param iterator: The iterator that contains <key> tag's value.
@@ -374,5 +373,13 @@ class StringsDictHandler(Handler):
         try:
             value_tag = iterator.next()
         except StopIteration:
-            raise ParseError()
+            message = (
+                u"Did not find a value for the <key> tag on "
+                u"line {line_number}"
+            )
+            XMLUtils.raise_error(
+                self.transcriber,
+                key_tag,
+                message,
+            )
         return value_tag

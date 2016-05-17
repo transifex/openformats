@@ -1,9 +1,20 @@
 from ..handlers import Handler
-from ..utils.xml import NewDumbXml
 from ..exceptions import ParseError
+from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
+
+
+def reraise_syntax_as_parse_errors(func):
+    def safe_parse(*args, **kwargs):
+        try:
+            template, stringset = func(*args, **kwargs)
+        except DumbXmlSyntaxError as e:
+            raise ParseError(unicode(e))
+        return template, stringset
+    return safe_parse
 
 
 class XMLUtils(object):
+    """Contains utility methods for parsing/compiling xml based files."""
 
     @staticmethod
     def raise_error(transcriber, tag, message, context=None):
@@ -23,7 +34,7 @@ class XMLUtils(object):
 
     @staticmethod
     def should_compile(tag, openstring):
-        """Checks if the current child should be compiled.
+        """Checks if the current tag should be compiled.
 
         :param tag: The tag to check if it should be compiled.
         :returns: True if the tag should be compiled else False.
@@ -97,13 +108,14 @@ class XMLUtils(object):
             transcriber.copy_until(tag.tail_position)
             msg = (u"Found trailing characters after <{tag}> tag on line "
                    u"{line_number}")
-            tag = tag.tag
-            if tag == NewDumbXml.COMMENT:
-                tag = u"comment"
+            tag_name = tag.tag
+            if tag_name == NewDumbXml.COMMENT:
+                tag_name = u"comment"
             XMLUtils.raise_error(
+                transcriber,
                 tag,
                 msg,
-                context={'tag': tag,
+                context={'tag': tag_name,
                          'line_number': transcriber.line_number}
             )
 
@@ -115,13 +127,15 @@ class XMLUtils(object):
         :param tag: The xml tag to be validated.
         :raises: ParseError if extra text characters are found.
         """
-        if tag.text.strip() != "":
+        if tag.text and tag.text.strip() != "":
             # Check for text characters
             transcriber.copy_until(tag.text_position)
             msg = (u"Found leading characters inside <{tag}> tag on line "
                    u"{line_number}")
             XMLUtils.raise_error(
-                tag, msg,
+                transcriber,
+                tag,
+                msg,
                 context={'tag': tag.tag,
                          'line_number': transcriber.line_number}
             )

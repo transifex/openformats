@@ -403,7 +403,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     </plurals>
                 </resources>
             ''',
-            u"Found trailing characters after 'item' tag on line 4"
+            u"Found trailing characters after <item> tag on line 4"
         )
 
     def test_duplicate_names(self):
@@ -593,7 +593,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_parser_doesnt_like_text_where_it_shouldnt_be(self):
         self._test_parse_error(
             u'<resources>hello<string name="a">world</string></resources>',
-            u"Found leading characters inside 'resources' tag on line 1"
+            u"Found leading characters inside <resources> tag on line 1"
         )
 
     def test_strings_from_plurals_are_always_pluralized(self):

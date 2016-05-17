@@ -133,7 +133,106 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
             """.format(**context_dict))
         )
 
+    def test_ignores_normal_string_placeholders(self):
+        source = strip_leading_spaces(u"""
+            <plist>
+            <dict>
+                <key>a_main_key</key>
+                <dict>
+                    <key>NSStringLocalizedFormatKey</key>
+                    <string>%1$#@a_var@</string>
+                    <key>a_secondary_key</key>
+                    <dict>
+                        <key>NSStringFormatSpecTypeKey</key>
+                        <string>NSStringPluralRuleType</string>
+                        <key>NSStringFormatValueTypeKey</key>
+                        <string>d</string>
+                        <key>one</key>
+                        <string></string>
+                        <key>other</key>
+                        <string></string>
+                    </dict>
+                </dict>
+            </dict>
+            </plist>
+        """)
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(template, source)
+        compiled = self.handler.compile(template, [])
+        self.assertEquals(compiled, source)
+
+    def test_ignores_closed_string_placeholders(self):
+        source = strip_leading_spaces(u"""
+            <plist>
+            <dict>
+                <key>a_main_key</key>
+                <dict>
+                    <key>NSStringLocalizedFormatKey</key>
+                    <string>%1$#@a_var@</string>
+                    <key>a_secondary_key</key>
+                    <dict>
+                        <key>NSStringFormatSpecTypeKey</key>
+                        <string>NSStringPluralRuleType</string>
+                        <key>NSStringFormatValueTypeKey</key>
+                        <string>d</string>
+                        <key>one</key>
+                        <string/>
+                        <key>other</key>
+                        <string/>
+                    </dict>
+                </dict>
+            </dict>
+            </plist>
+        """)
+        template, stringset = self.handler.parse(source)
+        self.assertEquals(template, source)
+        compiled = self.handler.compile(template, [])
+        self.assertEquals(compiled, source)
+
     """ Test Error Raises """
+
+    def test_no_value_for_key(self):
+        self._test_parse_error(
+            u"""
+                <plist>
+                <dict>
+                    <key>main_key</key>
+                </dict>
+                </plist>
+            """,
+            u"Did not find a value for the <key> tag on line 4"
+        )
+
+    def test_duplicate_main_key(self):
+        self._test_parse_error(
+            u"""
+                <plist>
+                <dict>
+                    <key>main_key</key>
+                    <dict>
+                        <key>secondary_key</key>
+                        <dict>
+                            <key>one</key>
+                            <string>singular</string>
+                            <key>other</key>
+                            <string>plural</string>
+                        </dict>
+                    </dict>
+                    <key>main_key</key>
+                    <dict>
+                        <key>other_key</key>
+                        <dict>
+                            <key>one</key>
+                            <string>singular</string>
+                            <key>other</key>
+                            <string>plural</string>
+                        </dict>
+                    </dict>
+                </dict>
+                </plist>
+            """,
+            u"Duplicate main key (main_key) found on line 14"
+        )
 
     def test_no_dict_when_expected(self):
         self._test_parse_error(
