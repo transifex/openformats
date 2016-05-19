@@ -23,6 +23,8 @@
                 <string>NSStringPluralRuleType</string>
                 <key>NSStringFormatValueTypeKey</key>
                 <string>d</string>
+                <key>one</key>
+                <string>el:%d other</string>
                 <key>other</key>
                 <string>el:%d others</string>
             </dict>
