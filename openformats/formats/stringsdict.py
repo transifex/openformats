@@ -54,9 +54,9 @@ class StringsDictHandler(Handler):
         self.order_counter = itertools.count()
         source = self.transcriber.source
         # Skip xml info declaration
-        resources_tag_position = source.index(self.PARSE_START)
+        dict_tag_position = source.index(self.PARSE_START)
 
-        parsed = NewDumbXml(source, resources_tag_position)
+        parsed = NewDumbXml(source, dict_tag_position)
         XMLUtils.validate_no_text_characters(self.transcriber, parsed)
         XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
         dict_iterator = parsed.find_children()
@@ -153,15 +153,15 @@ class StringsDictHandler(Handler):
         )
 
         if openstring is not None:
-            self.transcriber.add(
-                key_tag.tail +
-                self.PLACEHOLDER_KEY +
-                key_tag.tail +
+            self.transcriber.add(u''.join([
+                key_tag.tail,
+                self.PLACEHOLDER_KEY,
+                key_tag.tail,
                 self.PLACEHOLDER_STRING.format(
                     openstring.template_replacement
-                )
-                + value_tag.tail
-            )
+                ),
+                value_tag.tail
+            ]))
         self.transcriber.copy_until(dict_tag.end)
         return openstring
 
@@ -372,16 +372,16 @@ class StringsDictHandler(Handler):
         string_list = self.next_string.string.items()
         last_index = len(string_list) - 1
         for i, (rule, string) in enumerate(string_list):
-            self.transcriber.add(
+            self.transcriber.add(u''.join([
                 self.KEY_TEMPLATE.format(
                     rule_string=self.get_rule_string(rule)
-                ) +
-                placeholder_key.tail +
+                ),
+                placeholder_key.tail,
                 self.STRING_TEMPLATE.format(
                     plural_string=string
-                ) +
+                ),
                 (placeholder_key.tail if i != last_index else '')
-            )
+            ]))
         self.next_string = self._get_next_string()
 
     def _get_next_string(self):
