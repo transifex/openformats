@@ -79,8 +79,8 @@ class XMLUtils(object):
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
                 msg = (
-                    u'Missing string(s) in <item> tag(s) in the <plural> tag '
-                    u'on line {line_number}'
+                    u'Missing string(s) in <{child_tag}> tag(s) in the '
+                    u'<{main_tag}> tag on line {line_number}'
                 )
                 XMLUtils.raise_error(
                     transcriber,

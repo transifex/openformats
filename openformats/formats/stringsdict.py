@@ -116,11 +116,12 @@ class StringsDictHandler(Handler):
                                 context.
         """
         dict_iterator = self._handle_dict(dict_tag)
-        self.transcriber.copy_until(
-            dict_tag.text_position
-        )
+        self.transcriber.copy_until(dict_tag.position)
         line_number = self.transcriber.line_number
-        self.transcriber.copy(len(dict_tag.text))
+        if dict_tag.text is not None:
+            self.transcriber.copy_until(
+                dict_tag.text_position + len(dict_tag.text)
+            )
 
         strings_dict = {}
         for key_tag in dict_iterator:
@@ -177,7 +178,11 @@ class StringsDictHandler(Handler):
             self.transcriber,
             strings_dict,
             tag,
-            error_context={'line_number': line_number}
+            error_context={
+                'line_number': line_number,
+                'child_tag': 'string',
+                'main_tag': tag.tag
+            }
         )
         if string_not_empty:
             openstring = OpenString(
@@ -304,8 +309,11 @@ class StringsDictHandler(Handler):
         If no translations are found for a child's placeholders
         the whole child dict is ommited.
         """
-        self.transcriber.copy_until(dict_tag.text_position)
-        self.transcriber.copy(len(dict_tag.text))
+
+        if dict_tag.text is not None:
+            self.transcriber.copy_until(
+                dict_tag.text_position + len(dict_tag.text)
+            )
 
         key_value_iterator = dict_tag.find_children()
         for key_tag in key_value_iterator:

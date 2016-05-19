@@ -97,6 +97,33 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = strip_leading_spaces(u"""
             <plist>
             <dict>
+                <key>main_key</key>
+                <dict>
+                    <key>NSStringLocalizedFormatKey</key>
+                    <string>%1$#@a_var@</string>
+                    <key>secondary_key_1</key>
+                    <dict>
+                        <key>NSStringFormatSpecTypeKey</key>
+                        <string>NSStringPluralRuleType</string>
+                        <key>NSStringFormatValueTypeKey</key>
+                        <string>d</string>
+                        <key>one</key>
+                        <string>removed_one_1</string>
+                        <key>other</key>
+                        <string>removed_other_1</string>
+                    </dict>
+                    <key>secondary_key_2</key>
+                    <dict>
+                        <key>NSStringFormatSpecTypeKey</key>
+                        <string>NSStringPluralRuleType</string>
+                        <key>NSStringFormatValueTypeKey</key>
+                        <string>d</string>
+                        <key>one</key>
+                        <string>removed_one_2</string>
+                        <key>other</key>
+                        <string>removed_other_2</string>
+                    </dict>
+                </dict>
                 <key>{main_key}</key>
                 <dict>
                     <key>NSStringLocalizedFormatKey</key>
@@ -117,16 +144,32 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
             </plist>
         """.format(**context_dict))
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [])
+        compiled = self.handler.compile(template, [openstring])
         self.assertEquals(
             compiled,
             strip_leading_spaces(u"""
                 <plist>
                 <dict>
+                    <key>main_key</key>
+                    <dict>
+                        <key>NSStringLocalizedFormatKey</key>
+                        <string>%1$#@a_var@</string>
+                    </dict>
                     <key>{main_key}</key>
                     <dict>
                         <key>NSStringLocalizedFormatKey</key>
                         <string>%1$#@a_var@</string>
+                        <key>{secondary_key}</key>
+                        <dict>
+                            <key>NSStringFormatSpecTypeKey</key>
+                            <string>NSStringPluralRuleType</string>
+                            <key>NSStringFormatValueTypeKey</key>
+                            <string>d</string>
+                            <key>one</key>
+                            <string>{singular}</string>
+                            <key>other</key>
+                            <string>{plural}</string>
+                        </dict>
                     </dict>
                 </dict>
                 </plist>
@@ -190,6 +233,27 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(compiled, source)
 
     """ Test Error Raises """
+
+    def test_missing_plural_string(self):
+        self._test_parse_error(
+            u"""
+                <plist>
+                <dict>
+                    <key>main_key</key>
+                    <dict>
+                        <key>secondary_key</key>
+                        <dict>
+                            <key>one</key>
+                            <string>singular</string>
+                            <key>other</key>
+                            <string></string>
+                        </dict>
+                    </dict>
+                </dict>
+                </plist>
+            """,
+            u'Missing string(s) in <string> tag(s) in the <dict> tag on line 7'
+        )
 
     def test_no_value_for_key(self):
         self._test_parse_error(

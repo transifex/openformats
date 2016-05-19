@@ -237,7 +237,15 @@ class AndroidHandler(Handler):
         :returns: Returns an OpenString object if the text is not empty
                   else None.
         """
-        if XMLUtils.validate_not_empty_string(self.transcriber, text, child):
+        if XMLUtils.validate_not_empty_string(
+            self.transcriber,
+            text,
+            child,
+            error_context={
+                'main_tag': 'plural',
+                'child_tag': 'item'
+            }
+        ):
             # Create OpenString
             string = OpenString(
                 name,
