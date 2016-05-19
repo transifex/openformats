@@ -19,7 +19,7 @@ class StringsDictHandler(Handler):
     """
 
     name = "STRINGSDICT"
-    extension = "xml"
+    extension = "stringsdict"
 
     EXTRACTS_RAW = False
 
