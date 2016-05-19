@@ -82,6 +82,7 @@ class Transcriber(object):
             self.source = self.source.replace('\r\n', '\n')
 
     def copy(self, offset):
+        self._validate_int_type(offset)
         chunk = self.source[self.ptr:self.ptr + offset]
         self.destination.append(chunk)
         self.ptr += offset
@@ -89,6 +90,7 @@ class Transcriber(object):
         self.newline_count += chunk.count('\n')
 
     def copy_until(self, end):
+        self._validate_int_type(end)
         chunk = self.source[self.ptr:end]
         self.destination.append(chunk)
         self.ptr = end
@@ -99,12 +101,14 @@ class Transcriber(object):
         self.destination.append(text)
 
     def skip(self, offset):
+        self._validate_int_type(offset)
         chunk = self.source[self.ptr:self.ptr + offset]
         self.newline_count += chunk.count('\n')
 
         self.ptr += offset
 
     def skip_until(self, end):
+        self._validate_int_type(end)
         chunk = self.source[self.ptr:end]
         self.newline_count += chunk.count('\n')
 
@@ -268,3 +272,10 @@ class Transcriber(object):
             return chunk.replace('\n', '\r\n')
         else:
             return chunk
+
+    def _validate_int_type(integer):
+        if not isinstance(integer, int):
+            message = "Was expecting `int` type but got `{type}` type.".format(
+                type=type(integer)
+            )
+            raise TypeError(message)
