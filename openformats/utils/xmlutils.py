@@ -46,7 +46,7 @@ class XMLUtils(object):
         )
 
     @staticmethod
-    def validate_not_empty_string(transcriber, text, tag):
+    def validate_not_empty_string(transcriber, text, tag, error_context=None):
         """Validates that a string is not empty.
 
         :param transcriber: The transcriber that contains the template so far.
@@ -58,15 +58,18 @@ class XMLUtils(object):
                  are complete.
         :returns: True if the string is not empty else False.
         """
+        error_context = error_context or {}
         # If dict then it's pluralized
         if isinstance(text, dict):
             if len(text) == 0:
+                context = {'tag': tag.tag}
+                context.update(error_context)
                 msg = u"No plurals found in <{tag}> tag on line {line_number}"
                 XMLUtils.raise_error(
                     transcriber,
                     tag,
                     msg,
-                    context={'tag': tag.tag}
+                    context=context
                 )
 
             # Find the plurals that have empty string
@@ -79,7 +82,12 @@ class XMLUtils(object):
                     u'Missing string(s) in <item> tag(s) in the <plural> tag '
                     u'on line {line_number}'
                 )
-                XMLUtils.raise_error(transcriber, tag, msg)
+                XMLUtils.raise_error(
+                    transcriber,
+                    tag,
+                    msg,
+                    context=error_context
+                )
             elif "" in text_value_set:
                 # All plurals are empty so skip `plurals` tag
                 return False
@@ -90,7 +98,12 @@ class XMLUtils(object):
                     u"Quantity 'other' is missing from <plurals> tag "
                     u"on line {line_number}"
                 )
-                XMLUtils.raise_error(transcriber, tag, msg)
+                XMLUtils.raise_error(
+                    transcriber,
+                    tag,
+                    msg,
+                    context=error_context
+                )
         elif not text or text.strip() == "":
             return False
         return True

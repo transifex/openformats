@@ -116,6 +116,11 @@ class StringsDictHandler(Handler):
                                 context.
         """
         dict_iterator = self._handle_dict(dict_tag)
+        self.transcriber.copy_until(
+            dict_tag.text_position
+        )
+        line_number = self.transcriber.line_number
+        self.transcriber.copy(len(dict_tag.text))
 
         strings_dict = {}
         for key_tag in dict_iterator:
@@ -123,25 +128,30 @@ class StringsDictHandler(Handler):
             value_tag = self._get_key_value(dict_iterator, key_tag)
 
             if key_content in [self.KEY_SPEC, self.KEY_VALUE]:
-                # If key in stringsdict's default keys skip it
                 self.transcriber.copy_until(value_tag.tail_position)
                 continue
 
             # Get rule number from the key content
             rule_number = self._validate_plural(key_content, key_tag)
             strings_dict[rule_number] = value_tag.content
-            # self.transcriber.skip_until(value_tag.tail_position)
+
+            # If empty <string> tag keep it. It is either a placeholder which
+            # should be kept or it is missing plurals and we will raise a
+            # ParseError on self._create_string.
+            if value_tag.content and value_tag.content.strip() != "":
+                self.transcriber.skip_until(value_tag.end)
+            else:
+                self.transcriber.copy_until(value_tag.tail_position)
 
         openstring = self._create_string(
             main_key,
             strings_dict,
             secondary_key,
-            dict_tag
+            dict_tag,
+            line_number
         )
 
         if openstring is not None:
-            # In case we ended with an ignored key
-            self.transcriber.skip_until(value_tag.end)
             self.transcriber.add(
                 key_tag.tail +
                 self.PLACEHOLDER_KEY +
@@ -151,12 +161,11 @@ class StringsDictHandler(Handler):
                 )
                 + value_tag.tail
             )
-        else:
-            # If no strings exist in <dict> tag assume placeholder and continue
-            self.transcriber.copy_until(value_tag.end)
+        self.transcriber.copy_until(dict_tag.end)
         return openstring
 
-    def _create_string(self, main_key, strings_dict, secondary_key, tag):
+    def _create_string(self, main_key, strings_dict, secondary_key, tag,
+                       line_number):
         """Validates and creates an OpenString.
 
         :main_key: The name of the OpenString.
@@ -167,7 +176,8 @@ class StringsDictHandler(Handler):
         string_not_empty = XMLUtils.validate_not_empty_string(
             self.transcriber,
             strings_dict,
-            tag
+            tag,
+            error_context={'line_number': line_number}
         )
         if string_not_empty:
             openstring = OpenString(
@@ -267,9 +277,9 @@ class StringsDictHandler(Handler):
     """ Compile Methods """
 
     def compile(self, template, stringset):
-        resources_tag_position = template.index(self.PARSE_START)
+        dict_tag_position = template.index(self.PARSE_START)
 
-        self.transcriber = Transcriber(template[resources_tag_position:])
+        self.transcriber = Transcriber(template[dict_tag_position:])
         source = self.transcriber.source
 
         parsed = NewDumbXml(source)
@@ -281,7 +291,7 @@ class StringsDictHandler(Handler):
             self._compile_dict(dict_tag)
 
         self.transcriber.copy_until(len(source))
-        compiled = template[:resources_tag_position] +\
+        compiled = template[:dict_tag_position] +\
             self.transcriber.get_destination()
 
         return compiled
@@ -294,37 +304,55 @@ class StringsDictHandler(Handler):
         If no translations are found for a child's placeholders
         the whole child dict is ommited.
         """
-        self.transcriber.copy_until(dict_tag.position)
+        self.transcriber.copy_until(dict_tag.text_position)
+        self.transcriber.copy(len(dict_tag.text))
+
         key_value_iterator = dict_tag.find_children()
         for key_tag in key_value_iterator:
             value_tag = self._get_key_value(key_value_iterator, key_tag)
             if value_tag.tag == self.DICT:
-                # If child dict is found find the placeholders
-                placeholder_iterator = value_tag.find_children(
+                placeholder_list = list(value_tag.find_children(
                     self.PLACEHOLDER_KEY_TAG, self.PLACEHOLDER_STRING_TAG
+                ))
+                should_compile = (
+                    len(placeholder_list) and
+                    XMLUtils.should_compile(
+                        placeholder_list[-1],
+                        self.next_string)
                 )
-                for placeholder_key in placeholder_iterator:
-                    placeholder_value = self._get_key_value(
-                        placeholder_iterator,
-                        placeholder_key
+                if should_compile:
+                    placeholder_iterator = value_tag.find_children(
+                        self.PLACEHOLDER_KEY_TAG, self.PLACEHOLDER_STRING_TAG
                     )
-                    should_compile = (
-                        XMLUtils.should_compile(
-                            placeholder_value,
-                            self.next_string)
-                    )
-                    if should_compile:
-                        # If we have translation for the placeholder compile it
+                    for placeholder_key in placeholder_iterator:
+                        placeholder_value = self._get_key_value(
+                            placeholder_iterator,
+                            placeholder_key
+                        )
+                        # Copy until the placeholder_key
+                        self.transcriber.copy_until(placeholder_key.position)
+                        # Compile translation
                         self._compile_plural_string(
                             placeholder_key, placeholder_value
                         )
-                        self.transcriber.copy_until(value_tag.tail_position)
+                        # Skip placeholder_key and placeholder_value
+                        self.transcriber.skip_until(
+                            placeholder_value.tail_position
+                        )
+                        # Copy the end to keep formating
+                        self.transcriber.copy_until(
+                            value_tag.tail_position
+                        )
+
+                else:
+                    if len(placeholder_list):
+                        self.transcriber.skip_until(value_tag.tail_position)
                     else:
-                        # Else skip the dict tag
-                        self.transcriber.skip_until(value_tag.end)
+                        self.transcriber.copy_until(value_tag.end)
             else:
                 # Else copy until the end of the value tag
-                self.transcriber.copy_until(value_tag.end)
+                self.transcriber.copy_until(value_tag.tail_position)
+        self.transcriber.copy_until(dict_tag.end)
 
     def _compile_plural_string(self, placeholder_key, placeholder_value):
         """Replaces the placeholder tags with the translation strings.
@@ -333,7 +361,6 @@ class StringsDictHandler(Handler):
         :param placeholder_value: The placeholder value tag.
         :NOTE: Assigns the self property `next_string` to the next OpenString.
         """
-        self.transcriber.copy_until(placeholder_key.position)
         string_list = self.next_string.string.items()
         last_index = len(string_list) - 1
         for i, (rule, string) in enumerate(string_list):
@@ -347,8 +374,6 @@ class StringsDictHandler(Handler):
                 ) +
                 (placeholder_key.tail if i != last_index else '')
             )
-
-        self.transcriber.skip_until(placeholder_value.tail_position)
         self.next_string = self._get_next_string()
 
     def _get_next_string(self):
