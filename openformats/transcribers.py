@@ -273,6 +273,7 @@ class Transcriber(object):
         else:
             return chunk
 
+    @staticmethod
     def _validate_int_type(integer):
         if not isinstance(integer, int):
             message = "Was expecting `int` type but got `{type}` type.".format(
