@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import itertools
+from xml.sax import saxutils
 
 from ..handlers import Handler
 from ..strings import OpenString
@@ -416,3 +417,11 @@ class StringsDictHandler(Handler):
                 message,
             )
         return value_tag
+
+    @staticmethod
+    def escape(string):
+        return saxutils.escape(string)
+
+    @staticmethod
+    def unescape(string):
+            return saxutils.unescape(string)
