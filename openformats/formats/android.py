@@ -346,12 +346,11 @@ class AndroidHandler(Handler):
     """ Compile Methods """
 
     def compile(self, template, stringset):
-        resources_tag_position = template.index(self.PARSE_START)
-
-        self.transcriber = Transcriber(template[resources_tag_position:])
+        self.transcriber = Transcriber(template)
         source = self.transcriber.source
+        resources_tag_position = template.index(self.PARSE_START)
+        parsed = NewDumbXml(source, resources_tag_position)
 
-        parsed = NewDumbXml(source)
         # This is needed in case the first tag is skipped to retain
         # the file's formating
         first_tag_position = parsed.text_position + len(parsed.text)
@@ -369,8 +368,7 @@ class AndroidHandler(Handler):
             self._compile_child(child)
 
         self.transcriber.copy_until(len(source))
-        compiled = template[:resources_tag_position] +\
-            self.transcriber.get_destination()
+        compiled = self.transcriber.get_destination()
 
         return compiled
 

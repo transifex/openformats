@@ -283,12 +283,10 @@ class StringsDictHandler(Handler):
     """ Compile Methods """
 
     def compile(self, template, stringset):
-        dict_tag_position = template.index(self.PARSE_START)
-
-        self.transcriber = Transcriber(template[dict_tag_position:])
+        self.transcriber = Transcriber(template)
         source = self.transcriber.source
-
-        parsed = NewDumbXml(source)
+        dict_tag_position = template.index(self.PARSE_START)
+        parsed = NewDumbXml(source, dict_tag_position)
         dict_iterator = parsed.find_children(self.DICT)
 
         self.stringset = iter(stringset)
@@ -297,8 +295,7 @@ class StringsDictHandler(Handler):
             self._compile_dict(dict_tag)
 
         self.transcriber.copy_until(len(source))
-        compiled = template[:dict_tag_position] +\
-            self.transcriber.get_destination()
+        compiled = self.transcriber.get_destination()
 
         return compiled
 
@@ -370,9 +367,13 @@ class StringsDictHandler(Handler):
         :param placeholder_value: The placeholder value tag.
         :NOTE: Assigns the self property `next_string` to the next OpenString.
         """
-        string_list = self.next_string.string.items()
-        last_index = len(string_list) - 1
-        for i, (rule, string) in enumerate(string_list):
+        sotrted_string_list = sorted(
+            self.next_string.string.items(),
+            key=lambda x: x[0]
+        )
+
+        last_index = len(sotrted_string_list) - 1
+        for i, (rule, string) in enumerate(sotrted_string_list):
             self.transcriber.add(u''.join([
                 self.KEY_TEMPLATE.format(
                     rule_string=self.get_rule_string(rule)
