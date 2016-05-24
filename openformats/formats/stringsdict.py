@@ -371,10 +371,9 @@ class StringsDictHandler(Handler):
             self.next_string.string.items(),
             key=lambda x: x[0]
         )
-
-        last_index = len(sotrted_string_list) - 1
-        for i, (rule, string) in enumerate(sotrted_string_list):
-            self.transcriber.add(u''.join([
+        compiled_string_list = []
+        for rule, string in sotrted_string_list[:-1]:
+            compiled_string_list.extend([
                 self.KEY_TEMPLATE.format(
                     rule_string=self.get_rule_string(rule)
                 ),
@@ -382,8 +381,21 @@ class StringsDictHandler(Handler):
                 self.STRING_TEMPLATE.format(
                     plural_string=string
                 ),
-                (placeholder_key.tail if i != last_index else '')
-            ]))
+                placeholder_key.tail
+            ])
+
+        rule, string = sotrted_string_list[-1]
+        compiled_string_list.append([
+            self.KEY_TEMPLATE.format(
+                rule_string=self.get_rule_string(rule)
+            ),
+            placeholder_key.tail,
+            self.STRING_TEMPLATE.format(
+                plural_string=string
+            )
+        ])
+
+        self.transcriber.add(u''.join(compiled_string_list))
         self.next_string = self._get_next_string()
 
     def _get_next_string(self):
