@@ -134,7 +134,6 @@ class ApiView(HandlerMixin, View):
             key = string_json.pop('key')
             strings = {int(key): value
                        for key, value in string_json.pop('strings').items()}
-            del string_json['pluralized']
             del string_json['template_replacement']
             stringset.append(OpenString(key, strings, **string_json))
 
