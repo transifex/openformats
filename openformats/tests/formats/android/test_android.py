@@ -204,7 +204,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_empty_plural_raises_error(self):
         self._test_parse_error(
             '<resources><plurals name="a"></plurals></resources>',
-            u"Empty <plurals> tag on line 1"
+            u"No plurals found in <plurals> tag on line 1"
         )
 
     def test_empty_plural_item_raises_error(self):
@@ -403,7 +403,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     </plurals>
                 </resources>
             ''',
-            u"Found trailing characters after 'item' tag on line 4"
+            u"Found trailing characters after <item> tag on line 4"
         )
 
     def test_duplicate_names(self):
@@ -593,7 +593,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_parser_doesnt_like_text_where_it_shouldnt_be(self):
         self._test_parse_error(
             u'<resources>hello<string name="a">world</string></resources>',
-            u"Found leading characters inside 'resources' tag on line 1"
+            u"Found leading characters inside <resources> tag on line 1"
         )
 
     def test_strings_from_plurals_are_always_pluralized(self):
@@ -670,5 +670,5 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_single_plural_raises(self):
         self._test_parse_error(
             u'<resources><plurals name="a" /></resources>',
-            u'Empty <plurals> tag on line 1'
+            u'No plurals found in <plurals> tag on line 1'
         )
