@@ -385,7 +385,7 @@ class StringsDictHandler(Handler):
             ])
 
         rule, string = sotrted_string_list[-1]
-        compiled_string_list.append([
+        compiled_string_list.extend([
             self.KEY_TEMPLATE.format(
                 rule_string=self.get_rule_string(rule)
             ),
@@ -394,7 +394,6 @@ class StringsDictHandler(Handler):
                 plural_string=string
             )
         ])
-
         self.transcriber.add(u''.join(compiled_string_list))
         self.next_string = self._get_next_string()
 
