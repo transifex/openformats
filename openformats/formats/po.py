@@ -52,7 +52,7 @@ class PoHandler(Handler):
             if entry.msgstr_plural:
                 raise ParseError(entry_key)
             string = entry.msgstr
-        not_empty = self._validate_not_empty(string, pluralized)
+        not_empty = self._validate_not_empty(entry, string, pluralized)
         if not_empty:
             return entry_key, string, pluralized
         return None, None, None
@@ -67,7 +67,7 @@ class PoHandler(Handler):
         ).replace(':', '\\:')
 
         if not key:
-            raise ParseError()
+            raise ParseError(u"Found empty msgid")
 
         if plural_key:
             pluralized = True
@@ -77,7 +77,7 @@ class PoHandler(Handler):
             entry_key = key
         return entry_key, pluralized
 
-    def _validate_not_empty(self, string, pluralized):
+    def _validate_not_empty(self, entry, string, pluralized):
         if not string:
             return False
         elif pluralized:
@@ -87,7 +87,13 @@ class PoHandler(Handler):
             )
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
-                raise ParseError()
+                msg = (
+                    u"Incomplete plurals found on string with msgid {} "
+                    u"and msgid_plural {}".format(
+                        entry.msgid, entry.msgid_plural
+                    )
+                )
+                raise ParseError(msg)
             elif "" in text_value_set:
                 # All plurals are empty so skip `plurals` tag
                 return False
