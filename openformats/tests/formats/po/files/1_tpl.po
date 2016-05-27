@@ -1,10 +1,14 @@
-# 
+#
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "StringPlural1"
+msgid_plural "StringsPlural1"
+msgstr[0] "80bee2f9b16a9824c826644368ffd9ce_pl"
 
 msgid "String1"
 msgstr "51dc1dddbb3924993403c41f11f1f772_tr"
