@@ -18,6 +18,8 @@ class PoHandler(Handler):
         stringset = []
         self.order_generator = itertools.count()
         self.po = polib.pofile(content)
+        self.only_values = False
+        self.only_keys = False
         for entry in self.po:
             openstring = self._handle_entry(entry)
             if openstring is not None:
@@ -26,38 +28,41 @@ class PoHandler(Handler):
 
     def _handle_entry(self, entry):
         entry_key, string, pluralized = self._get_string_data(entry)
-        if string is not None:
-            openstring_kwargs = {'pluralized': pluralized}
-            # Check fuzziness
-            if self.FUZZY_FLAG in entry.flags:
-                # If fuzzy create flag and remove from template
-                openstring_kwargs['fuzzy'] = True
-                self.po.remove(entry)
-            else:
-                openstring_kwargs['order'] = next(self.order_generator)
-            return self._create_openstring(
-                entry, entry_key, string, openstring_kwargs
-            )
-        # If string is empty
-        self.po.remove(entry)
-        return None
+        openstring_kwargs = {'pluralized': pluralized}
+        # Check fuzziness
+        if self.FUZZY_FLAG in entry.flags:
+            # If fuzzy create flag and remove from template
+            openstring_kwargs['fuzzy'] = True
+            self.po.remove(entry)
+        else:
+            openstring_kwargs['order'] = next(self.order_generator)
+        return self._create_openstring(
+            entry, entry_key, string, openstring_kwargs
+        )
 
     def _get_string_data(self, entry):
-        entry_key, pluralized = self._get_key_and_plural(entry)
-        if pluralized:
+        key, plural_key = self._get_keys(entry)
+        if plural_key:
             if entry.msgstr.strip():
-                raise ParseError(entry_key)
-            string = entry.msgstr_plural
+                raise ParseError(
+                    u"Found msgstr on pluralized entry with msgid `{}` and "
+                    u"msgid_plural `{}`".format(key, plural_key)
+                )
+            pluralized = True
+            entry_key = ':'.join([key, plural_key])
         else:
             if entry.msgstr_plural:
-                raise ParseError(entry_key)
-            string = entry.msgstr
-        not_empty = self._validate_not_empty(entry, string, pluralized)
-        if not_empty:
-            return entry_key, string, pluralized
-        return None, None, None
+                raise ParseError(
+                    u"Found msgstr[*] on non pluralized entry with "
+                    u"msgid `{}`".format(key)
+                )
+            pluralized = False
+            entry_key = key
 
-    def _get_key_and_plural(self, entry):
+        string = self._get_string(entry, pluralized)
+        return entry_key, string, pluralized
+
+    def _get_keys(self, entry):
         # Get format keys to avoid colisions
         key = entry.msgid.strip().replace(
             '\\', '\\\\'
@@ -67,19 +72,33 @@ class PoHandler(Handler):
         ).replace(':', '\\:')
         if not key:
             raise ParseError(u"Found empty msgid")
+        return key, plural_key
 
-        if plural_key:
-            pluralized = True
-            entry_key = ':'.join([key, plural_key])
+    def _get_string(self, entry, pluralized):
+        if pluralized:
+            string = entry.msgstr_plural
         else:
-            pluralized = False
-            entry_key = key
-        return entry_key, pluralized
+            string = entry.msgstr
+
+        is_empty = self._validate_not_empty(entry, string, pluralized)
+
+        if not string or is_empty:
+            if not self.only_values:
+                self.only_keys = True
+                string = entry.msgid if pluralized else {
+                    '0': entry.msgid,
+                    '1': entry.msgid_plural
+                }
+            else:
+                raise ParseError(u"")
+        elif not self.only_keys:
+            self.only_values = True
+        else:
+            raise ParseError(u"")
+        return string
 
     def _validate_not_empty(self, entry, string, pluralized):
-        if not string:
-            return False
-        elif pluralized:
+        if pluralized:
             # Find the plurals that have empty string
             text_value_set = set(
                 value and value.strip() or "" for value in string.itervalues()
@@ -94,11 +113,10 @@ class PoHandler(Handler):
                 )
                 raise ParseError(msg)
             elif "" in text_value_set:
-                # All plurals are empty so skip `plurals` tag
-                return False
+                return True
         elif string.strip() == "":
-            return False
-        return True
+            return True
+        return False
 
     def _create_openstring(self, entry, entry_key, string, openstring_kwargs):
         openstring = OpenString(
