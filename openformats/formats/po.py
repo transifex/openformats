@@ -65,7 +65,6 @@ class PoHandler(Handler):
         plural_key = entry.msgid_plural.strip().replace(
             '\\', '\\\\'
         ).replace(':', '\\:')
-
         if not key:
             raise ParseError(u"Found empty msgid")
 
@@ -88,8 +87,8 @@ class PoHandler(Handler):
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
                 msg = (
-                    u"Incomplete plurals found on string with msgid {} "
-                    u"and msgid_plural {}".format(
+                    u"Incomplete plurals found on string with msgid `{}` "
+                    u"and msgid_plural `{}`".format(
                         entry.msgid, entry.msgid_plural
                     )
                 )
