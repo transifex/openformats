@@ -202,7 +202,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr "msgstr2"
             """,
-            u""
+            u"",
+            parse_kwargs={'is_source': True}
         )
 
         self._test_parse_error(
@@ -215,7 +216,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr "msgstr2"
             """,
-            u""
+            u"",
+            parse_kwargs={'is_source': True}
         )
 
     def test_only_values_error(self):
@@ -227,7 +229,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr ""
             """,
-            u""
+            u"",
+            parse_kwargs={'is_source': True}
         )
 
     def test_msgstr_in_plural_entry(self):
