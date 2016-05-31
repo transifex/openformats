@@ -1,3 +1,4 @@
+import copy
 import itertools
 
 import polib
@@ -14,31 +15,37 @@ class PoHandler(Handler):
     FUZZY_FLAG = 'fuzzy'
     EXTRACTS_RAW = False
 
-    def parse(self, content):
+    def parse(self, content, is_source=False):
         stringset = []
+        self.is_source = is_source
         self.order_generator = itertools.count()
-        self.po = polib.pofile(content)
+        po = polib.pofile(content)
         self.only_values = False
         self.only_keys = False
-        for entry in self.po:
+        self.new_po = copy.copy(po)
+        for entry in po:
             openstring = self._handle_entry(entry)
             if openstring is not None:
                 stringset.append(openstring)
-        return unicode(self.po), stringset
+        return unicode(self.new_po), stringset
 
     def _handle_entry(self, entry):
+        # import ipdb; ipdb.set_trace()
         entry_key, string, pluralized = self._get_string_data(entry)
-        openstring_kwargs = {'pluralized': pluralized}
-        # Check fuzziness
-        if self.FUZZY_FLAG in entry.flags:
-            # If fuzzy create flag and remove from template
-            openstring_kwargs['fuzzy'] = True
-            self.po.remove(entry)
-        else:
-            openstring_kwargs['order'] = next(self.order_generator)
-        return self._create_openstring(
-            entry, entry_key, string, openstring_kwargs
-        )
+        if string is not None:
+            openstring_kwargs = {'pluralized': pluralized}
+            # Check fuzziness
+            if self.FUZZY_FLAG in entry.flags:
+                # If fuzzy create flag and remove from template
+                openstring_kwargs['fuzzy'] = True
+                self.new_po.remove(entry)
+            else:
+                openstring_kwargs['order'] = next(self.order_generator)
+            return self._create_openstring(
+                entry, entry_key, string, openstring_kwargs
+            )
+        self.new_po.remove(entry)
+        return None
 
     def _get_string_data(self, entry):
         key, plural_key = self._get_keys(entry)
@@ -82,7 +89,9 @@ class PoHandler(Handler):
 
         is_empty = self._validate_not_empty(entry, string, pluralized)
 
-        if not string or is_empty:
+        if is_empty and not self.is_source:
+            return None
+        elif is_empty:
             if not self.only_values:
                 self.only_keys = True
                 string = entry.msgid if pluralized else {
@@ -98,6 +107,8 @@ class PoHandler(Handler):
         return string
 
     def _validate_not_empty(self, entry, string, pluralized):
+        if not string:
+            return True
         if pluralized:
             # Find the plurals that have empty string
             text_value_set = set(
