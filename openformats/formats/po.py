@@ -136,11 +136,15 @@ class PoHandler(Handler):
                     '1': entry.msgid_plural
                 }
             else:
-                raise ParseError(u"")
+                raise ParseError(
+                    u"Either all `msgstr`s must be filled or none."
+                )
         elif not self.only_keys:
             self.only_values = True
         else:
-            raise ParseError(u"")
+            raise ParseError(
+                u"Either all `msgstr`s must be filled or none."
+            )
         return string
 
     def _validate_empty(self, entry, string, pluralized):

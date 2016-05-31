@@ -202,7 +202,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr "msgstr2"
             """,
-            u"",
+            u"Either all `msgstr`s must be filled or none.",
             parse_kwargs={'is_source': True}
         )
 
@@ -216,7 +216,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr "msgstr2"
             """,
-            u"",
+            u"Either all `msgstr`s must be filled or none.",
             parse_kwargs={'is_source': True}
         )
 
@@ -229,7 +229,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr ""
             """,
-            u"",
+            u"Either all `msgstr`s must be filled or none.",
             parse_kwargs={'is_source': True}
         )
 
