@@ -156,6 +156,39 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
                 }))
         )
 
+    def test_not_source_removes_untranslated_on_upload(self):
+        string1 = self._create_openstring(False)
+        source = strip_leading_spaces(u"""
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{s1_key}"
+            msgstr "{s1_str}"
+
+            msgid "a_random_key"
+            msgstr " "
+        """.format(**{
+            's1_key': string1.key,
+            's1_str': string1.string
+        }))
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [string1])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces(
+                u"""# \nmsgid ""
+                msgstr ""
+
+                msgid "{s1_key}"
+                msgstr "{s1_str}"
+                """.format(**{
+                    's1_key': string1.key,
+                    's1_str': string1.string
+                }))
+        )
+
     def test_fuzzy_flag_removes_entry_but_keeps_strings(self):
         string1 = self._create_openstring(False)
         string2 = self._create_openstring(False, extra_context={'fuzzy': True})
