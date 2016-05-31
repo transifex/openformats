@@ -30,7 +30,17 @@ class PoHandler(Handler):
         return unicode(self.new_po), stringset
 
     def _handle_entry(self, entry):
-        # import ipdb; ipdb.set_trace()
+        """Handles a po file entry.
+        Will retrieve entry's information (pluralized, fuzzy) and create
+        an openstring with all relevant information.
+
+        :param entry: The po's file entry to handle.
+        :returns: An openstring if one was creates or None is the entry's
+                    string was None.
+
+        NOTE: In case of fuzzy entry or openstring == None it will remove
+        the entry from the compiled po.
+        """
         entry_key, string, pluralized = self._get_string_data(entry)
         if string is not None:
             openstring_kwargs = {'pluralized': pluralized}
@@ -48,6 +58,15 @@ class PoHandler(Handler):
         return None
 
     def _get_string_data(self, entry):
+        """Retrieves the string and it's information from the entry.
+
+        :param entry: The po's file entry containing the string.
+        :returns: A 3-tuple withe the key indentifying the entry, the entry's
+                    string and True if the string is pluralized else False.
+        :raises: ParseError if a non pluralized entry contains pluralized
+                    string or if a pluralized entry contains a non pluralized
+                    string.
+        """
         key, plural_key = self._get_keys(entry)
         if plural_key:
             if entry.msgstr.strip():
@@ -70,6 +89,14 @@ class PoHandler(Handler):
         return entry_key, string, pluralized
 
     def _get_keys(self, entry):
+        """Retrieves the keys indentifying the entry.
+        Before returning the keys it escapes them to avoid hash colisions.
+
+        :param entry: The entry to retrieve the keys from.
+        :returns: A 2-tuple containing the key and the plural key.
+                    For non pluralized entries the plural key is an empty
+                    string.
+        """
         # Get format keys to avoid colisions
         key = entry.msgid.strip().replace(
             '\\', '\\\\'
@@ -82,12 +109,22 @@ class PoHandler(Handler):
         return key, plural_key
 
     def _get_string(self, entry, pluralized):
+        """Returns the string of the entry.
+        It starts by retrieving the msgstr attribute from the entry. If the
+        msgstr is empty it will fallback to the msgid.
+
+        :param entry: The entry to retrieve the string from.
+        :param pluralized: If True expect a pluralized string.
+        :returns: The string of the entry.
+        :raises: ParseError if incosistency is found on the file. To be more
+                    verbose: Either all msgstr attributes are fille or none is.
+        """
         if pluralized:
             string = entry.msgstr_plural
         else:
             string = entry.msgstr
 
-        is_empty = self._validate_not_empty(entry, string, pluralized)
+        is_empty = self._validate_empty(entry, string, pluralized)
 
         if is_empty and not self.is_source:
             return None
@@ -106,7 +143,16 @@ class PoHandler(Handler):
             raise ParseError(u"")
         return string
 
-    def _validate_not_empty(self, entry, string, pluralized):
+    def _validate_empty(self, entry, string, pluralized):
+        """Checks if a string is empty or not.
+        :param entry: The entry that contained the string.
+        :param string: The string to validate.
+        :param pluralized: If true the string is pluralized.
+
+        :returns: True is the string is empty else False.
+        :raises: ParseError if the string is pluralized and not all the plurals
+                    are filles (at least one is).
+        """
         if not string:
             return True
         if pluralized:
@@ -130,6 +176,16 @@ class PoHandler(Handler):
         return False
 
     def _create_openstring(self, entry, entry_key, string, openstring_kwargs):
+        """Cretes and openstring.
+        Will also place a hash at the msgstr attribute of the entry for the
+        template.
+
+        :param entry: The entry the openstring is created from.
+        :param entry_key: The key indentifying the entry.
+        :param string: The string the entry contains.
+        :param openstring_kwargs: Extra information about the string.
+        :returns: The openstring.
+        """
         openstring = OpenString(
             entry_key,
             string,
