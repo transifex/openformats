@@ -371,9 +371,9 @@ class StringsDictHandler(Handler):
         :NOTE: Assigns the self property `next_string` to the next OpenString.
         """
         string_list = self.next_string.string.items()
-        last_index = len(string_list) - 1
-        for i, (rule, string) in enumerate(string_list):
-            self.transcriber.add(u''.join([
+        to_add_list = []
+        for (rule, string) in string_list:
+            to_add_list.extend([
                 self.KEY_TEMPLATE.format(
                     rule_string=self.get_rule_string(rule)
                 ),
@@ -381,8 +381,9 @@ class StringsDictHandler(Handler):
                 self.STRING_TEMPLATE.format(
                     plural_string=string
                 ),
-                (placeholder_key.tail if i != last_index else '')
-            ]))
+                placeholder_key.tail
+            ])
+        self.transcriber.add(u''.join(to_add_list[:-1]))
         self.next_string = self._get_next_string()
 
     def _get_next_string(self):
