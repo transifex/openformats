@@ -9,6 +9,12 @@ from ..exceptions import ParseError
 
 
 class PoHandler(Handler):
+    """A handler class that parses and compiles `.po` and `.pot` files.
+
+    The `.po` documentation can be found here:
+    https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html
+    """
+
     name = "PO"
     extension = "po"
 
