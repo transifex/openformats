@@ -14,6 +14,10 @@ class PoHandler(Handler):
 
     FUZZY_FLAG = 'fuzzy'
     EXTRACTS_RAW = False
+    SPECIFIER = (
+        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
+        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+    )
 
     def parse(self, content, is_source=False):
         stringset = []
@@ -220,12 +224,26 @@ class PoHandler(Handler):
         return unicode(po)
 
     def _compile_entry(self, entry, next_string):
+        """Compiles the current non pluralized entry.
+        If the current entry's matches the openstring compiles the string if
+        it does.
+
+        :param entry: The entry to check.
+        :param next_string: The openstring to compile.
+        """
         if entry.msgstr == next_string.template_replacement:
             entry.msgstr = next_string.string
             return True
         return False
 
     def _compile_plural_entry(self, entry, next_string):
+        """Compiles the current pluralized entry.
+        If the current entry's matches the openstring compiles the string if
+        it does.
+
+        :param entry: The entry to check.
+        :param next_string: The openstring to compile.
+        """
         if entry.msgstr_plural.get('0') == next_string.template_replacement:
             entry.msgstr_plural = next_string.string
             return True
