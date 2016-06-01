@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>ONE</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%1$#@users@</string>
+            <key>users</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <tx_awesome_key_tag></tx_awesome_key_tag>
+                <tx_awesome_string_tag>f843d61580031d5c9e3456f392126420_pl</tx_awesome_string_tag>
+            </dict>
+            <key>more</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <tx_awesome_key_tag></tx_awesome_key_tag>
+                <tx_awesome_string_tag>90a5962ec9bdddfb84adfe9cc1b6bba1_pl</tx_awesome_string_tag>
+            </dict>
+        </dict>
+        <key>ANOTHER</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%#@test@</string>
+            <key>test</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <tx_awesome_key_tag></tx_awesome_key_tag>
+                <tx_awesome_string_tag>ec8a7a8b22906062781b0aacccacfba3_pl</tx_awesome_string_tag>
+            </dict>
+        </dict>
+    </dict>
+</plist>

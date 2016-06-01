@@ -21,6 +21,11 @@ class BetaAndroidHandler(Handler):
 
     EXTRACTS_RAW = False
 
+    SPECIFIER = re.compile(
+        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
+        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+    )
+
     def parse(self, content):
         stringset = []
         if type(content) == str:
