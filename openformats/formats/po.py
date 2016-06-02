@@ -33,6 +33,7 @@ class PoHandler(Handler):
         self.only_values = False
         self.only_keys = False
         self.new_po = copy.copy(po)
+        self.unique_keys = set()
         for entry in po:
             openstring = self._handle_entry(entry)
             if openstring is not None:
@@ -94,7 +95,7 @@ class PoHandler(Handler):
                 )
             pluralized = False
             entry_key = key
-
+        self._validate_unique_key(entry_key, pluralized, entry)
         string = self._get_string(entry, pluralized)
         return entry_key, string, pluralized
 
@@ -117,6 +118,20 @@ class PoHandler(Handler):
         if not key:
             raise ParseError(u"Found empty msgid")
         return key, plural_key
+
+    def _validate_unique_key(self, key, pluralized, entry):
+        if key in self.unique_keys:
+            if not pluralized:
+                msg = u"Found duplicate msgid (`{}`).".format(entry.msgid)
+            else:
+                msg = (
+                    u"Found duplicate msgid and msgid_plural "
+                    u"(`{}`, `{}`).".format(
+                        entry.msgid, entry.msgid_plural
+                    )
+                )
+            raise ParseError(msg)
+        self.unique_keys.add(key)
 
     def _get_string(self, entry, pluralized):
         """Returns the string of the entry.

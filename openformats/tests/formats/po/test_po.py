@@ -299,6 +299,40 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             u"Found empty msgid"
         )
 
+    def test_duplicate_keys(self):
+        self._test_parse_error(
+            u"""
+                msgid ""
+                msgstr ""
+
+                msgid "p1"
+                msgstr "1"
+
+                msgid "p1"
+                msgstr "2"
+            """,
+            u"Found duplicate msgid (`p1`)."
+        )
+
+        self._test_parse_error(
+            u"""
+                msgid ""
+                msgstr ""
+
+                msgid "p1"
+                msgid_plural "p2"
+                msgstr[0] "1"
+                msgstr[1] "2"
+
+                msgid "p1"
+                msgid_plural "p2"
+                msgstr[0] "3"
+                msgstr[1] "4"
+            """,
+            u"Found duplicate msgid and msgid_plural (`p1`, `p2`)."
+        )
+
+
     def test_incomplete_plurals(self):
         self._test_parse_error(
             u"""
