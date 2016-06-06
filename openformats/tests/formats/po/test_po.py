@@ -39,6 +39,45 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         openstring.string_hash
         return openstring
 
+    def test_openstring_has_all_fields(self):
+        source = strip_leading_spaces(u"""
+            msgid ""
+            msgstr ""
+            "Content-Type: text/plain; charset=UTF-8\n"
+            "Content-Transfer-Encoding: 8bit\n"
+            "Language: en\n"
+            "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+            #  translator-comments1
+            #  translator-comments2
+            #. extracted-comments1
+            #. extracted-comments2
+            #: validators.py:9
+            #: validators.py:11
+            #, python-format
+            #, another-flag
+            msgid "metest"
+            msgstr "msgstr1"
+        """)
+        template, stringset = self.handler.parse(source)
+        expected_comment = (
+            'extracted-comments1\nextracted-comments2\n'
+            u' translator-comments1\n translator-comments2'
+        )
+        self.assertEquals(len(stringset), 1)
+        self.assertEquals(
+            stringset[0].developer_comment,
+            expected_comment
+        )
+        self.assertEquals(
+            stringset[0].occurrences,
+            u'validators.py:9, validators.py:11'
+        )
+        self.assertEquals(
+            stringset[0].flags,
+            u'python-format, another-flag'
+        )
+
     def test_removes_untranslated_non_pluralized(self):
         string1 = self._create_openstring(False)
         string2 = self._create_openstring(False)

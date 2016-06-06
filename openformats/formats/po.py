@@ -54,7 +54,18 @@ class PoHandler(Handler):
         """
         entry_key, string, pluralized = self._get_string_data(entry)
         if string is not None:
-            openstring_kwargs = {'pluralized': pluralized}
+            entry_comments = '\n'.join([
+                entry.comment,
+                entry.tcomment,
+            ]).strip()
+
+            occurrences = self._format_occurrences(entry.occurrences)
+            openstring_kwargs = {
+                'pluralized': pluralized,
+                'flags': ', '.join(entry.flags),
+                'occurrences': occurrences if occurrences else None,
+                'developer_comment': entry_comments
+            }
             # Check fuzziness
             if self.FUZZY_FLAG in entry.flags:
                 # If fuzzy create flag and remove from template
@@ -67,6 +78,18 @@ class PoHandler(Handler):
             )
         self.new_po.remove(entry)
         return None
+
+    def _format_occurrences(self, occurrences):
+        """Format the occurrences and return them.
+
+        The occurrences is a list of 2-tuples that contain the file and the
+        line number.
+        """
+        return ', '.join([
+            ':'.join([
+                item for item in occurence
+            ]) for occurence in occurrences
+        ])
 
     def _get_string_data(self, entry):
         """Retrieves the string and it's information from the entry.
