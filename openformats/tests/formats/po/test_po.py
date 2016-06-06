@@ -274,7 +274,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr "msgstr2"
             """,
-            u"Either all `msgstr`s must be filled or none.",
+            u"A non-empty msgstr was found on the entry with "
+            u"msgid `msgid2`. Remove and try again.",
             parse_kwargs={'is_source': True}
         )
 
@@ -288,7 +289,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr "msgstr2"
             """,
-            u"Either all `msgstr`s must be filled or none.",
+            u"A non-empty msgstr was found on the entry with "
+            u"msgid `msgid2`. Remove and try again.",
             parse_kwargs={'is_source': True}
         )
 
@@ -301,29 +303,30 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid "msgid2"
             msgstr ""
             """,
-            u"Either all `msgstr`s must be filled or none.",
+            u"The entry with msgid `msgid2` includes an empty msgstr. "
+            u"Provide a value and try again.",
             parse_kwargs={'is_source': True}
         )
 
     def test_msgstr_in_plural_entry(self):
         self._test_parse_error(
             u"""
-            msgid "msgid"
-            msgid_plural "msgid_plural"
+            msgid "p1"
+            msgid_plural "p2"
             msgstr "msgstr"
             """,
-            u"Found msgstr on pluralized entry with msgid `msgid` and "
-            u"msgid_plural `msgid_plural`"
+            u"Found msgstr on pluralized entry with msgid `p1` and "
+            u"msgid_plural `p2`."
         )
 
     def test_pluralized_msgstr_in_non_pluralized_entry(self):
         self._test_parse_error(
             u"""
-            msgid "msgid"
+            msgid "p1"
             msgstr[0] "StringPlural1"
             msgstr[1] "StringsPlural2"
             """,
-            u"Found msgstr[*] on non pluralized entry with msgid `msgid`"
+            u"Found msgstr[*] on non pluralized entry with msgid `p1`."
         )
 
     def test_empty_msgid(self):
@@ -335,7 +338,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid ""
             msgstr "Not a plural"
             """,
-            u"Found empty msgid"
+            u"Found empty msgid."
         )
 
     def test_duplicate_keys(self):
@@ -350,7 +353,26 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
                 msgid "p1"
                 msgstr "2"
             """,
-            u"Found duplicate msgid (`p1`)."
+            u"A duplicate msgid was detected (p1). Use a unique "
+            u"msgid or add a msgctxt to differentiate."
+        )
+
+        self._test_parse_error(
+            u"""
+                msgid ""
+                msgstr ""
+
+                msgctxt "t1"
+                msgid "p1"
+                msgstr "1"
+
+                msgctxt "t1"
+                msgid "p1"
+                msgstr "2"
+            """,
+            u"A duplicate msgid was detected (p1). Use a unique "
+            u"msgid or a unique msgctxt to differentiate "
+            u"(the existing msgctxt `t1` is a duplicate one)."
         )
 
         self._test_parse_error(
@@ -368,9 +390,33 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
                 msgstr[0] "3"
                 msgstr[1] "4"
             """,
-            u"Found duplicate msgid and msgid_plural (`p1`, `p2`)."
+            u"A duplicate (msgid, msgid_plural) combination was "
+            u"detected (p1, p2). Use a unique msgid, msgid_plural "
+            u"combination or add a msgctxt to differentiate."
         )
 
+        self._test_parse_error(
+            u"""
+                msgid ""
+                msgstr ""
+
+                msgctxt "t1"
+                msgid "p1"
+                msgid_plural "p2"
+                msgstr[0] "1"
+                msgstr[1] "2"
+
+                msgctxt "t1"
+                msgid "p1"
+                msgid_plural "p2"
+                msgstr[0] "3"
+                msgstr[1] "4"
+            """,
+            u"A duplicate (msgid, msgid_plural) combination was "
+            u"detected (p1, p2). Use a unique msgid, msgid_plural "
+            u"combination or a unique msgctxt to differentiate "
+            u"(the existing msgctxt `t1` is a duplicate one)."
+        )
 
     def test_incomplete_plurals(self):
         self._test_parse_error(
@@ -384,5 +430,5 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
                 msgstr[1] ""
             """,
             u"Incomplete plurals found on string with msgid `p1` "
-            u"and msgid_plural `p2`"
+            u"and msgid_plural `p2`."
         )
