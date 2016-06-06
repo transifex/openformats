@@ -81,16 +81,18 @@ class PoHandler(Handler):
         if plural_key:
             if entry.msgstr.strip():
                 raise ParseError(
-                    u"Found msgstr on pluralized entry with msgid `{}` and "
-                    u"msgid_plural `{}`.".format(key, plural_key)
+                    u"An unexpected msgstr was found on the pluralized entry "
+                    u"with msgid `{}` and msgid_plural `{}`.".format(
+                        key, plural_key
+                    )
                 )
             pluralized = True
             entry_key = ':'.join([key, plural_key])
         else:
             if entry.msgstr_plural:
                 raise ParseError(
-                    u"Found msgstr[*] on non pluralized entry with "
-                    u"msgid `{}`.".format(key)
+                    u"Found unexpected msgstr[*] on the non pluralized entry "
+                    u"with msgid `{}`.".format(key)
                 )
             pluralized = False
             entry_key = key
@@ -225,8 +227,8 @@ class PoHandler(Handler):
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
                 msg = (
-                    u"Incomplete plurals found on string with msgid `{}` "
-                    u"and msgid_plural `{}`.".format(
+                    u"Incomplete plural forms found on the entry with "
+                    u"msgid `{}` and msgid_plural `{}`.".format(
                         entry.msgid, entry.msgid_plural
                     )
                 )

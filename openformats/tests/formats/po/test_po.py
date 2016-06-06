@@ -315,8 +315,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgid_plural "p2"
             msgstr "msgstr"
             """,
-            u"Found msgstr on pluralized entry with msgid `p1` and "
-            u"msgid_plural `p2`."
+            u"An unexpected msgstr was found on the pluralized entry with "
+            u"msgid `p1` and msgid_plural `p2`."
         )
 
     def test_pluralized_msgstr_in_non_pluralized_entry(self):
@@ -326,7 +326,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             msgstr[0] "StringPlural1"
             msgstr[1] "StringsPlural2"
             """,
-            u"Found msgstr[*] on non pluralized entry with msgid `p1`."
+            u"Found unexpected msgstr[*] on the non pluralized entry with "
+            u"msgid `p1`."
         )
 
     def test_empty_msgid(self):
@@ -429,6 +430,6 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
                 msgstr[0] "Not a plural"
                 msgstr[1] ""
             """,
-            u"Incomplete plurals found on string with msgid `p1` "
+            u"Incomplete plural forms found on the entry with msgid `p1` "
             u"and msgid_plural `p2`."
         )
