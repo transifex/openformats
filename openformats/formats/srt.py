@@ -12,7 +12,7 @@ class SrtHandler(Handler):
 
     NON_SPACE_PAT = re.compile(r'[^\s]')
 
-    def _generate_split_subtitles(self, content):
+    def _generate_split_subtitles(self, content, **kwargs):
         start = 0
         for section in content.split('\n\n'):
             # find first non-space character of section

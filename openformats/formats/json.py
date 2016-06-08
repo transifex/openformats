@@ -17,7 +17,7 @@ class JsonHandler(Handler):
     name = "KEYVALUEJSON"
     extension = "json"
 
-    def parse(self, content):
+    def parse(self, content, **kwargs):
         # Do a first pass using the `json` module to ensure content is valid
         try:
             json.loads(content)

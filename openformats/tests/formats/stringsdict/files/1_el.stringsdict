@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>ONE</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%1$#@users@</string>
+            <key>users</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>el:%3$@ commented on your post.</string>
+                <key>other</key>
+                <string>el:%3$@ and %2$#@more@ commented on your post.</string>
+            </dict>
+            <key>more</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>el:%d other</string>
+                <key>other</key>
+                <string>el:%d others</string>
+            </dict>
+        </dict>
+        <key>ANOTHER</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%#@test@</string>
+            <key>test</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>el:A test exist.</string>
+                <key>other</key>
+                <string>el:Other tests exist.</string>
+            </dict>
+        </dict>
+    </dict>
+</plist>
