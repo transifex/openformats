@@ -1,3 +1,4 @@
+import re
 import copy
 import itertools
 
@@ -20,7 +21,7 @@ class PoHandler(Handler):
 
     FUZZY_FLAG = 'fuzzy'
     EXTRACTS_RAW = False
-    SPECIFIER = (
+    SPECIFIER = re.compile(
         '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
         '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
     )
