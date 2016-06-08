@@ -7,7 +7,6 @@ from ..handlers import Handler
 from ..strings import OpenString
 from ..exceptions import RuleError
 from ..utils.xml import NewDumbXml
-from ..exceptions import ParseError
 from ..transcribers import Transcriber
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
@@ -52,7 +51,7 @@ class AndroidHandler(Handler):
     """ Parse Methods """
 
     @reraise_syntax_as_parse_errors
-    def parse(self, content):
+    def parse(self, content, **kwargs):
         self.transcriber = Transcriber(content)
         self.current_comment = u""
         self.order_counter = itertools.count()

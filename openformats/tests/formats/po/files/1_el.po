@@ -1,0 +1,18 @@
+# 
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "StringPlural1"
+msgid_plural "StringsPlural1"
+msgstr[0] "el:StringPlural1"
+msgstr[1] "el:StringsPlural1"
+
+msgid "String1"
+msgstr "el:String1"
+
+msgid "String2"
+msgstr "el:String2"

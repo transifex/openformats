@@ -50,7 +50,7 @@ class StringsDictHandler(Handler):
     """ Parse Methods """
 
     @reraise_syntax_as_parse_errors
-    def parse(self, content):
+    def parse(self, content, **kwargs):
         self.transcriber = Transcriber(content)
         self.order_counter = itertools.count()
         source = self.transcriber.source

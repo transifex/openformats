@@ -26,7 +26,7 @@ class BetaAndroidHandler(Handler):
         '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
     )
 
-    def parse(self, content):
+    def parse(self, content, **kwargs):
         stringset = []
         if type(content) == str:
             content = content.decode("utf-8")  # convert to unicode
