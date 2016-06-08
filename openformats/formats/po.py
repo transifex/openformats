@@ -189,7 +189,7 @@ class PoHandler(Handler):
         elif is_empty:
             if not self.only_values:
                 self.only_keys = True
-                string = entry.msgid if pluralized else {
+                string = entry.msgid if not pluralized else {
                     '0': entry.msgid,
                     '1': entry.msgid_plural
                 }
