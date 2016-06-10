@@ -21,7 +21,12 @@ class BetaAndroidHandler(Handler):
 
     EXTRACTS_RAW = False
 
-    def parse(self, content):
+    SPECIFIER = re.compile(
+        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
+        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+    )
+
+    def parse(self, content, **kwargs):
         stringset = []
         if type(content) == str:
             content = content.decode("utf-8")  # convert to unicode

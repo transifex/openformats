@@ -47,7 +47,7 @@ class Handler(object):
             )
             raise RuleError(msg)
 
-    def parse(self, content):
+    def parse(self, content, is_source=False):
         """
         Parses the content, extracts translatable strings into a stringset,
         replaces them with hashes and returns a tuple of the template with the
