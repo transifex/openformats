@@ -109,4 +109,7 @@ class OpenStringTestCase(TestCase):
     def test_error_in__repr__(self):
         open_string = OpenString('random_key', {6: 'this is wrong'})
 
-        self.assertEqual(open_string.__repr__(), 'something went wrong')
+        self.assertEqual(
+            open_string.__repr__(),
+            'Invalid string'
+        )
