@@ -179,9 +179,10 @@ class PoHandler(Handler):
                     verbose: Either all msgstr attributes are fille or none is.
         """
         if pluralized:
-            string = {}
-            for k, v in entry.msgstr_plural.iteritems():
-                string[int(k)] = v
+            string = {
+                int(k): v for k, v in entry.msgstr_plural.iteritems()
+            }
+
         else:
             string = entry.msgstr
 
