@@ -105,3 +105,8 @@ class OpenStringTestCase(TestCase):
         open_string.rule = random_rule
 
         self.assertEqual(hash(open_string), random_hash)
+
+    def test_error_in__repr__(self):
+        open_string = OpenString('random_key', {6: 'this is wrong'})
+
+        self.assertEqual(open_string.__repr__(), 'something went wrong')
