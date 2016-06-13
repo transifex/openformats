@@ -96,7 +96,7 @@ class OpenString(object):
             (
                 self._strings.get(i) for i in xrange(5, -1, -1)
                 if self._strings.get(i)
-            )
+            ), "something went wrong"
         ).encode('utf-8')
 
     @property
