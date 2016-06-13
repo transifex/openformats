@@ -179,7 +179,10 @@ class PoHandler(Handler):
                     verbose: Either all msgstr attributes are fille or none is.
         """
         if pluralized:
-            string = entry.msgstr_plural
+            string = {
+                int(k): v for k, v in entry.msgstr_plural.iteritems()
+            }
+
         else:
             string = entry.msgstr
 
@@ -191,8 +194,8 @@ class PoHandler(Handler):
             if not self.only_values:
                 self.only_keys = True
                 string = entry.msgid if not pluralized else {
-                    '0': entry.msgid,
-                    '1': entry.msgid_plural
+                    0: entry.msgid,
+                    1: entry.msgid_plural
                 }
             else:
                 raise ParseError(
