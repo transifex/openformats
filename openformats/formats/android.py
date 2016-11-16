@@ -257,6 +257,12 @@ class AndroidHandler(Handler):
             # If duplicate hash raise ParseError
             if string.string_hash in self.existing_hashes:
                 format_dict = {'name': name}
+                # add product if not here to allow some names for plurals
+                # and re-attempt
+                if not product and pluralized:
+                    product = 'plural_with_same_name'
+                    return self._create_string(name, text, comment,
+                                               product, child, pluralized=True)
                 if not product:
                     msg = (
                         u"Duplicate `name` ({name}) attribute found on line "

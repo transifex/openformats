@@ -107,6 +107,51 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
         self.assertEquals(compiled, source)
 
+    def test_plurals_with_same_name_as_parent(self):
+        random_key = generate_random_string()
+        random_singular = generate_random_string()
+        random_plural = generate_random_string()
+        product = 'plural_with_same_name'
+        random_openstring = OpenString(random_key,
+                                       {1: random_singular, 5: random_plural},
+                                       context=product, order=0)
+        random_hash = random_openstring.template_replacement
+
+        plural_text = generate_random_string()
+
+        plural_openstring = OpenString(random_key, plural_text)
+        random_hash_simple = plural_openstring.template_replacement
+
+        source = strip_leading_spaces(u"""
+            <resources>
+                <string name="{key}"> {simple_text}</string>
+                <plurals name="{key}">
+                    <item quantity="one">{singular}</item>
+                    <item quantity="other">{plural}</item>
+                </plurals>
+            </resources>
+        """.format(key=random_key, simple_text=plural_text,
+                   singular=random_singular,
+                   plural=random_plural))
+
+        template, stringset = self.handler.parse(source)
+
+        compiled = self.handler.compile(template, stringset)
+
+        self.assertEquals(
+            template,
+            strip_leading_spaces(u'''
+                <resources>
+                    <string name="{key}">{hash_simple}</string>
+                    <plurals name="{key}">
+                        {hash_}
+                    </plurals>
+                </resources>
+            '''.format(key=random_key, hash_simple=random_hash_simple,
+                       hash_=random_hash))
+        )
+        self.assertEquals(compiled, source)
+
     def test_no_translatable(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
