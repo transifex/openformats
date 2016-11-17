@@ -9,7 +9,7 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
     name = "Plaintext"
     extension = "txt"
 
-    def parse(self, content):
+    def parse(self, content, **kwargs):
         stringset = []
         # find out whether we're using UNIX or DOS newlines
         try:
