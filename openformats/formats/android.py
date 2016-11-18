@@ -249,14 +249,20 @@ class AndroidHandler(Handler):
                 if child.tag in self.existing_hashes[(name, product)]:
                     format_dict = {
                         'name': name,
-                        'product': product,
                         'child_tag': child.tag
                     }
-                    msg = (
-                        u"Duplicate `tag_name` ({child_tag}) for `name`"
-                        u" ({name}) and `product` ({product}) "
-                        u"found on line {line_number}"
-                    )
+                    if product:
+                        msg = (
+                            u"Duplicate `tag_name` ({child_tag}) for `name`"
+                            u" ({name}) and `product` ({product}) "
+                            u"found on line {line_number}"
+                        )
+                        format_dict['product'] = product
+                    else:
+                        msg = (
+                            u"Duplicate `tag_name` ({child_tag}) for `name`"
+                            u" ({name}) spcesify a product to differenciate"
+                        )
                     XMLUtils.raise_error(
                         self.transcriber,
                         child,

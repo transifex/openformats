@@ -107,51 +107,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
         self.assertEquals(compiled, source)
 
-    def test_plurals_with_same_name_as_parent(self):
-        random_key = generate_random_string()
-        random_singular = generate_random_string()
-        random_plural = generate_random_string()
-        product = 'plural_with_same_name'
-        random_openstring = OpenString(random_key,
-                                       {1: random_singular, 5: random_plural},
-                                       context=product, order=0)
-        random_hash = random_openstring.template_replacement
-
-        plural_text = generate_random_string()
-
-        plural_openstring = OpenString(random_key, plural_text)
-        random_hash_simple = plural_openstring.template_replacement
-
-        source = strip_leading_spaces(u"""
-            <resources>
-                <string name="{key}"> {simple_text}</string>
-                <plurals name="{key}">
-                    <item quantity="one">{singular}</item>
-                    <item quantity="other">{plural}</item>
-                </plurals>
-            </resources>
-        """.format(key=random_key, simple_text=plural_text,
-                   singular=random_singular,
-                   plural=random_plural))
-
-        template, stringset = self.handler.parse(source)
-
-        compiled = self.handler.compile(template, stringset)
-
-        self.assertEquals(
-            template,
-            strip_leading_spaces(u'''
-                <resources>
-                    <string name="{key}">{hash_simple}</string>
-                    <plurals name="{key}">
-                        {hash_}
-                    </plurals>
-                </resources>
-            '''.format(key=random_key, hash_simple=random_hash_simple,
-                       hash_=random_hash))
-        )
-        self.assertEquals(compiled, source)
-
     def test_no_translatable(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
@@ -459,8 +414,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <string name="a">world</string>
                 </resources>
             ''',
-            u"Duplicate `name` (a) attribute found on line 4. Specify a "
-            "`product` to differentiate"
+            u"Duplicate `tag_name` (string) for `name` (a) spcesify a"
+            u" product to differenciate"
         )
 
     def test_duplicate_names_and_products(self):
@@ -468,15 +423,30 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             '''
                 <resources>
                     <string name="a" product="b">hello</string>
-                    <string name="a" product="b">>world</string>
+                    <string name="a" product="b">world</string>
                 </resources>
             ''',
-            u"Duplicate `name` (a) and `product` (b) attributes found on line "
-            u"4"
+            u"Duplicate `tag_name` (string) for `name` (a) and `product`"
+            u" (b) found on line 4"
         )
 
-    def test_name_escaping_helps_with_duplication_cornercases(self):
+    def test_duplicate_names_and_products_for_different_tag_names(self):
         source = '''
+             <resources>
+                 <plurals name="a" product="b">
+                    <item quantity="one">one</item>
+                    <item quantity="other">one</item>
+                 </plurals>
+                 <string name="a" product="b">first string</string>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        string = stringset[0]
+        self.assertEquals(string.key, 'a')
+        self.assertEquals(string.string, {1: 'one', 5: 'one'})
+
+    def test_name_escaping_helps_with_duplication_cornercases(self):
+        source = '''s
             <resources>
                 <string name="a[0]">hello</string>
                 <string-array name="a">
