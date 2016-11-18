@@ -414,8 +414,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <string name="a">world</string>
                 </resources>
             ''',
-            u"Duplicate `name` (a) attribute found on line 4. Specify a "
-            "`product` to differentiate"
+            u"Duplicate `tag_name` (string) for `name` (a) spcesify a"
+            u" product to differenciate"
         )
 
     def test_duplicate_names_and_products(self):
@@ -423,15 +423,30 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             '''
                 <resources>
                     <string name="a" product="b">hello</string>
-                    <string name="a" product="b">>world</string>
+                    <string name="a" product="b">world</string>
                 </resources>
             ''',
-            u"Duplicate `name` (a) and `product` (b) attributes found on line "
-            u"4"
+            u"Duplicate `tag_name` (string) for `name` (a) and `product`"
+            u" (b) found on line 4"
         )
 
-    def test_name_escaping_helps_with_duplication_cornercases(self):
+    def test_duplicate_names_and_products_for_different_tag_names(self):
         source = '''
+             <resources>
+                 <plurals name="a" product="b">
+                    <item quantity="one">one</item>
+                    <item quantity="other">one</item>
+                 </plurals>
+                 <string name="a" product="b">first string</string>
+            </resources>
+        '''
+        template, stringset = self.handler.parse(source)
+        string = stringset[0]
+        self.assertEquals(string.key, 'a')
+        self.assertEquals(string.string, {1: 'one', 5: 'one'})
+
+    def test_name_escaping_helps_with_duplication_cornercases(self):
+        source = '''s
             <resources>
                 <string name="a[0]">hello</string>
                 <string-array name="a">

@@ -70,7 +70,7 @@ class AndroidHandler(Handler):
             NewDumbXml.COMMENT
         )
         stringset = []
-        self.existing_hashes = set()
+        self.existing_hashes = {}
         for child in children_itterator:
             strings = self._handle_child(child)
             if strings is not None:
@@ -245,6 +245,32 @@ class AndroidHandler(Handler):
                 'child_tag': 'item'
             }
         ):
+            if (name, product) in self.existing_hashes:
+                if child.tag in self.existing_hashes[(name, product)]:
+                    format_dict = {
+                        'name': name,
+                        'child_tag': child.tag
+                    }
+                    if product:
+                        msg = (
+                            u"Duplicate `tag_name` ({child_tag}) for `name`"
+                            u" ({name}) and `product` ({product}) "
+                            u"found on line {line_number}"
+                        )
+                        format_dict['product'] = product
+                    else:
+                        msg = (
+                            u"Duplicate `tag_name` ({child_tag}) for `name`"
+                            u" ({name}) spcesify a product to differenciate"
+                        )
+                    XMLUtils.raise_error(
+                        self.transcriber,
+                        child,
+                        msg,
+                        context=format_dict
+                    )
+                else:
+                    product += child.tag
             # Create OpenString
             string = OpenString(
                 name,
@@ -254,27 +280,8 @@ class AndroidHandler(Handler):
                 developer_comment=comment,
                 pluralized=pluralized,
             )
-            # If duplicate hash raise ParseError
-            if string.string_hash in self.existing_hashes:
-                format_dict = {'name': name}
-                if not product:
-                    msg = (
-                        u"Duplicate `name` ({name}) attribute found on line "
-                        u"{line_number}. Specify a `product` to differentiate"
-                    )
-                else:
-                    format_dict['product'] = product
-                    msg = (
-                        u"Duplicate `name` ({name}) and `product` ({product}) "
-                        u"attributes found on line {line_number}"
-                    )
-                XMLUtils.raise_error(
-                    self.transcriber,
-                    child,
-                    msg,
-                    context=format_dict
-                )
-            self.existing_hashes.add(string.string_hash)
+            self.existing_hashes.setdefault((name, product), [])
+            self.existing_hashes[(name, product)].append(child.tag)
             return string
         return None
 
