@@ -92,7 +92,12 @@ class OpenString(object):
         return hash((self.key, self.context, self.rule))
 
     def __repr__(self):
-        return '"{}"'.format(self._strings[5].encode('utf-8'))  # pragma: nocover # noqa
+        return next(
+            (
+                self._strings.get(i) for i in xrange(5, -1, -1)
+                if self._strings.get(i)
+            ), 'Invalid string'
+        ).encode('utf-8')
 
     @property
     def string(self):

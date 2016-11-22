@@ -77,11 +77,14 @@ class CommonFormatTestMixin(object):
         translated_content = self.handler.compile(self.tmpl, translated_strset)
         self.assertEquals(translated_content, self.data["1_el"])
 
-    def _test_parse_error(self, source, error_msg):
+    def _test_parse_error(self, source, error_msg, parse_kwargs=None):
         """
         Test that trying to parse 'source' raises an error with a message
         exactly like 'error_msg'
         """
-        self.assertRaisesRegexp(ParseError,
-                                r'^{}$'.format(re.escape(error_msg)),
-                                lambda: self.handler.parse(source))
+        parse_kwargs = parse_kwargs if parse_kwargs is not None else {}
+        self.assertRaisesRegexp(
+            ParseError,
+            r'^{}$'.format(re.escape(error_msg)),
+            lambda: self.handler.parse(source, **parse_kwargs)
+        )

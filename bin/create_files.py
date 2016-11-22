@@ -15,7 +15,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from openformats.formats import plaintext, srt, android, json
+from openformats.formats import plaintext, srt, android, json, po
 from openformats.tests.utils import translate_stringset
 
 args = argparse.ArgumentParser
@@ -28,6 +28,7 @@ def get_handler(ext):
         'srt': srt.SrtHandler(),
         'xml': android.AndroidHandler(),
         'json': json.JsonHandler(),
+        'po': po.PoHandler(),
     }[ext]
 
 
