@@ -207,7 +207,7 @@ class BetaAndroidHandler(Handler):
                 return True
         return False
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         resources_tag_position = template.index("<resources")
         self._stringset = list(stringset)
         self._stringset_index = 0

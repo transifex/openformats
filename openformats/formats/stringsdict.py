@@ -282,7 +282,7 @@ class StringsDictHandler(Handler):
 
     """ Compile Methods """
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         dict_tag_position = template.index(self.PARSE_START)
 
         self.transcriber = Transcriber(template[dict_tag_position:])

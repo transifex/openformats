@@ -6,7 +6,7 @@ from openformats.transcribers import Transcriber
 class OrderedCompilerMixin(object):
     SPACE_PAT = re.compile(r'^\s*$')
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         # assume stringset is ordered within the template
         transcriber = Transcriber(template)
         template = transcriber.source
