@@ -96,7 +96,7 @@ class JsonHandler(Handler):
         key = key.replace(u".", u"\\.")
         return key
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         # Lets play on the template first, we need it to not include the hashes
         # that aren't in the stringset. For that we will create a new stringset
         # which will have the hashes themselves as strings and compile against

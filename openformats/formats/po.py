@@ -265,7 +265,7 @@ class PoHandler(Handler):
             entry.msgstr_plural = {'0': openstring.template_replacement}
         return openstring
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         stringset = iter(stringset)
         next_string = next(stringset, None)
 

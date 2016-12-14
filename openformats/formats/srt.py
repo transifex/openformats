@@ -141,7 +141,7 @@ class SrtHandler(Handler):
         return "{:02}:{:02}:{:02}.{:03}".format(hours, minutes, seconds,
                                                 milliseconds)
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         transcriber = Transcriber(template)
         template = transcriber.source
         stringset = iter(stringset)

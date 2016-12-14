@@ -351,7 +351,7 @@ class AndroidHandler(Handler):
 
     """ Compile Methods """
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, is_source=True):
         resources_tag_position = template.index(self.PARSE_START)
 
         self.transcriber = Transcriber(template[resources_tag_position:])
@@ -369,6 +369,7 @@ class AndroidHandler(Handler):
             self.STRING_PLURAL
         )
 
+        self.is_source = is_source
         self.stringset = iter(stringset)
         self.next_string = self._get_next_string()
         for child in children_itterator:
@@ -393,7 +394,10 @@ class AndroidHandler(Handler):
             elif child.tag == self.STRING_PLURAL:
                 self._compile_string_plural(child)
         else:
-            self.transcriber.copy_until(child.end)
+            if self.is_source:
+                self.transcriber.copy_until(child.end)
+            else:
+                self._skip_tag(child)
 
     def _compile_string(self, child):
         """Handles child element that has the `string` and `item` tag.
