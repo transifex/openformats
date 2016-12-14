@@ -687,3 +687,32 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             u'<resources><plurals name="a" /></resources>',
             u'No plurals found in <plurals> tag on line 1'
         )
+
+    def test_compile_for_target_language_clears_untranslatable_strings(self):
+        string = OpenString(generate_random_string(), generate_random_string(),
+                            order=0)
+        template = """
+            <resources>
+                <string name="untranslatable"
+                        translatable="false">Untranslatable</string>
+                <string name="{key}">{string}</string>
+            </resources>
+        """.format(key=string.key, string=string.template_replacement)
+
+        # Try for source
+        compiled = self.handler.compile(template, [string], is_source=True)
+        self.assertEquals(compiled, """
+            <resources>
+                <string name="untranslatable"
+                        translatable="false">Untranslatable</string>
+                <string name="{key}">{string}</string>
+            </resources>
+        """.format(key=string.key, string=string.string))
+
+        # Try for translation
+        compiled = self.handler.compile(template, [string], is_source=False)
+        self.assertEquals(compiled, """
+            <resources>
+                <string name="{key}">{string}</string>
+            </resources>
+        """.format(key=string.key, string=string.string))
