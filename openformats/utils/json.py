@@ -182,6 +182,7 @@ class DumbJson(object):
                 after_backslash = not after_backslash
             if candidate in symbols:
                 if candidate == '"' and after_backslash:
+                    after_backslash = False
                     continue
                 return candidate, ptr
             if candidate != '\\':
