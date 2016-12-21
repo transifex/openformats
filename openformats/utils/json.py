@@ -175,13 +175,17 @@ class DumbJson(object):
 
     def _find_next(self, symbols, start=0, require_whitespace=True):
         symbols = {s for s in symbols}
+        after_backslash = False
         for ptr in xrange(start, len(self.source)):
             candidate = self.source[ptr]
+            if candidate == '\\':
+                after_backslash = not after_backslash
             if candidate in symbols:
-                if (candidate == '"' and ptr > 0 and
-                        self.source[ptr - 1] == '\\'):
+                if candidate == '"' and after_backslash:
                     continue
                 return candidate, ptr
+            if candidate != '\\':
+                after_backslash = False
             if require_whitespace and not candidate.isspace():
                 newline_count = self.source.count('\n', 0, ptr)
                 raise ValueError(

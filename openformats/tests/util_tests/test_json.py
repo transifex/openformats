@@ -72,6 +72,22 @@ class DumbJsonTestCase(unittest.TestCase):
         self._test_dfs('["a", {"b": "c"}]',
                        [("a", 2), ([("b", 8, "c", 13)], 6)])
 
+    # Escaping
+    def test_escape_quotes(self):
+        # Actual string looks like: 'hello \" world'
+        self._test_dfs('{"a": "hello \\" world"}',
+                       [('a', 2, 'hello \\" world', 7)])
+
+    def test_double_backslashes(self):
+        # Actual string looks like: 'hello \\ world'
+        self._test_dfs('{"a": "hello \\\\ world"}',
+                       [('a', 2, 'hello \\\\ world', 7)])
+
+    def test_double_backslashes_with_quotes(self):
+        # Actual string looks like: 'hello world\\'
+        self._test_dfs('{"a": "hello world\\\\"}',
+                       [('a', 2, 'hello world\\\\', 7)])
+
     # Utils
     def _test_dfs(self, content, against):
         dumb_json = DumbJson(content)
