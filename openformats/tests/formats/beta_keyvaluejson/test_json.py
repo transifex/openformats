@@ -5,7 +5,8 @@ import unittest
 from openformats.strings import OpenString
 
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.tests.utils.strings import generate_random_string
+from openformats.tests.utils.strings import (generate_random_string,
+                                             bytes_to_string)
 
 from openformats.formats.json import JsonHandler
 
@@ -316,23 +317,63 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                                "Unterminated string starting at: line 1 "
                                "column 2 (char 1)")
 
-    def test_escape_json(self):
-        self.assertEqual(
-            self.handler.escape("a \\ string. with \"quotes\""),
-            "a \\\\ string. with \\\"quotes\\\""
+    def test_unescape(self):
+        cases = (
+            # simple => simple
+            ([u's', u'i', u'm', u'p', u'l', u'e'],
+             [u's', u'i', u'm', u'p', u'l', u'e']),
+            # hεllo => hεllo
+            ([u'h', u'ε', u'l', u'l', u'o'],
+             [u'h', u'ε', u'l', u'l', u'o']),
+            # h\u03b5llo => hεllo
+            ([u'h', u'\\', u'u', u'0', u'3', u'b', u'5', u'l', u'l', u'o'],
+             [u'h', u'ε', u'l', u'l', u'o']),
+            # a\"b => a"b
+            ([u'a', u'\\', u'"', u'b'], [u'a', u'"', u'b']),
+            # a\/b => a/b
+            ([u'a', u'\\', u'/', u'b'], [u'a', u'/', u'b']),
+            # a\/b => a?b, ? = BACKSPACE
+            ([u'a', u'\\', u'b', u'b'], [u'a', u'\b', u'b']),
+            # a\fb => a?b, ? = FORMFEED
+            ([u'a', u'\\', u'f', u'b'], [u'a', u'\f', u'b']),
+            # a\nb => a?b, ? = NEWLINE
+            ([u'a', u'\\', u'n', u'b'], [u'a', u'\n', u'b']),
+            # a\rb => a?b, ? = CARRIAGE_RETURN
+            ([u'a', u'\\', u'r', u'b'], [u'a', u'\r', u'b']),
+            # a\tb => a?b, ? = TAB
+            ([u'a', u'\\', u't', u'b'], [u'a', u'\t', u'b']),
         )
+        for raw, rich in cases:
+            self.assertEquals(JsonHandler.unescape(bytes_to_string(raw)),
+                              bytes_to_string(rich))
 
-        self.assertEqual(
-            self.handler.escape(u'καλημέρα \\'), u'καλημέρα \\\\'
+    def test_escape(self):
+        cases = (
+            # simple => simple
+            ([u's', u'i', u'm', u'p', u'l', u'e'],
+             [u's', u'i', u'm', u'p', u'l', u'e']),
+            # hεllo => hεllo
+            ([u'h', u'ε', u'l', u'l', u'o'],
+             [u'h', u'ε', u'l', u'l', u'o']),
+            # h\u03b5llo => h\\u03b5llo
+            ([u'h', u'\\', u'u', u'0', u'3', u'b', u'5', u'l', u'l', u'o'],
+             [u'h', u'\\', u'\\', u'u', u'0', u'3', u'b', u'5', u'l', u'l',
+              u'o']),
+            # a"b =>a\"b
+            ([u'a', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+            # a/b =>a/b
+            ([u'a', u'/', u'b'], [u'a', u'/', u'b']),
+            # a?b =>a\/b, ? = BACKSPACE
+            ([u'a', u'\b', u'b'], [u'a', u'\\', u'b', u'b']),
+            # a?b =>a\fb, ? = FORMFEED
+            ([u'a', u'\f', u'b'], [u'a', u'\\', u'f', u'b']),
+            # a?b =>a\nb, ? = NEWLINE
+            ([u'a', u'\n', u'b'], [u'a', u'\\', u'n', u'b']),
+            # a?b =>a\rb, ? = CARRIAGE_RETURN
+            ([u'a', u'\r', u'b'], [u'a', u'\\', u'r', u'b']),
+            # a?b => a\tb, ? = TAB
+            ([u'a', u'\t', u'b'], [u'a', u'\\', u't', u'b']),
         )
-
-    def test_unescape_json(self):
-        self.assertEqual(
-            self.handler.unescape("a \\\\ string. with \\\"quotes\\\""),
-            "a \\ string. with \"quotes\""
-        )
-
-        self.assertEqual(
-            self.handler.unescape(u'καλημέρα \\\\'),
-            u'καλημέρα \\'
-        )
+        for rich, raw in cases:
+            self.assertEquals(JsonHandler.escape(bytes_to_string(rich)),
+                              bytes_to_string(raw))
