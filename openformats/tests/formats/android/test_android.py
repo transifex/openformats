@@ -3,9 +3,9 @@ import unittest
 from openformats.strings import OpenString
 
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.tests.utils.strings import (
-    generate_random_string, strip_leading_spaces
-)
+from openformats.tests.utils.strings import (generate_random_string,
+                                             strip_leading_spaces,
+                                             bytes_to_string)
 
 from openformats.formats.android import AndroidHandler
 
@@ -623,23 +623,6 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         )
         self.assertTrue(stringset[0].pluralized)
 
-    def test_escape(self):
-        cases = (('double " quote', 'double \\" quote'),
-                 ("single ' quote", "single \\' quote"),
-                 ("back \\ slash", "back \\\\ slash"))
-        for rich, raw in cases:
-            self.assertEquals(AndroidHandler.escape(rich), raw)
-
-    def test_unescape(self):
-        cases = (('double " quote', 'double \\" quote'),
-                 ("single ' quote", "single \\' quote"),
-                 ("back \\ slash", "back \\\\ slash"),
-                 ('inside double quotes', '"inside double quotes"'),
-                 ("single ' quote", '"single \' quote"'),
-                 ("back \\ slash", '"back \\ slash"'))
-        for rich, raw in cases:
-            self.assertEquals(AndroidHandler.unescape(raw), rich)
-
     def test_single_string_skipped(self):
         source = u'<resources><string name="a" /></resources>'
         template, stringset = self.handler.parse(source)
@@ -716,3 +699,67 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                 <string name="{key}">{string}</string>
             </resources>
         """.format(key=string.key, string=string.string))
+
+    def test_escape(self):
+        cases = (
+            # a"b => a\"b
+            ([u'a', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+            # a'b => a\'b
+            ([u'a', u"'", u'b'], [u'a', u'\\', u"'", u'b']),
+            # a\b => a\b
+            ([u'a', u'\\', u'b'], [u'a', u'\\', u'b']),
+            # a\\b => a\\b
+            ([u'a', u'\\', u'\\', u'b'], [u'a', u'\\', u'\\', u'b']),
+            # a"b\c => a\"b\c
+            ([u'a', u'"', u'b', u'\\', u'c'],
+             [u'a', u'\\', u'"', u'b', u'\\', u'c']),
+            # "a" => \"a\"
+            ([u'"', u'a', u'"'], [u'\\', u'"', u'a', u'\\', u'"']),
+            # "a"b" => \"\a\"\b\"
+            ([u'"', u'a', u'"', u'b', u'"'],
+             [u'\\', u'"', u'a', u'\\', u'"', u'b', u'\\', u'"']),
+            # "a'b" => \"\a\"\b\"
+            ([u'"', u'a', u"'", u'b', u'"'],
+             [u'\\', u'"', u'a', u'\\', u"'", u'b', u'\\', u'"']),
+        )
+        for rich, raw in cases:
+            self.assertEquals(AndroidHandler.escape(bytes_to_string(rich)),
+                              bytes_to_string(raw))
+
+    def test_unescape(self):
+        cases = (
+            # a"b => a"b
+            ([u'a', u'"', u'b'], [u'a', u'"', u'b']),
+            # a'b => a'b
+            ([u'a', u"'", u'b'], [u'a', u"'", u'b']),
+            # a\b => a\b
+            ([u'a', u'\\', u'b'], [u'a', u'\\', u'b']),
+            # a\"b => a"b
+            ([u'a', u'\\', u'"', u'b'], [u'a', u'"', u'b']),
+            # a\'b => a'b
+            ([u'a', u'\\', u"'", u'b'], [u'a', u"'", u'b']),
+            # a\\b => a\\b
+            ([u'a', u'\\', u'\\', u'b'], [u'a', u'\\', u'\\', u'b']),
+            # "a"b" => a"b
+            ([u'"', u'a', u'"', u'b', u'"'], [u'a', u'"', u'b']),
+            # "a'b" => a'b
+            ([u'"', u'a', u"'", u'b', u'"'], [u'a', u"'", u'b']),
+            # "a\b" => a\b
+            ([u'"', u'a', u'\\', u'b', u'"'], [u'a', u'\\', u'b']),
+            # "a\"b" => a"b
+            ([u'"', u'a', u'\\', u'"', u'b', u'"'], [u'a', u'"', u'b']),
+            # "a\'b" => a\'b
+            ([u'"', u'a', u'\\', u"'", u'b', u'"'], [u'a', u'\\', u"'", u'b']),
+            # "a\\b" => a\\b
+            ([u'"', u'a', u'\\', u'\\', u'b', u'"'],
+             [u'a', u'\\', u'\\', u'b']),
+            # a"b\c => a"b\c
+            ([u'a', u'"', u'b', u'\\', u'c'], [u'a', u'"', u'b', u'\\', u'c']),
+            # a'b\c => a'b\c
+            ([u'a', u"'", u'b', u'\\', u'c'], [u'a', u"'", u'b', u'\\', u'c']),
+            # a\\"b => a\"b
+            ([u'a', u'\\', u'\\', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+        )
+        for raw, rich in cases:
+            self.assertEquals(AndroidHandler.unescape(bytes_to_string(raw)),
+                              bytes_to_string(rich))
