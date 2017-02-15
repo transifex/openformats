@@ -6,7 +6,7 @@ import itertools
 from ..handlers import Handler
 from ..strings import OpenString
 from ..exceptions import RuleError
-from ..utils.xml import NewDumbXml
+from ..utils.xml import NewDumbXml as DumbXml
 from ..transcribers import Transcriber
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
@@ -60,14 +60,14 @@ class AndroidHandler(Handler):
         # Skip xml info declaration
         resources_tag_position = source.index(self.PARSE_START)
 
-        parsed = NewDumbXml(source, resources_tag_position)
+        parsed = DumbXml(source, resources_tag_position)
         XMLUtils.validate_no_text_characters(self.transcriber, parsed)
         XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
         children_itterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
             self.STRING_PLURAL,
-            NewDumbXml.COMMENT
+            DumbXml.COMMENT
         )
         stringset = []
         self.existing_hashes = {}
@@ -90,7 +90,7 @@ class AndroidHandler(Handler):
         """
         XMLUtils.validate_no_tail_characters(self.transcriber, child)
         if not self._should_ignore(child):
-            if child.tag == NewDumbXml.COMMENT:
+            if child.tag == DumbXml.COMMENT:
                 self._handle_comment(child)
             else:
                 if child.tag == self.STRING:
@@ -152,7 +152,7 @@ class AndroidHandler(Handler):
         item_itterator = child.find_children()
         # Itterate through the children with the item tag.
         for item_tag in item_itterator:
-            if item_tag.tag != NewDumbXml.COMMENT:
+            if item_tag.tag != DumbXml.COMMENT:
                 rule_number = self._validate_plural_item(item_tag)
                 string_rules_text[rule_number] = item_tag.content
 
@@ -345,7 +345,11 @@ class AndroidHandler(Handler):
                 child,
                 msg
             )
-        name = name.replace('\\', '\\\\').replace('[', '\\[')
+        name = name.\
+            replace(DumbXml.BACKSLASH,
+                    u''.join([DumbXml.BACKSLASH, DumbXml.BACKSLASH])).\
+            replace(u'[', u''.join([DumbXml.BACKSLASH, u'[']))
+
         product = child.attrib.get('product', '')
         return name, product
 
@@ -357,7 +361,7 @@ class AndroidHandler(Handler):
         self.transcriber = Transcriber(template[resources_tag_position:])
         source = self.transcriber.source
 
-        parsed = NewDumbXml(source)
+        parsed = DumbXml(source)
         # This is needed in case the first tag is skipped to retain
         # the file's formating
         first_tag_position = parsed.text_position + len(parsed.text)
@@ -376,8 +380,8 @@ class AndroidHandler(Handler):
             self._compile_child(child)
 
         self.transcriber.copy_until(len(source))
-        compiled = template[:resources_tag_position] +\
-            self.transcriber.get_destination()
+        compiled = (template[:resources_tag_position] +
+                    self.transcriber.get_destination())
 
         return compiled
 
@@ -549,13 +553,21 @@ class AndroidHandler(Handler):
 
     @staticmethod
     def escape(string):
-        return string.replace('\\', '\\\\').replace('"', '\\"').\
-            replace("'", "\\'")
+        return string.\
+            replace(DumbXml.DOUBLE_QUOTES,
+                    u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES])).\
+            replace(DumbXml.SINGLE_QUOTE,
+                    u''.join([DumbXml.BACKSLASH, DumbXml.SINGLE_QUOTE]))
 
     @staticmethod
     def unescape(string):
-        if len(string) and string[0] == string[-1] == '"':
-            return string[1:-1]
+        if len(string) and string[0] == string[-1] == DumbXml.DOUBLE_QUOTES:
+            return string[1:-1].\
+                replace(u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES]),
+                        DumbXml.DOUBLE_QUOTES)
         else:
-            return string.replace('\\"', '"').replace("\\'", "'").\
-                replace('\\\\', '\\')
+            return string.\
+                replace(u''.join([DumbXml.BACKSLASH, DumbXml.SINGLE_QUOTE]),
+                        DumbXml.SINGLE_QUOTE).\
+                replace(u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES]),
+                        DumbXml.DOUBLE_QUOTES)
