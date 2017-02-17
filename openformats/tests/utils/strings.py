@@ -23,3 +23,9 @@ def strip_leading_spaces(source):
     """
 
     return '\n'.join((line.lstrip() for line in source.split('\n')))
+
+
+def bytes_to_string(_bytes):
+    for byte in _bytes:
+        assert len(byte) == 1, str(_bytes)
+    return u''.join(_bytes)

@@ -233,6 +233,14 @@ class NewDumbXml(object):
         will be yielded.
     """
 
+    BACKSLASH = u"\\"
+    FORWARD_SLASH = u"/"
+    SINGLE_QUOTE = u"'"
+    DOUBLE_QUOTES = u'"'
+    LESS_THAN = u"<"
+    GREATER_THAN = u">"
+    NEWLINE = u"\n"
+
     class NOT_CACHED:
         "Special value for None because for some properties, None is valid"
 
@@ -283,7 +291,8 @@ class NewDumbXml(object):
 
         for ptr in xrange(self.position + 1, len(self.source)):
             candidate = self.source[ptr]
-            if candidate in ('/', '>') or candidate.isspace():
+            if (candidate in (self.FORWARD_SLASH, self.GREATER_THAN) or
+                    candidate.isspace()):
                 self._tag = self.source[self.position + 1:ptr]
                 return self._tag
         raise DumbXmlSyntaxError(u"Opening tag not closed on line {}".
@@ -298,9 +307,10 @@ class NewDumbXml(object):
         in_quotes = False
         for ptr in xrange(attrib_start_p, len(self.source)):
             candidate = self.source[ptr]
-            if candidate in ('"', "'"):
+            if candidate in (self.SINGLE_QUOTE, self.DOUBLE_QUOTES):
                 in_quotes = not in_quotes
-            if not in_quotes and candidate in ('/', '>'):
+            if not in_quotes and candidate in (self.FORWARD_SLASH,
+                                               self.GREATER_THAN):
                 attrib_end_p = ptr
                 break
         else:
@@ -343,14 +353,15 @@ class NewDumbXml(object):
         candidate = self.source[ptr]
         # Based on how we calculated '_attrib_string', this should either be
         # '/' or '>'
-        if candidate == '/':  # This is a "single-tag", eg '<br />'
+        if candidate == self.FORWARD_SLASH:
+            # This is a "single-tag", eg '<br />'
             self._text_position = None
             start = ptr + 1
             for ptr in xrange(start, len(self.source)):
                 candidate = self.source[ptr]
                 if candidate.isspace():
                     continue
-                elif candidate == '>':
+                elif candidate == self.GREATER_THAN:
                     self._tail_position = ptr + 1
                     return self._text_position
                 else:
@@ -362,7 +373,7 @@ class NewDumbXml(object):
                 u"Opening tag '{}' not closed on line {}".
                 format(self.tag, self._find_line_number())
             )
-        elif candidate == '>':
+        elif candidate == self.GREATER_THAN:
             self._text_position = ptr + 1
             return self._text_position
         else:
@@ -399,7 +410,8 @@ class NewDumbXml(object):
 
         start = self.text_position + len(self.text)
         while True:
-            if self.source[start + 1] == '/':  # We found the closing tag
+            if self.source[start + 1] == self.FORWARD_SLASH:
+                # We found the closing tag
                 self._content_end = start
                 closing_tag = self.source[start + 2: start + 2 + len(self.tag)]
                 if closing_tag != self.tag:
@@ -412,7 +424,7 @@ class NewDumbXml(object):
                     candidate = self.source[ptr]
                     if candidate.isspace():
                         continue
-                    elif candidate == '>':
+                    elif candidate == self.GREATER_THAN:
                         self._tail_position = ptr + 1
                         return
                     else:
@@ -528,7 +540,7 @@ class NewDumbXml(object):
                         self.source[ptr:ptr + len("]]>")] == "]]>"):
                     in_cdata = False
             else:
-                if candidate == "<":
+                if candidate == self.LESS_THAN:
                     # Check against CDATA
                     if self.source[ptr:ptr + len("<![CDATA[")] == "<![CDATA[":
                         in_cdata = True
@@ -556,4 +568,11 @@ class NewDumbXml(object):
 
     def _find_line_number(self, ptr=None):
         ptr = ptr or self.position
-        return self.source[:ptr].count('\n') + 1
+        return self.source[:ptr].count(self.NEWLINE) + 1
+
+
+for symbol in (NewDumbXml.BACKSLASH, NewDumbXml.FORWARD_SLASH,
+               NewDumbXml.SINGLE_QUOTE, NewDumbXml.DOUBLE_QUOTES,
+               NewDumbXml.LESS_THAN, NewDumbXml.GREATER_THAN,
+               NewDumbXml.NEWLINE):
+    assert len(symbol) == 1
