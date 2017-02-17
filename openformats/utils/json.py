@@ -54,10 +54,21 @@ class DumbJson(object):
             >>> assert list(DumbJson('[null]')) == [(None, 2)]
     """
 
+    # Symbols
+    BACKSLASH = u'\\'
+    DOUBLE_QUOTES = u'"'
+    FORWARD_SLASH = u'/'
+    BACKSPACE = u'\b'
+    FORMFEED = u'\f'
+    NEWLINE = u'\n'
+    CARRIAGE_RETURN = u'\r'
+    TAB = u'\t'
+
     def __init__(self, source, start=0):
         self.source = source
         self._end = None
-        starting_symbol, self.start = self._find_next('{[', start)
+        starting_symbol, self.start = self._find_next('{[', start,
+                                                      require_whitespace=True)
         if starting_symbol == '{':
             self.type = dict
         elif starting_symbol == '[':
@@ -77,29 +88,32 @@ class DumbJson(object):
         start = self.start + 1
 
         # Maybe it's an empty dict
-        end, end_p = self._find_next('"}', start)
+        end, end_p = self._find_next([self.DOUBLE_QUOTES, '}'], start,
+                                     require_whitespace=True)
         if end == "}":
             self.end = end_p
             return
 
         while True:
             # Lets find our key
-            _, start_key_quote_p = self._find_next('"', start)
+            _, start_key_quote_p = self._find_next(self.DOUBLE_QUOTES, start,
+                                                   require_whitespace=True)
             key_p = start_key_quote_p + 1
-            _, end_key_quote_p = self._find_next('"', key_p,
+            _, end_key_quote_p = self._find_next(self.DOUBLE_QUOTES, key_p,
                                                  require_whitespace=False)
             key = self.source[key_p:end_key_quote_p]
-            _, colon_p = self._find_next(':', end_key_quote_p + 1)
+            _, colon_p = self._find_next(':', end_key_quote_p + 1,
+                                         require_whitespace=True)
             value_start_string, value_start_computed, value_start_p =\
                 self._process_value(colon_p + 1)
 
             # Our job in each case is to yield something and set 'next_p' to
             # where we should search for our next item
-            if value_start_string == '"':
+            if value_start_string == self.DOUBLE_QUOTES:
                 # We found a string!
                 value_p = value_start_p + 1
                 _, value_end_quote_p = self._find_next(
-                    '"', value_p, require_whitespace=False
+                    self.DOUBLE_QUOTES, value_p, require_whitespace=False
                 )
                 value = self.source[value_p:value_end_quote_p]
                 yield key, key_p, value, value_p
@@ -118,7 +132,9 @@ class DumbJson(object):
                 # Something went wrong
                 raise ValueError("No JSON value could be decoded")
 
-            next_symbol, next_symbol_p = self._find_next(',}', next_p)
+            next_symbol, next_symbol_p = self._find_next(
+                ',}', next_p, require_whitespace=True
+            )
             if next_symbol == ',':
                 start = next_symbol_p + 1
             elif next_symbol == '}':
@@ -144,10 +160,11 @@ class DumbJson(object):
 
             # Our job in each case is to yield something and set 'next_p' to
             # where we should search for our next item
-            if item_start_string == '"':
+            if item_start_string == self.DOUBLE_QUOTES:
                 # We found a string!
                 item_p = item_start_p + 1
-                _, end_item_quote_p = self._find_next('"', item_p,
+                _, end_item_quote_p = self._find_next(self.DOUBLE_QUOTES,
+                                                      item_p,
                                                       require_whitespace=False)
                 item = self.source[item_p:end_item_quote_p]
                 yield item, item_p
@@ -166,7 +183,9 @@ class DumbJson(object):
                 # Something went wrong
                 raise ValueError("No JSON value could be decoded")
 
-            next_symbol, next_symbol_p = self._find_next(',]', next_p)
+            next_symbol, next_symbol_p = self._find_next(
+                ',]', next_p, require_whitespace=True
+            )
             if next_symbol == ',':
                 start = next_symbol_p + 1
             elif next_symbol == ']':
@@ -181,14 +200,14 @@ class DumbJson(object):
             if candidate == '\\':
                 after_backslash = not after_backslash
             if candidate in symbols:
-                if candidate == '"' and after_backslash:
+                if candidate == self.DOUBLE_QUOTES and after_backslash:
                     after_backslash = False
                     continue
                 return candidate, ptr
             if candidate != '\\':
                 after_backslash = False
             if require_whitespace and not candidate.isspace():
-                newline_count = self.source.count('\n', 0, ptr)
+                newline_count = self.source.count(self.NEWLINE, 0, ptr)
                 raise ValueError(
                     u"Was expecting whitespace or one of `{symbols}` on line "
                     u"{line_no}, found `{candidate}` instead".format(
@@ -231,7 +250,7 @@ class DumbJson(object):
         if match:
             spaces, value = match.groups()
             value_start = start + len(spaces)
-            if value in ('{', '[', '"'):
+            if value in ('{', '[', self.DOUBLE_QUOTES):
                 return value, None, value_start
             else:
                 # We either have true/false/null or a number of sorts
@@ -252,3 +271,9 @@ class DumbJson(object):
     @end.setter
     def end(self, value):
         self._end = value
+
+
+for symbol in (DumbJson.BACKSLASH, DumbJson.DOUBLE_QUOTES,
+               DumbJson.FORWARD_SLASH, DumbJson.BACKSPACE, DumbJson.FORMFEED,
+               DumbJson.NEWLINE, DumbJson.CARRIAGE_RETURN, DumbJson.TAB):
+    assert len(symbol) == 1

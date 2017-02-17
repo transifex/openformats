@@ -92,8 +92,9 @@ class JsonHandler(Handler):
 
     @staticmethod
     def _escape_key(key):
-        key = key.replace(u"\\", u"\\\\")
-        key = key.replace(u".", u"\\.")
+        key = key.replace(DumbJson.BACKSLASH,
+                          u''.join([DumbJson.BACKSLASH, DumbJson.BACKSLASH]))
+        key = key.replace(u".", u''.join([DumbJson.BACKSLASH, '.']))
         return key
 
     def compile(self, template, stringset, **kwargs):
@@ -255,20 +256,103 @@ class JsonHandler(Handler):
         except IndexError:
             return None
 
-    @staticmethod
-    def escape(string):
-        escaped_string = string.replace(
-            '\\', r'\\'
-        ).replace(
-            '"', '\\"'
-        ).replace('\n', r'\n').replace('\r', r'\r')
-        return escaped_string
+    @classmethod
+    def escape(cls, string):
+        return u''.join(cls._escape_generator(string))
+        # btw, this seems equivalent to
+        # return json.dumps(string, ensure_ascii=False)[1:-1]
 
     @staticmethod
-    def unescape(string):
-        unescaped_string = string.replace(
-            r'\\', '\\'
-        ).replace(
-            r'\"', '"'
-        ).replace(r'\n', '\n').replace(r'\r', '\r')
-        return unescaped_string
+    def _escape_generator(string):
+        for symbol in string:
+            if symbol == DumbJson.DOUBLE_QUOTES:
+                yield DumbJson.BACKSLASH
+                yield DumbJson.DOUBLE_QUOTES
+            elif symbol == DumbJson.BACKSLASH:
+                yield DumbJson.BACKSLASH
+                yield DumbJson.BACKSLASH
+            elif symbol == DumbJson.BACKSPACE:
+                yield DumbJson.BACKSLASH
+                yield u'b'
+            elif symbol == DumbJson.FORMFEED:
+                yield DumbJson.BACKSLASH
+                yield u'f'
+            elif symbol == DumbJson.NEWLINE:
+                yield DumbJson.BACKSLASH
+                yield u'n'
+            elif symbol == DumbJson.CARRIAGE_RETURN:
+                yield DumbJson.BACKSLASH
+                yield u'r'
+            elif symbol == DumbJson.TAB:
+                yield DumbJson.BACKSLASH
+                yield u't'
+            else:
+                yield symbol
+
+    @classmethod
+    def unescape(cls, string):
+        return u''.join(cls._unescape_generator(string))
+        # btw, this seems equivalent to
+        # return json.loads(u'"{}"'.format(string))
+
+    @staticmethod
+    def _unescape_generator(string):
+        # I don't like this aldschool approach, but we may have to rewind a bit
+        ptr = 0
+        while True:
+            if ptr >= len(string):
+                break
+
+            symbol = string[ptr]
+
+            if symbol != DumbJson.BACKSLASH:
+                yield symbol
+                ptr += 1
+                continue
+
+            try:
+                next_symbol = string[ptr + 1]
+            except IndexError:
+                yield DumbJson.BACKSLASH
+                ptr += 1
+                continue
+
+            if next_symbol in (DumbJson.DOUBLE_QUOTES, DumbJson.FORWARD_SLASH,
+                               DumbJson.BACKSLASH):
+                yield next_symbol
+                ptr += 2
+            elif next_symbol == u'b':
+                yield DumbJson.BACKSPACE
+                ptr += 2
+            elif next_symbol == u'f':
+                yield DumbJson.FORMFEED
+                ptr += 2
+            elif next_symbol == u'n':
+                yield DumbJson.NEWLINE
+                ptr += 2
+            elif next_symbol == u'r':
+                yield DumbJson.CARRIAGE_RETURN
+                ptr += 2
+            elif next_symbol == u't':
+                yield DumbJson.TAB
+                ptr += 2
+            elif next_symbol == u'u':
+                unicode_escaped = string[ptr:ptr + 6]
+                try:
+                    unescaped = unicode_escaped.decode('unicode-escape')
+                except Exception:
+                    yield DumbJson.BACKSLASH
+                    yield u'u'
+                    ptr += 2
+                    continue
+                if len(unescaped) != 1:
+                    yield DumbJson.BACKSLASH
+                    yield u'u'
+                    ptr += 2
+                    continue
+                yield unescaped
+                ptr += 6
+
+            else:
+                yield symbol
+                ptr += 1
