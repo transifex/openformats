@@ -46,7 +46,7 @@ class TxBlockLexer(BlockLexer):
 
     md_stringset = []
 
-    # Overwrite to not drop `>` character from code block
+    # Overwritten to not drop `>` character from quote block
     def parse_block_quote(self, m):
         self.tokens.append({'type': 'block_quote_start'})
         self.tokens.append({'type': 'block_quote_end'})
