@@ -3,143 +3,139 @@ title: el:About writing and formatting on GitHub
 intro: {{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
 ---
 
-el:[Markdown](http://daringfireball.net/projects/markdown/) is an easy-to-read, easy-to-write syntax for formatting plain text.
+# el:Markdown stuff
 
-el:[![Electron Logo](http://electron.atom.io/images/electron-logo.svg)](http://electron.atom.io/)
+## el:Hearders and bold and italic
 
-el:[![Travis Build Status](https://travis-ci.org/electron/electron.svg?branch=master)](https://travis-ci.org/electron/electron)
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/kvxe4byi7jcxbe26/branch/master?svg=true)](https://ci.appveyor.com/project/Atom/electron)
-[![devDependency Status](https://david-dm.org/electron/electron/dev-status.svg)](https://david-dm.org/electron/electron?type=dev)
-[![Join the Electron Community on Slack](http://atom-slack.herokuapp.com/badge.svg)](http://atom-slack.herokuapp.com/)
+el:*This text will be italic* and _This will also be italic_
 
-el::memo: Available Translations: [Korean](https://github.com/electron/electron/tree/master/docs-translations/ko-KR/project/README.md) | [Simplified Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-CN/project/README.md) | [Brazilian Portuguese](https://github.com/electron/electron/tree/master/docs-translations/pt-BR/project/README.md) | [Traditional Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-TW/project/README.md)
+### el:This is an <h3> tag
 
-el:The Electron framework lets you write cross-platform desktop applications
-using JavaScript, HTML and CSS. It is based on [Node.js](https://nodejs.org/) and
-[Chromium](http://www.chromium.org) and is used by the [Atom
-editor](https://github.com/atom/atom) and many other [apps](http://electron.atom.io/apps).
+el:**This text will be bold** and __This will also be bold__
 
-el:Follow [@ElectronJS](https://twitter.com/electronjs) on Twitter for important
-announcements.
+###### el:This is an <h6> tag
 
-el:This project adheres to the Contributor Covenant [code of conduct](CODE_OF_CONDUCT.md).
-By participating, you are expected to uphold this code. Please report unacceptable
-behavior to electron@github.com.
+el:_You **can** combine bold and italic_
 
-{% if page.version == 'dotcom' or page.version == 'cloud' or page.version > 2.5 %}
 
-### el:Text formatting toolbar
+## el:List
 
-el:Every comment field on {{ site.data.variables.product.product_name }} contains a text formatting toolbar, allowing you to format your text without learning Markdown syntax. In addition to Markdown formatting like bold and italic styles and creating headers, links, and lists, the toolbar includes {{ site.data.variables.product.product_name }}-specific features such as @mentions, task lists, and links to issues and pull requests.
+### el:Unordered
 
-el:![Markdown toolbar](/assets/images/help/writing/markdown-toolbar.gif)
+* el:Item 1
+* el:Item 2
+  * el:Item 2a
+  * el:Item 2b
+
+### el:Ordered
+
+1. el:Item 1
+1. el:Item 2
+1. el:Item 3
+   1. el:Item 3a
+   1. el:Item 3b
+
+
+## el:Images
+
+el:![GitHub Logo](/images/logo.png)
+Format: ![Alt Text](url)
+
+
+## el:Links
+
+el:http://github.com - automatic!
+[GitHub](http://github.com)
+
+
+## el:Blockquotes
+
+el:As Kanye West said:
+
+el:> We're living the future so
+> the present is our past.
+
+
+## el:Inline code
+
+el:I think you should use an `<addr>` element here instead.
+
+
+# el:GitHub Flavored Markdown
+
+## el:Syntax highlighting
+
+el:Here's an example of how you can use syntax highlighting with GitHub Flavored Markdown:
+
+el:```javascript
+function fancyAlert(arg) {
+  if(arg) {
+    $.facebox({div:'#foo'})
+  }
+}
+```
+
+el:You can also simply indent your code by four spaces:
+
+el:    function fancyAlert(arg) {
+      if(arg) {
+        $.facebox({div:'#foo'})
+      }
+    }
+
+
+## el:Task lists
+
+- el:[x] @mentions, #refs, [links](), **formatting**, and <del>tags</del> supported
+- el:[x] list syntax required (any unordered or ordered list supported)
+- el:[x] this is a complete item
+- el:[ ] this is an incomplete item
+
+
+## el:Tables
+
+el:First Header | Second Header
+------------ | -------------
+Content from cell 1 | Content from cell 2
+Content in the first column | Content in the second column
+
+
+## el:Strikethrough
+
+el:Any word wrapped with two tildes (like ~~this~~) will appear crossed out.
+
+
+# el:Custom stuff
+
+## el:Liquid template language
+
+el:You can use liquid template syntax in you markdown file.
+
+{% if version <= '2.6' %}
+
+### el:Old version
+
+el:This is a old version of the {{ site.data.variable.product }} documentation.
 
 {% endif %}
 
-### el:What's happening here?
-el:Take a closer look at the `docker-compose.windows.yml` file.
 
-el:```
-version: '3'
-services:
-  db:
-    image: microsoft/mssql-server-windows-express
-    environment:
-      sa_password: "Password1"
-    ports:
-      - "1433:1433" # for debug. Remove this for production
+## el:Whole Lines as link or reference
 
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile.windows
-    environment:
-      - "Data:DefaultConnection:ConnectionString=Server=db,1433;Database=MusicStore;User Id=sa;Password=Password1;MultipleActiveResultSets=True"
-    depends_on:
-      - "db"
-    ports:
-      - "5000:5000"
-
-networks:
-  default:
-    external:
-      name: nat
-```
-
-## el:Downloads
-
-el:To install prebuilt Electron binaries, use
-[`npm`](https://docs.npmjs.com/):
-
-el:```sh
-# Install as a development dependency
-npm install electron --save-dev
-
-# Install the `electron` command globally in your $PATH
-npm install electron -g
-```
-
-el:See the [releases page](https://github.com/electron/electron/releases) for
-prebuilt binaries, debug symbols, and more.
-
-### el:Mirrors
-
-- el:[China](https://npm.taobao.org/mirrors/electron)
-
-## el:Documentation
-
-el:Guides and the API reference are located in the
-[docs](https://github.com/electron/electron/tree/master/docs) directory. It also
-contains documents describing how to build and contribute to Electron.
-
-## el:Documentation Translations
-
-- el:[Brazilian Portuguese](https://github.com/electron/electron/tree/master/docs-translations/pt-BR)
-- el:[Korean](https://github.com/electron/electron/tree/master/docs-translations/ko-KR)
-- el:[Japanese](https://github.com/electron/electron/tree/master/docs-translations/jp)
-- el:[Spanish](https://github.com/electron/electron/tree/master/docs-translations/es)
-- el:[Simplified Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-CN)
-- el:[Traditional Chinese](https://github.com/electron/electron/tree/master/docs-translations/zh-TW)
-- el:[Turkish](https://github.com/electron/electron/tree/master/docs-translations/tr-TR)
-- el:[Thai](https://github.com/electron/electron/tree/master/docs-Translations/th-TH)
-- el:[Ukrainian](https://github.com/electron/electron/tree/master/docs-translations/uk-UA)
-- el:[Russian](https://github.com/electron/electron/tree/master/docs-translations/ru-RU)
-- el:[French](https://github.com/electron/electron/tree/master/docs-translations/fr-FR)
-
-## el:Quick Start
-
-el:Clone and run the [`electron/electron-quick-start`](https://github.com/electron/electron-quick-start)
-repository to see a minimal Electron app in action.
-
-## el:Community
-
-el:You can ask questions and interact with the community in the following
-locations:
-- el:[`electron`](http://discuss.atom.io/c/electron) category on the Atom
-el:forums
-- el:`#atom-shell` channel on Freenode
-- el:[`Atom`](http://atom-slack.herokuapp.com/) channel on Slack
-- el:[`electron-br`](https://electron-br.slack.com) *(Brazilian Portuguese)*
-- el:[`electron-kr`](http://www.meetup.com/electron-kr/) *(Korean)*
-- el:[`electron-jp`](https://electron-jp.slack.com) *(Japanese)*
-- el:[`electron-tr`](http://www.meetup.com/Electron-JS-Istanbul/) *(Turkish)*
-- el:[`electron-id`](https://electron-id.slack.com) *(Indonesia)*
-
-el:Check out [awesome-electron](https://github.com/sindresorhus/awesome-electron)
-for a community maintained list of useful example apps, tools and resources.
-
-
-### el:Further reading
+### el:Whole line as links in as list
 
 - "[el:Basic writing and formatting syntax](/articles/basic-writing-and-formatting-syntax)"
-- "[el:Working with advanced formatting](/articles/working-with-advanced-formatting)"
-- "[el:Mastering Markdown](https://guides.github.com/features/mastering-markdown/)"
-- "[el:Markdown Tutorial](http://markdowntutorial.com/)"
+- [el:Working with advanced formatting](/articles/working-with-advanced-formatting)
 
-## el:License
+### el:Whole line as links
 
-el:[MIT](https://github.com/electron/electron/blob/master/LICENSE)
+el:[MIT](/LICENSE)
+"[GPL](/LICENSE)"
 
-el:When using the Electron or other GitHub logos, be sure to follow the [GitHub logo guidelines](https://github.com/logos).
+### el:Whole line as links
 
+el:This is as reference [link][1].
+
+[1]: http://example.com/
 [el:Reference]: http://example.com/
+"[el:Reference]: http://example.com/"

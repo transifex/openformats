@@ -22,17 +22,21 @@ def string_handle(string):
     if match_header_line:
         return string.replace(match_header_line.group(), '')
 
-    # Extract Text from `"[Text](link)"` lines
-    match_link = re.search(r'^"\[(.+)\]\(.+\)"$', string)
+    # Extract Text from `[Text](link)` or `"[Text](link)"` lines
+    match_link = re.search(r'^"?\[(.+)\]\(.+\)"?$', string)
     if match_link:
         # Get content between brackets
         return match_link.groups()[0]
 
-    # Extract Text from `[Text]: link"` lines
-    match_reference = re.search(r'^\[(.+)\]:.+$', string)
+    # Extract Text from `[Text]: link` or `"[Text]: link"` lines
+    match_reference = re.search(r'^"?\[(.+)\]:.+"?$', string)
     if match_reference:
-        # Get content between brackets
-        return match_reference.groups()[0]
+        try:
+            int(match_reference.groups()[0])
+        except ValueError:
+            # Get content between brackets if it's not an integer number
+            return match_reference.groups()[0]
+        return
 
     return string
 
@@ -40,6 +44,11 @@ def string_handle(string):
 class TxBlockLexer(BlockLexer):
 
     md_stringset = []
+
+    # Overwrite to not drop `>` character from code block
+    def parse_block_quote(self, m):
+        self.tokens.append({'type': 'block_quote_start'})
+        self.tokens.append({'type': 'block_quote_end'})
 
     def parse(self, text, rules=None):
         text = text.rstrip('\n')
@@ -68,7 +77,7 @@ class TxBlockLexer(BlockLexer):
                 # `self.parse` recursively. We don't catch matches for such
                 # methods to avoid getting duplicated parts of the markdown
                 # content in the `self.md_stringset` because of the recursion.
-                parser_rules = ('list_block', 'block_quote', 'def_footnotes')
+                parser_rules = ('list_block', 'def_footnotes')
                 if key and key not in parser_rules:
                     # Grab md string match and put in a md_stringset list.
                     self.md_stringset.append(m.group(0))
