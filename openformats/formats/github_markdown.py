@@ -8,7 +8,8 @@ from ..strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
 
 
-def string_handle(string):
+def string_handler(string):
+    'Extra checks and manipulation of extracted string from markdown file.'
 
     # Drop new lines around string.
     string = string.strip('\n')
@@ -131,7 +132,7 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
 
         order = 0
         for string in (yaml_stringset + block.md_stringset):
-            string = string_handle(string)
+            string = string_handler(string)
             if string:
                 string_object = OpenString(str(order), string, order=order)
                 order += 1
