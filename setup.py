@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     'polib==1.0.3',
+    'mistune==0.7.3'
 ]
 
 tests_require = [
