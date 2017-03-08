@@ -92,7 +92,7 @@ class TxBlockLexer(BlockLexer):
 
 
 class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
-    name = "Github Markdown"
+    name = "Github_Markdown"
     extension = "md"
 
     # Translatable YAML header attributes
