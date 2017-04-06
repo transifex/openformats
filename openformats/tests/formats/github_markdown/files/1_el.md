@@ -94,10 +94,10 @@ el:    function fancyAlert(arg) {
 
 ## el:Tables
 
-el:First Header | Second Header
+el:First Header | el:Second Header
 ------------ | -------------
-Content from cell 1 | Content from cell 2
-Content in the first column | Content in the second column
+el:Content from cell 1 | el:Content from cell 2
+el:Content in the first column | el:Content in the second column
 
 
 ## el:Strikethrough

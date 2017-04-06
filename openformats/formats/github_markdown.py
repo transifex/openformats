@@ -79,7 +79,16 @@ class TxBlockLexer(BlockLexer):
                 # methods to avoid getting duplicated parts of the markdown
                 # content in the `self.md_stringset` because of the recursion.
                 parser_rules = ('list_block', 'def_footnotes')
-                if key and key not in parser_rules:
+                table_rules = ('table', 'nptable')
+                if key and key in table_rules:
+                    table_token = self.tokens[-1]
+                    keys = table_token.keys()
+                    if 'header' in keys and 'cells' in keys:
+                        self.md_stringset.extend(table_token['header'])
+                        self.md_stringset.extend(
+                            [cell for row in table_token['cells'] for cell in row]
+                        )
+                elif key and key not in parser_rules:
                     # Grab md string match and put in a md_stringset list.
                     self.md_stringset.append(m.group(0))
 

@@ -81,44 +81,47 @@ bc3bd100ff8a56464a05d8f7f8bb7a6d_tr
 
 ## 48d1f08b2408fe8a97fa0bc36b7c4400_tr
 
-3c951e08898efd90188c74084373af08_tr
+3c951e08898efd90188c74084373af08_tr | ef70b397e869e6fd08714e2f9edd3f8c_tr
+------------ | -------------
+0dcd35bbb040482717ba0d8763cf24f0_tr | 4d22974b0d27df9918a8b922d921587c_tr
+5eb74b106793ebcd6eeee358aa4d25ac_tr | 72e17437d94b8aaaa7ca9ff670fb2c42_tr
 
 
-## ef70b397e869e6fd08714e2f9edd3f8c_tr
+## 4f95c94d8503a15557174036f4f7947a_tr
 
-0dcd35bbb040482717ba0d8763cf24f0_tr
+6cb8da4ccdafbed92fd1c4b5888091f9_tr
 
 
-# 4d22974b0d27df9918a8b922d921587c_tr
+# 0b912bd88f2f0678a52616328ed01a63_tr
 
-## 5eb74b106793ebcd6eeee358aa4d25ac_tr
+## f093e61658553bbd86214bffe9a663a8_tr
 
-72e17437d94b8aaaa7ca9ff670fb2c42_tr
+d8a4fb88944aeb2b305e4e94e9d18283_tr
 
 {% if version <= '2.6' %}
 
-### 4f95c94d8503a15557174036f4f7947a_tr
+### 78e10a5ea41eae9ea05dc265a5c8cd66_tr
 
-6cb8da4ccdafbed92fd1c4b5888091f9_tr
+d6c6d7c6ae13b3b656339b51dbeb85ff_tr
 
 {% endif %}
 
 
-## 0b912bd88f2f0678a52616328ed01a63_tr
-
-### f093e61658553bbd86214bffe9a663a8_tr
-
-- "[d8a4fb88944aeb2b305e4e94e9d18283_tr](/articles/basic-writing-and-formatting-syntax)"
-- [78e10a5ea41eae9ea05dc265a5c8cd66_tr](/articles/working-with-advanced-formatting)
-
-### d6c6d7c6ae13b3b656339b51dbeb85ff_tr
-
-9441c042cb0b839e13ed95f55de0ee5c_tr
+## 9441c042cb0b839e13ed95f55de0ee5c_tr
 
 ### a4ad6fda3cab93ac6479a0c30dd96b0c_tr
 
-257f3f448e7ac5f2fe13b374496309f6_tr
+- "[257f3f448e7ac5f2fe13b374496309f6_tr](/articles/basic-writing-and-formatting-syntax)"
+- [38d12337337477ece3edbf687c60f45b_tr](/articles/working-with-advanced-formatting)
+
+### 39a9c02a305227b4f9c62bc3d839500c_tr
+
+00ccddea80e2b57095f5c536410069b5_tr
+
+### f592797318508cb692be49a04b5fe0a3_tr
+
+1958a4139b0dc6d506cfe08e1553199d_tr
 
 [1]: http://example.com/
-[38d12337337477ece3edbf687c60f45b_tr]: http://example.com/
-"[39a9c02a305227b4f9c62bc3d839500c_tr]: http://example.com/"
+[8228238dcd753647ede755c671c9988b_tr]: http://example.com/
+"[fd90f0cdc5f649dd84d4e21ff33b5774_tr]: http://example.com/"
