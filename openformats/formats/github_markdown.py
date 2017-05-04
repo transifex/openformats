@@ -8,11 +8,25 @@ from ..strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
 
 
-def string_handler(string):
+def string_handler(token, template):
     'Extra checks and manipulation of extracted string from markdown file.'
 
     # Drop new lines around string.
+    string, key = token
     string = string.strip('\n')
+
+    # block code
+    if key == 'block_code':
+        lines = string.split('\n')
+        line = lines[0].strip()
+        string = ''
+        spaces = re.findall(r'\n( +){}'.format(re.escape(line)), template)[0]
+        if spaces:
+            for l in lines:
+                l = l.lstrip()
+                l = '{}{}'.format(spaces, l)
+                string += '\n'
+                string += l
 
     # Line is a liquid template tag, ignore.
     if string.startswith('{%') and string.endswith('%}'):
@@ -84,13 +98,13 @@ class TxBlockLexer(BlockLexer):
                     table_token = self.tokens[-1]
                     keys = table_token.keys()
                     if 'header' in keys and 'cells' in keys:
-                        self.md_stringset.extend(table_token['header'])
+                        self.md_stringset.extend([(h, 'header') for h in table_token['header']])
                         self.md_stringset.extend(
-                            [cell for row in table_token['cells'] for cell in row]
+                            [(cell, 'cell') for row in table_token['cells'] for cell in row]
                         )
                 elif key and key not in parser_rules:
                     # Grab md string match and put in a md_stringset list.
-                    self.md_stringset.append(m.group(0))
+                    self.md_stringset.append((m.group(0), key))
 
                 text = text[len(m.group(0)):]
                 continue
@@ -141,7 +155,7 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
 
         order = 0
         for string in (yaml_stringset + block.md_stringset):
-            string = string_handler(string)
+            string = string_handler(string, template)
             if string:
                 string_object = OpenString(str(order), string, order=order)
                 order += 1
