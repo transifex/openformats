@@ -18,12 +18,11 @@ def string_handler(token, template):
     # block code
     if key == 'block_code':
         lines = string.split('\n')
-        line = lines[0].strip()
-        string = ''
-        spaces = re.findall(r'\n( +){}'.format(re.escape(line)), template)[0]
+        line = lines[0]
+        spaces = re.findall(r'\n( *){}'.format(re.escape(line)), template)[0]
         if spaces:
+            string = ''
             for l in lines:
-                l = l.lstrip()
                 l = '{}{}'.format(spaces, l)
                 string += '\n'
                 string += l
@@ -126,7 +125,7 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         for line in yaml_header.splitlines():
             key_value = line.split(':', 1)
             if len(key_value) == 2 and key_value[0].lower() in self.YAML_ATTR:
-                yaml_strings.append(key_value[1].strip())
+                yaml_strings.append((key_value[1].strip(), None))
         return yaml_strings
 
     def parse(self, content, **kwargs):
