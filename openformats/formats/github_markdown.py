@@ -97,9 +97,11 @@ class TxBlockLexer(BlockLexer):
                     table_token = self.tokens[-1]
                     keys = table_token.keys()
                     if 'header' in keys and 'cells' in keys:
-                        self.md_stringset.extend([(h, 'header') for h in table_token['header']])
                         self.md_stringset.extend(
-                            [(cell, 'cell') for row in table_token['cells'] for cell in row]
+                            [(h, 'header') for h in table_token['header']])
+                        self.md_stringset.extend(
+                            [(cell, 'cell') for row in table_token['cells']
+                                for cell in row]
                         )
                 elif key and key not in parser_rules:
                     # Grab md string match and put in a md_stringset list.
@@ -121,11 +123,31 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
     YAML_ATTR = (u'title', u'description')
 
     def yaml_parser(self, yaml_header):
+        # TODO: This is a temporary solution. Yaml header should be parsed
+        # with an actual yaml parser when it is implemented in openformats
         yaml_strings = []
+        block = False
+        block_string = ''
+        indent = 0
         for line in yaml_header.splitlines():
+            if block:
+                # at least 2 spaces more indented that the parent line
+                if line.startswith(' ' * (indent + 2)):
+                    block_string += line
+                    block_string += '\n'
+                    continue
+                else:
+                    yaml_strings.append((block_string, None))
+                    block_string = ''
+                    block = False
             key_value = line.split(':', 1)
-            if len(key_value) == 2 and key_value[0].lower() in self.YAML_ATTR:
-                yaml_strings.append((key_value[1].strip(), None))
+            if len(key_value) == 2:
+                value = key_value[1].strip()
+                if value and value in '|>':
+                    indent = len(re.search(r'^( *)', key_value[0]).group(0))
+                    block = True
+                    continue
+                yaml_strings.append((value, None))
         return yaml_strings
 
     def parse(self, content, **kwargs):
