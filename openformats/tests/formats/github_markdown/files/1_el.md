@@ -1,6 +1,16 @@
 ---
 title: el:About writing and formatting on GitHub
-intro: {{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
+intro: el:{{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
+description: >
+el:  Hello
+  world
+custom_vars:
+  var1: el:some value
+  var2: |
+el:    another
+    multiline
+    string with
+    "quotes and :"
 ---
 
 # el:Markdown stuff
@@ -82,6 +92,17 @@ el:    function fancyAlert(arg) {
         $.facebox({div:'#foo'})
       }
     }
+
+
+# el:Code block inside a list
+- el:List item  1
+- el:List item 2
+el:
+      function fancyAlert(arg) {
+        if(arg) {
+          $.facebox({div:'#foo'})
+        }
+      }
 
 
 ## el:Task lists
