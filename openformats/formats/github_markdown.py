@@ -9,13 +9,25 @@ from ..utils.compilers import OrderedCompilerMixin
 
 
 def string_handler(token, template):
-    'Extra checks and manipulation of extracted string from markdown file.'
+    """
+    Extra checks and manipulation of extracted string from markdown file.
+    Parameters:
+    token: Tuple of (string, string_type) where string_type refers to the
+           type of markdown element this string belongs to. string_type
+           can be None.
+    template: the template of the resource
+
+    returns: the manipulated string or None in case the manipulated string
+             is not valid anymore e.g. empty string
+    """
 
     # Drop new lines around string.
     string, key = token
     string = string.strip('\n')
 
-    # block code
+    # for code blocks we need to maintain the exact indentation as in
+    # the source file both for matching the string and replacing it in the
+    # template and for producing a valid markdown on compilation
     if key == 'block_code':
         lines = string.split('\n')
         line = lines[0]
@@ -143,6 +155,9 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
             key_value = line.split(':', 1)
             if len(key_value) == 2:
                 value = key_value[1].strip()
+                # we parse all the lines that follow the '|' or '>' symbols
+                # and are at least 2 spaces more intented that the parent line
+                # as one string
                 if value and value in '|>':
                     indent = len(re.search(r'^( *)', key_value[0]).group(0))
                     block = True
