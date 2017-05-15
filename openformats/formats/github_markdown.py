@@ -149,6 +149,9 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         block_string = ''
         indent = 0
         for line in yaml_header.splitlines():
+            # ignore comments
+            if line.startswith('#'):
+                continue
             if block:
                 # at least 2 spaces more indented that the parent line
                 if line.startswith(' ' * (indent + 2)):
