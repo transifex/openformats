@@ -190,13 +190,17 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         markdown(md_content)
 
         order = 0
+        curr_pos = 0
         for string in (yaml_stringset + block.md_stringset):
             string = string_handler(string, template)
             if string:
                 string_object = OpenString(str(order), string, order=order)
                 order += 1
                 stringset.append(string_object)
-                template = template.replace(
+                # Keep track of the index of the last replaced hash
+                template = template[:curr_pos] + template[curr_pos:].replace(
                     string, string_object.template_replacement, 1
                 )
+                curr_pos = template.find(string_object.template_replacement)
+                curr_pos = curr_pos + len(string_object.template_replacement)
         return template, stringset
