@@ -1,6 +1,8 @@
 ---
 title: el:About writing and formatting on GitHub
 intro: el:{{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
+numeric_var: 12.5
+# one comment
 description: >
 el:  Hello
   world

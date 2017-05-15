@@ -1,6 +1,8 @@
 ---
 title: 9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr
 intro: 3afcdbfeb6ecfbdd0ba628696e3cc163_tr
+numeric_var: 12.5
+# one comment
 description: >
 247730f9d0d2eaad265a470e32aa0cdf_tr
 custom_vars:
