@@ -64,6 +64,13 @@ def string_handler(token, template):
             return match_reference.groups()[0]
         return
 
+    # exclude numeric values from stringset
+    try:
+        float(string)
+        return
+    except ValueError:
+        pass
+
     return string
 
 
@@ -158,7 +165,7 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
                 # we parse all the lines that follow the '|' or '>' symbols
                 # and are at least 2 spaces more intented that the parent line
                 # as one string
-                if value and value in '|>':
+                if value and value in '|>[':
                     indent = len(re.search(r'^( *)', key_value[0]).group(0))
                     block = True
                     continue
