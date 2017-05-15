@@ -170,7 +170,8 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         template = content
         stringset = []
 
-        yml_header = re.match(r'^(-+)\s*([\s\S]*?[^`])\s*\1(?!-)', content)
+        yml_header = re.match(r'^(---\s+)([\s\S]*?[^`])\s*(\n---\s+)(?!-)',
+                              content)
         yaml_header_content = ''
         yaml_stringset = []
         if yml_header:
