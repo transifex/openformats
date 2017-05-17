@@ -85,6 +85,8 @@ class TxBlockLexer(BlockLexer):
 
     def parse(self, text, rules=None):
         text = text.rstrip('\n')
+        parser_rules = ('list_block', 'def_footnotes')
+        table_rules = ('table', 'nptable')
 
         if not rules:
             rules = self.default_rules
@@ -110,8 +112,6 @@ class TxBlockLexer(BlockLexer):
                 # `self.parse` recursively. We don't catch matches for such
                 # methods to avoid getting duplicated parts of the markdown
                 # content in the `self.md_stringset` because of the recursion.
-                parser_rules = ('list_block', 'def_footnotes')
-                table_rules = ('table', 'nptable')
                 if key and key in table_rules:
                     table_token = self.tokens[-1]
                     keys = table_token.keys()
