@@ -1,6 +1,18 @@
 ---
 title: el:About writing and formatting on GitHub
-intro: {{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
+intro: el:{{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
+numeric_var: 12.5
+# one comment
+description: >
+el:  Hello
+  world
+custom_vars:
+  var1: el:some value
+  var2: |
+el:    another
+    multiline
+    string with
+    "quotes and :"
 ---
 
 # el:Markdown stuff
@@ -84,6 +96,17 @@ el:    function fancyAlert(arg) {
     }
 
 
+# el:Code block inside a list
+- el:List item  1
+- el:List item 2
+el:
+      function fancyAlert(arg) {
+        if(arg) {
+          $.facebox({div:'#foo'})
+        }
+      }
+
+
 ## el:Task lists
 
 - el:[x] @mentions, #refs, [links](), **formatting**, and <del>tags</del> supported
@@ -94,10 +117,10 @@ el:    function fancyAlert(arg) {
 
 ## el:Tables
 
-el:First Header | Second Header
+el:First Header | el:Second Header
 ------------ | -------------
-Content from cell 1 | Content from cell 2
-Content in the first column | Content in the second column
+el:Content from cell 1 | el:Content from cell 2
+el:Content in the first column | el:Content in the second column
 
 
 ## el:Strikethrough

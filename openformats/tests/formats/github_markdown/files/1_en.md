@@ -1,6 +1,18 @@
 ---
 title: About writing and formatting on GitHub
 intro: {{ site.data.guides.dotcom-writing-on-github.shortdesc.about-writing-and-formatting-on-github }}
+numeric_var: 12.5
+# one comment
+description: >
+  Hello
+  world
+custom_vars:
+  var1: some value
+  var2: |
+    another
+    multiline
+    string with
+    "quotes and :"
 ---
 
 # Markdown stuff
@@ -82,6 +94,17 @@ You can also simply indent your code by four spaces:
         $.facebox({div:'#foo'})
       }
     }
+
+
+# Code block inside a list
+- List item  1
+- List item 2
+
+      function fancyAlert(arg) {
+        if(arg) {
+          $.facebox({div:'#foo'})
+        }
+      }
 
 
 ## Task lists
