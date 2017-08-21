@@ -177,7 +177,11 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
 
     def parse(self, content, **kwargs):
 
-        template = content
+        # mistune expands tabs to 4 spaces and trims trailing spaces, so we
+        # need to do the same in order to be able to match the substrings
+        template = content.expandtabs(4)
+        pattern = re.compile(r'^ +$', re.M)
+        template = pattern.sub('', template)
         stringset = []
 
         yml_header = re.match(r'^(---\s+)([\s\S]*?[^`])\s*(\n---\s+)(?!-)',
