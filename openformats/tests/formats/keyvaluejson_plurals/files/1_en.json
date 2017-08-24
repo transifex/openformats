@@ -1,0 +1,5 @@
+{
+  "singular_key": "This is not a pluralized string.",
+
+  "plural_key": "{ item_count, plural, one { You have {file_count} file. } other { You have {file_count} files. } }"
+}
