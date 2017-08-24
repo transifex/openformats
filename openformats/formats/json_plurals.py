@@ -66,7 +66,10 @@ class JsonPluralsHandler(Handler):
                     if not value.strip():
                         continue
 
-                    openstring = self._parse_special(key, value)
+                    openstring = self._parse_special(
+                        key, key_position, value, value_position
+                    )
+
                     if openstring:
                         self.stringset.append(openstring)
 
@@ -104,7 +107,7 @@ class JsonPluralsHandler(Handler):
         else:
             raise ParseError("Invalid JSON")
 
-    def _parse_special(self, key, value):
+    def _parse_special(self, key, key_position, value, value_position):
         """
         Parse a string that follows a subset of the the ICU message format
         and return a list of OpenString objects.
@@ -132,12 +135,14 @@ class JsonPluralsHandler(Handler):
 
         if argument == self.PLURAL_ARG:
             return self._parse_pluralized_string(
-                key, keyword, serialized_strings
+                key, key_position, keyword, value, value_position,
+                serialized_strings
             )
 
         return None
 
-    def _parse_pluralized_string(self, key, keyword, serialized_strings):
+    def _parse_pluralized_string(self, key, key_position, keyword,
+                                 value, value_position, serialized_strings):
         """
         Parse `serialized_strings` in order to find and return all included
         pluralized strings.
@@ -181,6 +186,11 @@ class JsonPluralsHandler(Handler):
         }
 
         openstring = OpenString(key, all_strings_dict, order=next(self._order))
+
+        self.transcriber.copy_until(value_position)
+        self.transcriber.add(openstring.template_replacement)
+        self.transcriber.skip(len(value))
+
         return openstring
 
     @staticmethod
