@@ -22,9 +22,6 @@ class JsonPluralsHandler(Handler):
     MESSAGE_FORMAT_STRUCTURE = re.compile(
         ur'{\s*([A-Za-z-_\d]+),\s*([A-Za-z_]+)\s*,\s*(.*)}'
     )
-    MESSAGE_FORMAT_PLURAL_ITEM_CONTENT = re.compile(
-        ur'{(.*)}'
-    )
     PLURAL_ARG = 'plural'
     PLURAL_KEYS_STR = ' '.join(Handler._RULES_ATOI.keys())
 
@@ -69,8 +66,9 @@ class JsonPluralsHandler(Handler):
                     if not value.strip():
                         continue
 
-                    if self._parse_special(key, value):
-                        pass
+                    openstring = self._parse_special(key, value)
+                    if openstring:
+                        self.stringset.append(openstring)
 
                     else:
                         openstring = OpenString(key, value,
@@ -105,6 +103,96 @@ class JsonPluralsHandler(Handler):
                     pass
         else:
             raise ParseError("Invalid JSON")
+
+    def _parse_special(self, key, value):
+        """
+        Parse a string that follows a subset of the the ICU message format
+        and return a list of OpenString objects.
+
+        For the time being, only the plurals format is supported.
+        If `value` doesn't match the proper format, it will return None.
+
+        Note: if we want to support more ICU features in the future,
+        this would probably have to be refactored.
+
+        :param key: the string key
+        :param value: the serialized string that has all the content,
+            formatted like this (whitespace irrelevant):
+            { item_count, plural,
+                one { You have {file_count} file. }
+                other { You have {file_count} files. }
+            }
+        :return: a list of OpenString elements or None
+        """
+        matches = self.MESSAGE_FORMAT_STRUCTURE.match(value)
+        if not matches:
+            return None
+
+        keyword, argument, serialized_strings = matches.groups()
+
+        if argument == self.PLURAL_ARG:
+            return self._parse_pluralized_string(
+                key, keyword, serialized_strings
+            )
+
+        return None
+
+    def _parse_pluralized_string(self, key, keyword, serialized_strings):
+        """
+        Parse `serialized_strings` in order to find and return all included
+        pluralized strings.
+
+        :param key: the string key
+        :param keyword: the message key, e.g. `item_count` in:
+            '{ item_count, plural, one { {cnt} tip } other { {cnt} tips } }'
+        :param serialized_strings: the plurals in the form of multiple
+            occurrences of the following (whitespace irrelevant):
+            '<plurality_rule_str> { <content> }',
+            e.g. 'one { I ate {count} apple. } other { I ate {count} apples. }'
+        :return: A pluralized OpenString instance or None
+        """
+        # Each item should be like '<plurality_rule_str> { <content> }'
+        # Nested braces ({}) inside <content> are allowed.
+        plural_item = (
+            pyparsing.oneOf(self.PLURAL_KEYS_STR) +
+            pyparsing.nestedExpr('{', '}')
+        )
+
+        # Create a list of serialized plural items, e.g.:
+        # ['one { I ate {count} apple. }']
+        matches = pyparsing.originalTextFor(
+            plural_item
+        ).searchString(
+            serialized_strings
+        )
+
+        # Create a list of tuples [(plurality_str, content_with_braces)]
+        all_strings_list = [
+            JsonPluralsHandler._parse_plural_content(match[0])
+            for match in matches
+        ]
+
+        # Convert it to a dict like { 'one': '{...}', 'other': '{...}' }
+        # And then to a dict like { 1: '...', 5: '...' }
+        all_strings_dict = dict(all_strings_list)
+        all_strings_dict = {
+            Handler.get_rule_number(plurality_str): content[1:-1]
+            for plurality_str, content in all_strings_dict.iteritems()
+        }
+
+        openstring = OpenString(key, all_strings_dict, order=next(self._order))
+        return openstring
+
+    @staticmethod
+    def _parse_plural_content(string):
+        # Find the content inside the brackets
+        opening_brace_index = string.index('{')
+        content = string[opening_brace_index:]
+
+        # Find the plurality type (zero, one, etc)
+        plurality = string[:opening_brace_index].strip()
+
+        return plurality, content
 
     @staticmethod
     def _escape_key(key):
@@ -265,69 +353,6 @@ class JsonPluralsHandler(Handler):
             break
 
         return compiled
-
-    def _parse_special(self, key, value):
-        matches = self.MESSAGE_FORMAT_STRUCTURE.match(value)
-        if not matches:
-            return None
-
-        keyword, argument, serialized_strings = matches.groups()
-
-        if argument == self.PLURAL_ARG:
-            return self._parse_plurals(key, keyword, serialized_strings)
-
-    def _parse_plurals(self, key, keyword, serialized_strings):
-        """
-        Parse `serialized_strings` in order to find and return all included
-        pluralized strings.
-
-        :param key: the string key
-        :param keyword: the message key, e.g. `item_count` in:
-            '{ item_count, plural, one { {cnt} tip } other { {cnt} tips } }'
-        :param serialized_strings: the plurals in the form of multiple
-            occurrences of:
-            '(zero|one|few|many|other) { <content> }', e.g.
-             'one { I have {count} apple. } other { I have {count} apples. }'
-        :return:
-        """
-        # Each item should be like '(zero|one|few|many|other) { <content> }'
-        # with nested braces ({}) inside <content>.
-        plural_item = (
-            pyparsing.oneOf(self.PLURAL_KEYS_STR) +
-            pyparsing.nestedExpr('{', '}')
-        )
-
-        # Create a list of plural items
-        matches = pyparsing.originalTextFor(
-            plural_item
-        ).searchString(
-            serialized_strings
-        )
-
-        # Create a list of tuples [(plurality_str, content)]
-        all_strings_list = [
-            JsonPluralsHandler._parse_plural_content(match[0])
-            for match in matches
-        ]
-
-        # Convert it to a dict like { 'one': '...', 'other': '...' }
-        # And then to a dict like { 1: '...', 5: '...' }
-        all_strings_dict = dict(all_strings_list)
-        all_strings_dict = {
-            Handler.get_rule_number(plurality_str): content
-            for plurality_str, content in all_strings_dict.iteritems()
-        }
-
-    @staticmethod
-    def _parse_plural_content(string):
-        # Find the content inside the brackets
-        opening_brace_index = string.index('{')
-        content = string[opening_brace_index:]
-
-        # Find the plurality type (zero, one, etc)
-        plurality = string[:opening_brace_index].strip()
-
-        return plurality, content
 
     def _get_next_string(self):
         try:
