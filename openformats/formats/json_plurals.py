@@ -284,32 +284,33 @@ class JsonPluralsHandler(Handler):
                 string = self._get_next_string()
 
                 string_exists = string is not None
+                templ_replacement = string.template_replacement
 
                 if string_exists and string.pluralized \
-                        and string.template_replacement in value:
+                        and templ_replacement in value:
                     at_least_one = True
-                    replacement_pos = value.find(string.template_replacement)
-                    if is_real_stringset:
-                        plural_list = [
-                            '{} {{{}}}'.format(
-                                Handler.get_rule_string(rule),
-                                translation
-                            )
-                            for rule, translation in string.string.iteritems()
-                        ]
-                        replacement = ' '.join(plural_list)
-                    else:
-                        replacement = string.string[5]
+                    replacement_pos = value.find(templ_replacement)
 
-                    self.transcriber.copy_until(value_position + replacement_pos)
+                    if is_real_stringset:
+                        replacement = \
+                            JsonPluralsHandler.serialize_pluralized_string(
+                                string, delimiter=' '
+                            )
+                    else:
+                        replacement = templ_replacement
+
+                    self.transcriber.copy_until(
+                        value_position + replacement_pos
+                    )
                     self.transcriber.add(replacement)
 
-                    self.transcriber.skip(len(string.template_replacement))
-                    self.transcriber.copy(len(value) - replacement_pos
-                                          - len( string.template_replacement))
+                    self.transcriber.skip(len(templ_replacement))
+                    self.transcriber.copy(
+                        len(value) - replacement_pos - len(templ_replacement)
+                    )
                     self.stringset_index += 1
 
-                elif (string_exists and value == string.template_replacement):
+                elif (string_exists and value == templ_replacement):
                     at_least_one = True
                     self.transcriber.copy_until(value_position)
                     self.transcriber.add(string.string)
@@ -320,18 +321,22 @@ class JsonPluralsHandler(Handler):
                                                 len(value) + 1)
                     self.transcriber.mark_section_end()
                     self.transcriber.remove_section()
+
             elif isinstance(value, DumbJson):
                 all_removed = self._intract(value, is_real_stringset)
+
                 if all_removed:
                     self.transcriber.copy_until(value.end + 1)
                     self.transcriber.mark_section_end()
                     self.transcriber.remove_section()
                 else:
                     at_least_one = True
+
             else:
                 # 'value' is a python value allowed by JSON (integer,
                 # boolean, null), skip it
                 at_least_one = True
+
         return not at_least_one
 
     def _intract_list(self, parsed, is_real_stringset):
@@ -420,6 +425,32 @@ class JsonPluralsHandler(Handler):
             return self.stringset[self.stringset_index]
         except IndexError:
             return None
+
+    @classmethod
+    def serialize_pluralized_string(cls, pluralized_string, delimiter=' '):
+        """
+        Serialize the given pluralized_string into a suitable format
+        for adding it to the document in the compilation phase.
+
+        This essentially concatenates the plural rule strings and translations
+        for each rule into one string.
+
+        For example:
+        ' ' delimiter => 'one { {cnt} chip. } other { {cnt} chips. }'
+        '\n' delimiter => 'one { {cnt} chip. }\nother { {cnt} chips. }'
+
+        :param pluralized_string: an OpenString that is pluralized
+        :param delimiter: a string to use for separating entries
+        :return: a string
+        """
+        plural_list = [
+            '{} {{{}}}'.format(
+                Handler.get_rule_string(rule),
+                translation
+            )
+            for rule, translation in pluralized_string.string.iteritems()
+        ]
+        return delimiter.join(plural_list)
 
     @classmethod
     def escape(cls, string):
