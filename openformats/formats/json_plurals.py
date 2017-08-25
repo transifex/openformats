@@ -179,25 +179,41 @@ class JsonPluralsHandler(Handler):
             e.g. 'one { I ate {count} apple. } other { I ate {count} apples. }'
         :return: A pluralized OpenString instance or None
         """
-        # Each item should be like '<plurality_rule_str> { <content> }'
+        # Each item should be like '<proper_plurality_rule_str> {<content>}'
         # Nested braces ({}) inside <content> are allowed.
-        plural_item = (
+        valid_plural_item = (
             pyparsing.oneOf(self.PLURAL_KEYS_STR) +
             pyparsing.nestedExpr('{', '}')
         )
 
-        # Create a list of serialized plural items, e.g.:
-        # ['one { I ate {count} apple. }']
-        matches = pyparsing.originalTextFor(
-            plural_item
-        ).searchString(
+        # We need to make sure that the plural rules are valid.
+        # Therefore, we also match any <alphanumeric> {<content>} string
+        # and see if there are differences compared to the valid results
+        # we got above.
+        any_plural_item = (
+            pyparsing.Word(pyparsing.alphanums) +
+            pyparsing.nestedExpr('{', '}')
+        )
+        all_matches = pyparsing.originalTextFor(any_plural_item).searchString(
             serialized_strings
         )
+
+        # Create a list of serialized plural items, e.g.:
+        # ['one { I ate {count} apple. }']
+        valid_matches = pyparsing.originalTextFor(valid_plural_item)\
+            .searchString(serialized_strings)
+
+        # Make sure the plurality rules are valid
+        # If not, an error will be raised
+        if len(valid_matches) != len(all_matches):
+            self._handle_invalid_plural_format(
+                serialized_strings, any_plural_item, key, value
+            )
 
         # Create a list of tuples [(plurality_str, content_with_braces)]
         all_strings_list = [
             JsonPluralsHandler._parse_plural_content(match[0])
-            for match in matches
+            for match in valid_matches
         ]
 
         # Convert it to a dict like { 'one': '{...}', 'other': '{...}' }
@@ -236,6 +252,33 @@ class JsonPluralsHandler(Handler):
         self.transcriber.skip(len(string_to_replace))
 
         return openstring
+
+    def _handle_invalid_plural_format(self, serialized_strings,
+                                      any_plural_item, key, value):
+        """
+        Raise a descriptive ParseError exception when the serialized
+        translation string of a plural string is not properly formatted.
+
+        :param serialized_strings:
+        :param any_plural_item: a forgiving pyparsing element that matches all
+            strings formatted like '<alphanumeric> {...}'
+        """
+        all_matches = any_plural_item.searchString(serialized_strings)
+        all_keys = [match[0] for match in all_matches]
+
+        invalid_rules = [
+            rule for rule in all_keys
+            if rule not in Handler._RULES_ATOI.keys()
+        ]
+        raise ParseError(
+            'Invalid plural rule(s): {} in pluralized entry '
+            'with key: {}, value: "{}". '
+            'Allowed values are: {}'.format(
+                ', '.join(invalid_rules),
+                key, value,
+                ', '.join(Handler._RULES_ATOI.keys())
+            )
+        )
 
     @staticmethod
     def _parse_plural_content(string):
