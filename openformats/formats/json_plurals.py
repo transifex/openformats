@@ -66,25 +66,27 @@ class JsonPluralsHandler(Handler):
                     if not value.strip():
                         continue
 
+                    # First attempt to parse this as a special node,
+                    # e.g. a pluralized string.
+                    # If it cannot be parsed that way (returns None),
+                    # parse it like a regular string.
                     openstring = self._parse_special(
-                        key, key_position, value, value_position
+                        key, value, value_position
                     )
+                    if not openstring:
+                        openstring = self._get_regular_string(
+                            key, value, value_position
+                        )
 
-                    if openstring:
-                        self.stringset.append(openstring)
+                    self.stringset.append(openstring)
 
-                    else:
-                        openstring = OpenString(key, value,
-                                                order=next(self._order))
-                        self.transcriber.copy_until(value_position)
-                        self.transcriber.add(openstring.template_replacement)
-                        self.transcriber.skip(len(value))
-                        self.stringset.append(openstring)
                 elif isinstance(value, DumbJson):
                     self._extract(value, key)
+
                 else:
                     # Ignore other JSON types (bools, nulls, numbers)
                     pass
+
         elif parsed.type == list:
             for index, (item, item_position) in enumerate(parsed):
                 if nest is None:
@@ -94,11 +96,15 @@ class JsonPluralsHandler(Handler):
                 if isinstance(item, (str, unicode)):
                     if not item.strip():
                         continue
-                    openstring = OpenString(key, item, order=next(self._order))
-                    self.transcriber.copy_until(item_position)
-                    self.transcriber.add(openstring.template_replacement)
-                    self.transcriber.skip(len(item))
+
+                    openstring = self._parse_special(key, item, item_position)
+                    if not openstring:
+                        openstring = self._get_regular_string(
+                            key, item, item_position
+                        )
+                    
                     self.stringset.append(openstring)
+
                 elif isinstance(item, DumbJson):
                     self._extract(item, key)
                 else:
@@ -107,13 +113,14 @@ class JsonPluralsHandler(Handler):
         else:
             raise ParseError("Invalid JSON")
 
-    def _parse_special(self, key, key_position, value, value_position):
+    def _parse_special(self, key, value, value_position):
         """
         Parse a string that follows a subset of the the ICU message format
-        and return a list of OpenString objects.
+        and return an OpenString object.
 
         For the time being, only the plurals format is supported.
         If `value` doesn't match the proper format, it will return None.
+        This method will also update the transcriber accordingly.
 
         Note: if we want to support more ICU features in the future,
         this would probably have to be refactored.
@@ -125,7 +132,7 @@ class JsonPluralsHandler(Handler):
                 one { You have {file_count} file. }
                 other { You have {file_count} files. }
             }
-        :return: a list of OpenString elements or None
+        :return: an OpenString or None
         """
         matches = self.MESSAGE_FORMAT_STRUCTURE.match(value)
         if not matches:
@@ -135,14 +142,30 @@ class JsonPluralsHandler(Handler):
 
         if argument == self.PLURAL_ARG:
             return self._parse_pluralized_string(
-                key, key_position, keyword, value, value_position,
+                key, keyword, value, value_position,
                 serialized_strings
             )
 
         return None
 
-    def _parse_pluralized_string(self, key, key_position, keyword,
-                                 value, value_position, serialized_strings):
+    def _get_regular_string(self, key, value, value_position):
+        """
+        Return a new OpenString based on the given key and value
+        and update the transcriber accordingly.
+
+        :param key: the string key
+        :param value: the translation string
+        :return: an OpenString or None
+        """
+        openstring = OpenString(key, value, order=next(self._order))
+        self.transcriber.copy_until(value_position)
+        self.transcriber.add(openstring.template_replacement)
+        self.transcriber.skip(len(value))
+
+        return openstring
+
+    def _parse_pluralized_string(self, key, keyword, value, value_position,
+                                 serialized_strings):
         """
         Parse `serialized_strings` in order to find and return all included
         pluralized strings.
