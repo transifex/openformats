@@ -102,7 +102,7 @@ class JsonPluralsHandler(Handler):
                         openstring = self._get_regular_string(
                             key, item, item_position
                         )
-                    
+
                     self.stringset.append(openstring)
 
                 elif isinstance(item, DumbJson):
@@ -310,6 +310,7 @@ class JsonPluralsHandler(Handler):
                 string_exists = string is not None
                 templ_replacement = string.template_replacement
 
+                # Pluralized string
                 if string_exists and string.pluralized \
                         and templ_replacement in value:
                     at_least_one = True
@@ -317,25 +318,24 @@ class JsonPluralsHandler(Handler):
                         value, value_position, string, is_real_stringset
                     )
 
+                # Regular string
                 elif (string_exists and value == templ_replacement):
                     at_least_one = True
-                    self.transcriber.copy_until(value_position)
-                    self.transcriber.add(string.string)
-                    self.transcriber.skip(len(value))
-                    self.stringset_index += 1
+                    self._intract_regular_string(
+                        value, value_position, string, is_real_stringset
+                    )
+
+                # Anything else: just remove the current section
                 else:
-                    self.transcriber.copy_until(value_position +
-                                                len(value) + 1)
-                    self.transcriber.mark_section_end()
-                    self.transcriber.remove_section()
+                    self._copy_until_and_remove_section(
+                        value_position + len(value) + 1
+                    )
 
             elif isinstance(value, DumbJson):
                 all_removed = self._intract(value, is_real_stringset)
 
                 if all_removed:
-                    self.transcriber.copy_until(value.end + 1)
-                    self.transcriber.mark_section_end()
-                    self.transcriber.remove_section()
+                    self._copy_until_and_remove_section(value.end + 1)
                 else:
                     at_least_one = True
 
@@ -348,34 +348,50 @@ class JsonPluralsHandler(Handler):
 
     def _intract_list(self, parsed, is_real_stringset):
         at_least_one = False
+
         for item, item_position in parsed:
             self.transcriber.copy_until(item_position - 1)
             self.transcriber.mark_section_start()
+
             if isinstance(item, (str, unicode)):
                 string = self._get_next_string()
-                if (string is not None and
-                        item == string.template_replacement):
+                string_exists = string is not None
+                templ_replacement = string.template_replacement
+
+                # Pluralized string
+                if string_exists and string.pluralized \
+                        and templ_replacement in item:
                     at_least_one = True
-                    self.transcriber.copy_until(item_position)
-                    self.transcriber.add(string.string)
-                    self.transcriber.skip(len(item))
-                    self.stringset_index += 1
+                    self._intract_plural_string(
+                        item, item_position, string, is_real_stringset
+                    )
+
+                # Regular string
+                elif (string_exists and item == templ_replacement):
+                    at_least_one = True
+                    self._intract_regular_string(
+                        item, item_position, string, is_real_stringset
+                    )
+
+                # Anything else: remove the whole section
                 else:
-                    self.transcriber.copy_until(item_position + len(item) + 1)
-                    self.transcriber.mark_section_end()
-                    self.transcriber.remove_section()
+                    self._copy_until_and_remove_section(
+                        item_position + len(item) + 1
+                    )
+
             elif isinstance(item, DumbJson):
                 all_removed = self._intract(item, is_real_stringset)
+
                 if all_removed:
-                    self.transcriber.copy_until(item.end + 1)
-                    self.transcriber.mark_section_end()
-                    self.transcriber.remove_section()
+                    self._copy_until_and_remove_section(item.end + 1)
                 else:
                     at_least_one = True
+
             else:
                 # 'value' is a python value allowed by JSON (integer,
                 # boolean, null), skip it
                 at_least_one = True
+
         return not at_least_one
 
     def _intract_plural_string(self, value, value_position, string,
@@ -401,6 +417,22 @@ class JsonPluralsHandler(Handler):
             len(value) - replacement_pos - len(templ_replacement)
         )
         self.stringset_index += 1
+
+    def _intract_regular_string(self, value, value_position, string,
+                               is_real_stringset):
+        self.transcriber.copy_until(value_position)
+        self.transcriber.add(string.string)
+        self.transcriber.skip(len(value))
+        self.stringset_index += 1
+
+    def _copy_until_and_remove_section(self, pos):
+        """
+        Copy characters to the transcriber until the given position,
+        then end the current section and remove it altogether.
+        """
+        self.transcriber.copy_until(pos)
+        self.transcriber.mark_section_end()
+        self.transcriber.remove_section()
 
     def _clean_empties(self, compiled):
         """ If sections were removed, clean leftover commas, brackets etc.
