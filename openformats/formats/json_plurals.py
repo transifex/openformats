@@ -244,42 +244,72 @@ class JsonPluralsHandler(Handler):
 
         stringset = list(stringset)
 
-        fake_stringset = [OpenString(openstring.key,
-                                     openstring.template_replacement,
-                                     order=openstring.order)
-                          for openstring in stringset]
-        new_template = self._replace_translations(template, fake_stringset)
+        fake_stringset = [
+            OpenString(openstring.key,
+                       openstring.template_replacement,
+                       order=openstring.order,
+                       pluralized=openstring.pluralized)
+            for openstring in stringset
+        ]
+        new_template = self._replace_translations(template, fake_stringset, False)
         new_template = self._clean_empties(new_template)
 
-        return self._replace_translations(new_template, stringset)
+        return self._replace_translations(new_template, stringset, True)
 
-    def _replace_translations(self, template, stringset):
+    def _replace_translations(self, template, stringset, is_real_stringset):
         self.transcriber = Transcriber(template)
         template = self.transcriber.source
         self.stringset = stringset
         self.stringset_index = 0
-
         parsed = DumbJson(template)
-        self._intract(parsed)
+        self._intract(parsed, is_real_stringset)
 
         self.transcriber.copy_until(len(template))
         return self.transcriber.get_destination()
 
-    def _intract(self, parsed):
+    def _intract(self, parsed, is_real_stringset):
         if parsed.type == dict:
-            return self._intract_dict(parsed)
+            return self._intract_dict(parsed, is_real_stringset)
         elif parsed.type == list:
-            return self._intract_list(parsed)
+            return self._intract_list(parsed, is_real_stringset)
 
-    def _intract_dict(self, parsed):
+    def _intract_dict(self, parsed, is_real_stringset):
         at_least_one = False
         for key, key_position, value, value_position in parsed:
+
             self.transcriber.copy_until(key_position - 1)
             self.transcriber.mark_section_start()
+
             if isinstance(value, (str, unicode)):
                 string = self._get_next_string()
-                if (string is not None and
-                        value == string.template_replacement):
+
+                string_exists = string is not None
+
+                if string_exists and string.pluralized \
+                        and string.template_replacement in value:
+                    at_least_one = True
+                    replacement_pos = value.find(string.template_replacement)
+                    if is_real_stringset:
+                        plural_list = [
+                            '{} {{{}}}'.format(
+                                Handler.get_rule_string(rule),
+                                translation
+                            )
+                            for rule, translation in string.string.iteritems()
+                        ]
+                        replacement = ' '.join(plural_list)
+                    else:
+                        replacement = string.string[5]
+
+                    self.transcriber.copy_until(value_position + replacement_pos)
+                    self.transcriber.add(replacement)
+
+                    self.transcriber.skip(len(string.template_replacement))
+                    self.transcriber.copy(len(value) - replacement_pos
+                                          - len( string.template_replacement))
+                    self.stringset_index += 1
+
+                elif (string_exists and value == string.template_replacement):
                     at_least_one = True
                     self.transcriber.copy_until(value_position)
                     self.transcriber.add(string.string)
@@ -291,7 +321,7 @@ class JsonPluralsHandler(Handler):
                     self.transcriber.mark_section_end()
                     self.transcriber.remove_section()
             elif isinstance(value, DumbJson):
-                all_removed = self._intract(value)
+                all_removed = self._intract(value, is_real_stringset)
                 if all_removed:
                     self.transcriber.copy_until(value.end + 1)
                     self.transcriber.mark_section_end()
@@ -304,7 +334,7 @@ class JsonPluralsHandler(Handler):
                 at_least_one = True
         return not at_least_one
 
-    def _intract_list(self, parsed):
+    def _intract_list(self, parsed, is_real_stringset):
         at_least_one = False
         for item, item_position in parsed:
             self.transcriber.copy_until(item_position - 1)
@@ -323,7 +353,7 @@ class JsonPluralsHandler(Handler):
                     self.transcriber.mark_section_end()
                     self.transcriber.remove_section()
             elif isinstance(item, DumbJson):
-                all_removed = self._intract(item)
+                all_removed = self._intract(item, is_real_stringset)
                 if all_removed:
                     self.transcriber.copy_until(item.end + 1)
                     self.transcriber.mark_section_end()
