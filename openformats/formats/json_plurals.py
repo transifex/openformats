@@ -187,9 +187,30 @@ class JsonPluralsHandler(Handler):
 
         openstring = OpenString(key, all_strings_dict, order=next(self._order))
 
-        self.transcriber.copy_until(value_position)
+        # ICU's message format contains an arbitrary string in the beginning.
+        # We need to include that in the template, because otherwise we won't
+        # have enough information to recreate it in the compilation phase.
+        # e.g. in { item_count, plural, other {You have {file_count} files.} }
+        # `item_count` is a string set by the user, it's not a standard.
+        # We'll keep everything up to the comma that follows the 'plural'
+        # argument.
+        current_pos = value.index(keyword) + len(keyword)
+        current_pos = value.index(self.PLURAL_ARG, current_pos) \
+                      + len(self.PLURAL_ARG)
+        current_pos = value.index(',', current_pos) + len(',')
+
+        # We want to preserve the original document as much as possible,
+        # so we'll add any whitespace between the comma and the
+        # first plurality rule, e.g. 'one'
+        current_pos = value.index(all_strings_list[0][0], current_pos)
+
+        # Also include whitespace between the last two closing braces
+        second_last_closing_brace = value.rfind('}', 0, value.rfind('}')) + 1
+        string_to_replace = value[current_pos:second_last_closing_brace]
+
+        self.transcriber.copy_until(value_position + current_pos)
         self.transcriber.add(openstring.template_replacement)
-        self.transcriber.skip(len(value))
+        self.transcriber.skip(len(string_to_replace))
 
         return openstring
 
