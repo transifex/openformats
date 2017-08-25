@@ -251,7 +251,9 @@ class JsonPluralsHandler(Handler):
                        pluralized=openstring.pluralized)
             for openstring in stringset
         ]
-        new_template = self._replace_translations(template, fake_stringset, False)
+        new_template = self._replace_translations(
+            template, fake_stringset, False
+        )
         new_template = self._clean_empties(new_template)
 
         return self._replace_translations(new_template, stringset, True)
@@ -282,33 +284,15 @@ class JsonPluralsHandler(Handler):
 
             if isinstance(value, (str, unicode)):
                 string = self._get_next_string()
-
                 string_exists = string is not None
                 templ_replacement = string.template_replacement
 
                 if string_exists and string.pluralized \
                         and templ_replacement in value:
                     at_least_one = True
-                    replacement_pos = value.find(templ_replacement)
-
-                    if is_real_stringset:
-                        replacement = \
-                            JsonPluralsHandler.serialize_pluralized_string(
-                                string, delimiter=' '
-                            )
-                    else:
-                        replacement = templ_replacement
-
-                    self.transcriber.copy_until(
-                        value_position + replacement_pos
+                    self._intract_plural_string(
+                        value, value_position, string, is_real_stringset
                     )
-                    self.transcriber.add(replacement)
-
-                    self.transcriber.skip(len(templ_replacement))
-                    self.transcriber.copy(
-                        len(value) - replacement_pos - len(templ_replacement)
-                    )
-                    self.stringset_index += 1
 
                 elif (string_exists and value == templ_replacement):
                     at_least_one = True
@@ -370,6 +354,30 @@ class JsonPluralsHandler(Handler):
                 # boolean, null), skip it
                 at_least_one = True
         return not at_least_one
+
+    def _intract_plural_string(self, value, value_position, string,
+                               is_real_stringset):
+        templ_replacement = string.template_replacement
+        replacement_pos = value.find(templ_replacement)
+
+        if is_real_stringset:
+            replacement = \
+                JsonPluralsHandler.serialize_pluralized_string(
+                    string, delimiter=' '
+                )
+        else:
+            replacement = templ_replacement
+
+        self.transcriber.copy_until(
+            value_position + replacement_pos
+        )
+        self.transcriber.add(replacement)
+
+        self.transcriber.skip(len(templ_replacement))
+        self.transcriber.copy(
+            len(value) - replacement_pos - len(templ_replacement)
+        )
+        self.stringset_index += 1
 
     def _clean_empties(self, compiled):
         """ If sections were removed, clean leftover commas, brackets etc.
