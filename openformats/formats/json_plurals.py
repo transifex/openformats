@@ -341,118 +341,102 @@ class JsonPluralsHandler(JsonHandler):
     def _replace_translations(self, template, stringset, is_real_stringset):
         self.transcriber = Transcriber(template)
         template = self.transcriber.source
+
         self.stringset = stringset
         self.stringset_index = 0
+
         parsed = DumbJson(template)
-        self._intract(parsed, is_real_stringset)
+        self._insert(parsed, is_real_stringset)
 
         self.transcriber.copy_until(len(template))
         return self.transcriber.get_destination()
 
-    def _intract(self, parsed, is_real_stringset):
+    def _insert(self, parsed, is_real_stringset):
         if parsed.type == dict:
-            return self._intract_dict(parsed, is_real_stringset)
+            return self._insert_from_dict(parsed, is_real_stringset)
         elif parsed.type == list:
-            return self._intract_list(parsed, is_real_stringset)
+            return self._insert_from_list(parsed, is_real_stringset)
 
-    def _intract_dict(self, parsed, is_real_stringset):
+
+    def _insert_item(self, value, value_position, is_real_stringset):
         at_least_one = False
+
+        if isinstance(value, (str, unicode)):
+            string = self._get_next_string()
+            string_exists = string is not None
+            templ_replacement = string.template_replacement
+
+            # Pluralized string
+            if string_exists and string.pluralized \
+                    and templ_replacement in value:
+                at_least_one = True
+                self._insert_plural_string(
+                    value, value_position, string, is_real_stringset
+                )
+
+            # Regular string
+            elif (string_exists and value == templ_replacement):
+                at_least_one = True
+                self._insert_regular_string(
+                    value, value_position, string, is_real_stringset
+                )
+
+            # Anything else: just remove the current section
+            else:
+                self._copy_until_and_remove_section(
+                    value_position + len(value) + 1
+                )
+
+        elif isinstance(value, DumbJson):
+            items_still_left = self._insert(value, is_real_stringset)
+
+            if not items_still_left:
+                self._copy_until_and_remove_section(value.end + 1)
+            else:
+                at_least_one = True
+
+        else:
+            # 'value' is a python value allowed by JSON (integer,
+            # boolean, null), skip it
+            at_least_one = True
+
+        return at_least_one
+
+    def _insert_from_dict(self, parsed, is_real_stringset):
+        at_least_one = False
+
         for key, key_position, value, value_position in parsed:
 
             self.transcriber.copy_until(key_position - 1)
             self.transcriber.mark_section_start()
 
-            if isinstance(value, (str, unicode)):
-                string = self._get_next_string()
-                string_exists = string is not None
-                templ_replacement = string.template_replacement
+            tmp_at_least_one = self._insert_item(
+                value, value_position, is_real_stringset
+            )
 
-                # Pluralized string
-                if string_exists and string.pluralized \
-                        and templ_replacement in value:
-                    at_least_one = True
-                    self._intract_plural_string(
-                        value, value_position, string, is_real_stringset
-                    )
-
-                # Regular string
-                elif (string_exists and value == templ_replacement):
-                    at_least_one = True
-                    self._intract_regular_string(
-                        value, value_position, string, is_real_stringset
-                    )
-
-                # Anything else: just remove the current section
-                else:
-                    self._copy_until_and_remove_section(
-                        value_position + len(value) + 1
-                    )
-
-            elif isinstance(value, DumbJson):
-                all_removed = self._intract(value, is_real_stringset)
-
-                if all_removed:
-                    self._copy_until_and_remove_section(value.end + 1)
-                else:
-                    at_least_one = True
-
-            else:
-                # 'value' is a python value allowed by JSON (integer,
-                # boolean, null), skip it
+            if tmp_at_least_one:
                 at_least_one = True
 
-        return not at_least_one
+        return at_least_one
 
-    def _intract_list(self, parsed, is_real_stringset):
+    def _insert_from_list(self, parsed, is_real_stringset):
         at_least_one = False
 
-        for item, item_position in parsed:
-            self.transcriber.copy_until(item_position - 1)
+        for value, value_position in parsed:
+            self.transcriber.copy_until(value_position - 1)
             self.transcriber.mark_section_start()
 
-            if isinstance(item, (str, unicode)):
-                string = self._get_next_string()
-                string_exists = string is not None
-                templ_replacement = string.template_replacement
+            tmp_at_least_one = self._insert_item(
+                value, value_position, is_real_stringset
+            )
 
-                # Pluralized string
-                if string_exists and string.pluralized \
-                        and templ_replacement in item:
-                    at_least_one = True
-                    self._intract_plural_string(
-                        item, item_position, string, is_real_stringset
-                    )
-
-                # Regular string
-                elif (string_exists and item == templ_replacement):
-                    at_least_one = True
-                    self._intract_regular_string(
-                        item, item_position, string, is_real_stringset
-                    )
-
-                # Anything else: remove the whole section
-                else:
-                    self._copy_until_and_remove_section(
-                        item_position + len(item) + 1
-                    )
-
-            elif isinstance(item, DumbJson):
-                all_removed = self._intract(item, is_real_stringset)
-
-                if all_removed:
-                    self._copy_until_and_remove_section(item.end + 1)
-                else:
-                    at_least_one = True
-
-            else:
-                # 'value' is a python value allowed by JSON (integer,
-                # boolean, null), skip it
+            if tmp_at_least_one:
                 at_least_one = True
 
-        return not at_least_one
+        return at_least_one
 
-    def _intract_plural_string(self, value, value_position, string,
-                               is_real_stringset):
+    def _insert_plural_string(self, value, value_position, string,
+                              is_real_stringset):
         templ_replacement = string.template_replacement
         replacement_pos = value.find(templ_replacement)
 
@@ -475,7 +459,7 @@ class JsonPluralsHandler(JsonHandler):
         )
         self.stringset_index += 1
 
-    def _intract_regular_string(self, value, value_position, string,
+    def _insert_regular_string(self, value, value_position, string,
                                is_real_stringset):
         self.transcriber.copy_until(value_position)
         self.transcriber.add(string.string)
