@@ -179,6 +179,7 @@ class JsonPluralsHandler(Handler):
             e.g. 'one { I ate {count} apple. } other { I ate {count} apples. }'
         :return: A pluralized OpenString instance or None
         """
+
         # Each item should be like '<proper_plurality_rule_str> {<content>}'
         # Nested braces ({}) inside <content> are allowed.
         valid_plural_item = (
@@ -194,8 +195,12 @@ class JsonPluralsHandler(Handler):
             pyparsing.Word(pyparsing.alphanums) +
             pyparsing.nestedExpr('{', '}')
         )
+
         all_matches = pyparsing.originalTextFor(any_plural_item).searchString(
             serialized_strings
+        )
+        self._validate_plural_content_format(
+            key, value, serialized_strings, all_matches
         )
 
         # Create a list of serialized plural items, e.g.:
@@ -253,6 +258,37 @@ class JsonPluralsHandler(Handler):
 
         return openstring
 
+    def _validate_plural_content_format(self, key, value, serialized_strings,
+                                        all_matches):
+        """
+        Make sure the serialized content is properly formatted
+        as one or more pluralized strings.
+        :param key: the string key
+        :param value: the whole value of the key, e.g.
+            { item_count, plural, zero {...} one {...} other {...}}
+        :param serialized_strings: the part of the value that holds the
+            string information only, e.g.
+            zero {...} one {...} other {...}
+        :param all_matches: a pyparsing element that matches all strings
+            formatted like '<alphanumeric> {...}'
+
+        :raise: ParseError
+        """
+        remaining_str = serialized_strings
+        for match in all_matches:
+            remaining_str = remaining_str.replace(match[0], '')
+
+        if len(remaining_str.strip()) > 0:
+            raise ParseError(
+                'Invalid format of pluralized entry '
+                'with key: "{}", serialized translations: "{}". '
+                'Could not parse the following chunk: "{}". '
+                'There are some invalid braces ("{{", "}}") '
+                'in the translations.'.format(
+                    key, serialized_strings, remaining_str
+                )
+            )
+
     def _handle_invalid_plural_format(self, serialized_strings,
                                       any_plural_item, key, value):
         """
@@ -262,6 +298,8 @@ class JsonPluralsHandler(Handler):
         :param serialized_strings:
         :param any_plural_item: a forgiving pyparsing element that matches all
             strings formatted like '<alphanumeric> {...}'
+
+        :raise: ParseError
         """
         all_matches = any_plural_item.searchString(serialized_strings)
         all_keys = [match[0] for match in all_matches]
