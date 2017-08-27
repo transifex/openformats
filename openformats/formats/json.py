@@ -21,7 +21,7 @@ class JsonHandler(Handler):
         # Do a first pass using the `json` module to ensure content is valid
         try:
             json.loads(content)
-        except ValueError, e:
+        except ValueError as e:
             raise ParseError(e.message)
 
         self.transcriber = Transcriber(content)
@@ -31,7 +31,7 @@ class JsonHandler(Handler):
 
         try:
             parsed = DumbJson(source)
-        except ValueError, e:
+        except ValueError as e:
             raise ParseError(e.message)
         self._order = count()
         self._extract(parsed)

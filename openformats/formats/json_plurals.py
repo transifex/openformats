@@ -9,12 +9,17 @@ import pyparsing
 
 from ..exceptions import ParseError
 from ..handlers import Handler
+from ..formats.json import JsonHandler
 from ..strings import OpenString
 from ..transcribers import Transcriber
 from ..utils.json import DumbJson
 
 
-class JsonPluralsHandler(Handler):
+class JsonPluralsHandler(JsonHandler):
+    """
+    Responsible for KEYVALUEJSON files that support plurals as per ICU's
+    message format.
+    """
 
     name = "KEYVALUEJSON_PLURALS"
     extension = "json"
@@ -24,28 +29,6 @@ class JsonPluralsHandler(Handler):
     )
     PLURAL_ARG = 'plural'
     PLURAL_KEYS_STR = ' '.join(Handler._RULES_ATOI.keys())
-
-    def parse(self, content, **kwargs):
-        # Do a first pass using the `json` module to ensure content is valid
-        try:
-            json.loads(content)
-        except ValueError, e:
-            raise ParseError(e.message)
-
-        self.transcriber = Transcriber(content)
-        source = self.transcriber.source
-        self.stringset = []
-        self.existing_keys = set()
-
-        try:
-            parsed = DumbJson(source)
-        except ValueError, e:
-            raise ParseError(e.message)
-        self._order = count()
-        self._extract(parsed)
-        self.transcriber.copy_until(len(source))
-
-        return self.transcriber.get_destination(), self.stringset
 
     def _extract(self, parsed, nest=None):
         if parsed.type == dict:
@@ -329,13 +312,6 @@ class JsonPluralsHandler(Handler):
 
         return plurality, content
 
-    @staticmethod
-    def _escape_key(key):
-        key = key.replace(DumbJson.BACKSLASH,
-                          u''.join([DumbJson.BACKSLASH, DumbJson.BACKSLASH]))
-        key = key.replace(u".", u''.join([DumbJson.BACKSLASH, '.']))
-        return key
-
     def compile(self, template, stringset, **kwargs):
         # Lets play on the template first, we need it to not include the hashes
         # that aren't in the stringset. For that we will create a new stringset
@@ -515,61 +491,6 @@ class JsonPluralsHandler(Handler):
         self.transcriber.mark_section_end()
         self.transcriber.remove_section()
 
-    def _clean_empties(self, compiled):
-        """ If sections were removed, clean leftover commas, brackets etc.
-
-            Eg:
-                '{"a": "b", ,"c": "d"}' -> '{"a": "b", "c": "d"}'
-                '{, "a": "b", "c": "d"}' -> '{"a": "b", "c": "d"}'
-                '["a", , "b"]' -> '["a", "b"]'
-        """
-        while True:
-            # First key-value of a dict was removed
-            match = re.search(r'{\s*,', compiled)
-            if match:
-                compiled = u"{}{{{}".format(compiled[:match.start()],
-                                            compiled[match.end():])
-                continue
-
-            # Last key-value of a dict was removed
-            match = re.search(r',\s*}', compiled)
-            if match:
-                compiled = u"{}}}{}".format(compiled[:match.start()],
-                                            compiled[match.end():])
-                continue
-
-            # First item of a list was removed
-            match = re.search(r'\[\s*,', compiled)
-            if match:
-                compiled = u"{}[{}".format(compiled[:match.start()],
-                                           compiled[match.end():])
-                continue
-
-            # Last item of a list was removed
-            match = re.search(r',\s*\]', compiled)
-            if match:
-                compiled = u"{}]{}".format(compiled[:match.start()],
-                                           compiled[match.end():])
-                continue
-
-            # Intermediate key-value of a dict or list was removed
-            match = re.search(r',\s*,', compiled)
-            if match:
-                compiled = u"{},{}".format(compiled[:match.start()],
-                                           compiled[match.end():])
-                continue
-
-            # No substitutions happened, break
-            break
-
-        return compiled
-
-    def _get_next_string(self):
-        try:
-            return self.stringset[self.stringset_index]
-        except IndexError:
-            return None
-
     @classmethod
     def serialize_pluralized_string(cls, pluralized_string, delimiter=' '):
         """
@@ -595,104 +516,3 @@ class JsonPluralsHandler(Handler):
             for rule, translation in pluralized_string.string.iteritems()
         ]
         return delimiter.join(plural_list)
-
-    @classmethod
-    def escape(cls, string):
-        return u''.join(cls._escape_generator(string))
-        # btw, this seems equivalent to
-        # return json.dumps(string, ensure_ascii=False)[1:-1]
-
-    @staticmethod
-    def _escape_generator(string):
-        for symbol in string:
-            if symbol == DumbJson.DOUBLE_QUOTES:
-                yield DumbJson.BACKSLASH
-                yield DumbJson.DOUBLE_QUOTES
-            elif symbol == DumbJson.BACKSLASH:
-                yield DumbJson.BACKSLASH
-                yield DumbJson.BACKSLASH
-            elif symbol == DumbJson.BACKSPACE:
-                yield DumbJson.BACKSLASH
-                yield u'b'
-            elif symbol == DumbJson.FORMFEED:
-                yield DumbJson.BACKSLASH
-                yield u'f'
-            elif symbol == DumbJson.NEWLINE:
-                yield DumbJson.BACKSLASH
-                yield u'n'
-            elif symbol == DumbJson.CARRIAGE_RETURN:
-                yield DumbJson.BACKSLASH
-                yield u'r'
-            elif symbol == DumbJson.TAB:
-                yield DumbJson.BACKSLASH
-                yield u't'
-            else:
-                yield symbol
-
-    @classmethod
-    def unescape(cls, string):
-        return u''.join(cls._unescape_generator(string))
-        # btw, this seems equivalent to
-        # return json.loads(u'"{}"'.format(string))
-
-    @staticmethod
-    def _unescape_generator(string):
-        # I don't like this aldschool approach, but we may have to rewind a bit
-        ptr = 0
-        while True:
-            if ptr >= len(string):
-                break
-
-            symbol = string[ptr]
-
-            if symbol != DumbJson.BACKSLASH:
-                yield symbol
-                ptr += 1
-                continue
-
-            try:
-                next_symbol = string[ptr + 1]
-            except IndexError:
-                yield DumbJson.BACKSLASH
-                ptr += 1
-                continue
-
-            if next_symbol in (DumbJson.DOUBLE_QUOTES, DumbJson.FORWARD_SLASH,
-                               DumbJson.BACKSLASH):
-                yield next_symbol
-                ptr += 2
-            elif next_symbol == u'b':
-                yield DumbJson.BACKSPACE
-                ptr += 2
-            elif next_symbol == u'f':
-                yield DumbJson.FORMFEED
-                ptr += 2
-            elif next_symbol == u'n':
-                yield DumbJson.NEWLINE
-                ptr += 2
-            elif next_symbol == u'r':
-                yield DumbJson.CARRIAGE_RETURN
-                ptr += 2
-            elif next_symbol == u't':
-                yield DumbJson.TAB
-                ptr += 2
-            elif next_symbol == u'u':
-                unicode_escaped = string[ptr:ptr + 6]
-                try:
-                    unescaped = unicode_escaped.decode('unicode-escape')
-                except Exception:
-                    yield DumbJson.BACKSLASH
-                    yield u'u'
-                    ptr += 2
-                    continue
-                if len(unescaped) != 1:
-                    yield DumbJson.BACKSLASH
-                    yield u'u'
-                    ptr += 2
-                    continue
-                yield unescaped
-                ptr += 6
-
-            else:
-                yield symbol
-                ptr += 1
