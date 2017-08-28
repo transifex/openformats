@@ -71,6 +71,40 @@ class JsonPluralsTestCase(JsonTestCase):
             'Invalid plural rule(s): once, mother in pluralized entry with key: total_files'
         )
 
+    def test_intermediate_whitespace_ignored(self):
+        # Whitespace between the various parts of the message format structure
+        # should be ignored.
+        expected_translations = {0: 'Empty', 5: '{count} files'}
+
+        self._test_translations_equal(
+            '{'
+            '    "k": "{ cnt, plural, zero {Empty} other {{count} files} }"'
+            '}',
+            expected_translations
+        )
+        self._test_translations_equal(
+            '{'
+            '    "k": "{cnt,plural,zero{Empty}other{{count} files} }"'
+            '}',
+            expected_translations
+        )
+        self._test_translations_equal(
+            '{ "k": "{    cnt,  plural,     zero  {Empty} other   {{count} files} }   "     }',  # noqa
+            expected_translations
+        )
+
+    def test_whitespace_in_translations_not_ignored(self):
+        # Whitespace between the various parts of the message format structure
+        # should be ignored.
+        self._test_translations_equal(
+            '{"k": "{ cnt, plural, zero { Empty} other {{count} files} }"}',
+            {0: ' Empty', 5: '{count} files'}
+        )
+        self._test_translations_equal(
+            '{"k": "{ cnt, plural, zero { Empty  } other {{count} files } }"}',
+            {0: ' Empty  ', 5: '{count} files  '}
+        )
+
     def _test_parse_error_message(self, source, msg_substr):
         error_raised = False
         try:
@@ -82,3 +116,11 @@ class JsonPluralsTestCase(JsonTestCase):
             )
             error_raised = True
         self.assertTrue(error_raised)
+
+    def _test_translations_equal(self, source, translations_by_rule):
+        template, stringset = self.handler.parse(source)
+        for rule_int in translations_by_rule.keys():
+            self.assertEqual(
+                translations_by_rule[rule_int],
+                stringset[0].string[rule_int]
+            )
