@@ -2,9 +2,7 @@
 
 from __future__ import absolute_import
 
-import json
 import re
-from itertools import count
 import pyparsing
 
 from ..exceptions import ParseError
@@ -14,11 +12,15 @@ from ..strings import OpenString
 from ..transcribers import Transcriber
 from ..utils.json import DumbJson
 
-
 class JsonPluralsHandler(JsonHandler):
     """
     Responsible for KEYVALUEJSON files that support plurals as per ICU's
     message format.
+
+    Not the full spec of message format is supported. Particularly,
+    the following features are *not* supported:
+      - the `offset` feature
+      - the explicit count rule, e.g. `=0`, `=1`
     """
 
     name = "KEYVALUEJSON_PLURALS"
