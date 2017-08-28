@@ -364,7 +364,9 @@ class JsonPluralsHandler(JsonHandler):
         if isinstance(value, (str, unicode)):
             string = self._get_next_string()
             string_exists = string is not None
-            templ_replacement = string.template_replacement
+
+            templ_replacement = string.template_replacement \
+                if string_exists else None
 
             # Pluralized string
             if string_exists and string.pluralized \

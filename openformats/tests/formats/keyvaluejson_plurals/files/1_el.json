@@ -1,0 +1,5 @@
+{
+  "singular_key": "el:This is a regular string.",
+  "total_files": "{ item_count, plural, one {el:You have {file_count} file.} other {el:You have {file_count} files.} }",
+  "gold_coins": "{ count, plural, zero {el:The chest is empty.} one {el:You have one gold coin.} other {el:You have {cnt} gold coins.} }"
+}
