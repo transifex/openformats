@@ -4,6 +4,7 @@ import re
 from mistune import (BlockLexer, Markdown)
 
 from ..handlers import Handler
+from openformats.formats.yaml import YamlHandler
 from ..strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
 
@@ -177,19 +178,22 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
 
     def parse(self, content, **kwargs):
 
-        template = content
         stringset = []
 
         yml_header = re.match(r'^(---\s+)([\s\S]*?[^`])\s*(\n---\s+)(?!-)',
                               content)
         yaml_header_content = ''
         yaml_stringset = []
+        yaml_template = ''
         if yml_header:
             yaml_header_content = yml_header.group()
             md_content = content[len(yaml_header_content):]
-            yaml_stringset = self.yaml_parser(yaml_header_content)
+            yaml_stringset, yaml_template = YamlHandler().parse(
+                yaml_header_content)
         else:
             md_content = content
+
+        md_template = md_content
 
         block = TxBlockLexer()
         markdown = Markdown(block=block)
@@ -200,18 +204,21 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         # Command that populates block.stringset var
         markdown(md_content)
 
-        order = 0
+        stringset.extend(yaml_stringset)
+        order = len(stringset)
         curr_pos = 0
-        for string in (yaml_stringset + block.md_stringset):
-            string = string_handler(string, template)
+        for string in block.md_stringset:
+            string = string_handler(string, md_template)
             if string:
                 string_object = OpenString(str(order), string, order=order)
                 order += 1
                 stringset.append(string_object)
                 # Keep track of the index of the last replaced hash
-                template = template[:curr_pos] + template[curr_pos:].replace(
+                md_template = md_template[:curr_pos] + md_template[curr_pos:].replace(
                     string, string_object.template_replacement, 1
                 )
-                curr_pos = template.find(string_object.template_replacement)
+                curr_pos = md_template.find(string_object.template_replacement)
                 curr_pos = curr_pos + len(string_object.template_replacement)
+
+        template = yaml_template + md_template
         return template, stringset
