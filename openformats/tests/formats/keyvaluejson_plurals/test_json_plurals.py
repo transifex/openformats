@@ -1,5 +1,3 @@
-import unittest
-
 from openformats.formats.json_plurals import JsonPluralsHandler
 from ..beta_keyvaluejson.test_json import JsonTestCase
 
@@ -18,35 +16,19 @@ class JsonPluralsTestCase(JsonTestCase):
     def test_invalid_plural_format(self):
         # Test various cases of messed-up braces
         self._test_parse_error_message(
-            '''
-            {
-                "total_files": "{ item_count, plural, one {You have {file_count file.} other {You have {file_count} files.} }"
-            }
-            ''',
+            '{ "total_files": "{ item_count, plural, one {You have {file_count file.} other {You have {file_count} files.} }" }',  # noqa
             'Invalid format of pluralized entry with key: "total_files"'
         )
         self._test_parse_error_message(
-            '''
-            {
-                "total_files": "{ item_count, plural, one {You have file_count} file.} other {You have {file_count} files.} }"
-            }
-            ''',
+            '{ "total_files": "{ item_count, plural, one {You have file_count} file.} other {You have {file_count} files.} }" }',  # noqa
             'Invalid format of pluralized entry with key: "total_files"'
         )
         self._test_parse_error_message(
-            '''
-            {
-                "total_files": "{ item_count, plural, one {You have {file_count} file. other {You have {file_count} files.} }"
-            }
-            ''',
+            '{ "total_files": "{ item_count, plural, one {You have {file_count} file. other {You have {file_count} files.} }" }',  # noqa
             'Invalid format of pluralized entry with key: "total_files"'
         )
         self._test_parse_error_message(
-            '''
-            {
-                "total_files": "{ item_count, plural, one {You have {file_count} file}. other {You have file_count} files.} }"
-            }
-            ''',
+            '{ "total_files": "{ item_count, plural, one {You have {file_count} file}. other {You have file_count} files.} }" }',  # noqa
             'Invalid format of pluralized entry with key: "total_files"'
         )
 
@@ -55,20 +37,12 @@ class JsonPluralsTestCase(JsonTestCase):
         #   zero, one, few, many, other
         # Anything else, including their TX int equivalents are invalid.
         self._test_parse_error_message(
-            '''
-            {
-                "total_files": "{ item_count, plural, 1 {file} 5 {{file_count} files} }"
-            }
-            ''',
-            'Invalid plural rule(s): 1, 5 in pluralized entry with key: total_files'
+            '{ "total_files": "{ item_count, plural, 1 {file} 5 {{file_count} files} }" }',  # noqa
+            'Invalid plural rule(s): 1, 5 in pluralized entry with key: total_files'  # noqa
         )
         self._test_parse_error_message(
-            '''
-            {
-                "total_files": "{ item_count, plural, once {file} mother {{file_count} files} }"
-            }
-            ''',
-            'Invalid plural rule(s): once, mother in pluralized entry with key: total_files'
+            '{ "total_files": "{ item_count, plural, once {file} mother {{file_count} files} }" }',  # noqa
+            'Invalid plural rule(s): once, mother in pluralized entry with key: total_files'  # noqa
         )
 
     def test_intermediate_whitespace_ignored(self):

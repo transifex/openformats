@@ -12,6 +12,7 @@ from ..strings import OpenString
 from ..transcribers import Transcriber
 from ..utils.json import DumbJson
 
+
 class JsonPluralsHandler(JsonHandler):
     """
     Responsible for KEYVALUEJSON files that support plurals as per ICU's
@@ -216,7 +217,7 @@ class JsonPluralsHandler(JsonHandler):
 
         openstring = OpenString(key, all_strings_dict, order=next(self._order))
 
-        # ICU's message format contains an arbitrary string in the beginning.
+        # ICU's message format contains an arbitrary string at the beginning.
         # We need to include that in the template, because otherwise we won't
         # have enough information to recreate it in the compilation phase.
         # e.g. in { item_count, plural, other {You have {file_count} files.} }
@@ -224,8 +225,8 @@ class JsonPluralsHandler(JsonHandler):
         # We'll keep everything up to the comma that follows the 'plural'
         # argument.
         current_pos = value.index(keyword) + len(keyword)
-        current_pos = value.index(self.PLURAL_ARG, current_pos) \
-                      + len(self.PLURAL_ARG)
+        current_pos = value.index(self.PLURAL_ARG, current_pos)\
+            + len(self.PLURAL_ARG)
         current_pos = value.index(',', current_pos) + len(',')
 
         # We want to preserve the original document as much as possible,
@@ -358,7 +359,6 @@ class JsonPluralsHandler(JsonHandler):
             return self._insert_from_dict(parsed, is_real_stringset)
         elif parsed.type == list:
             return self._insert_from_list(parsed, is_real_stringset)
-
 
     def _insert_item(self, value, value_position, is_real_stringset):
         at_least_one = False
