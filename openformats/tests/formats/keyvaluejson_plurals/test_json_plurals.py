@@ -76,7 +76,7 @@ class JsonPluralsTestCase(JsonTestCase):
         )
         self._test_translations_equal(
             '{"k": "{ cnt, plural, zero { Empty  } other {{count} files } }"}',
-            {0: ' Empty  ', 5: '{count} files  '}
+            {0: ' Empty  ', 5: '{count} files '}
         )
 
     def _test_parse_error_message(self, source, msg_substr):
