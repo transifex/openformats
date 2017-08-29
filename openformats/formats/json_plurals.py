@@ -497,7 +497,7 @@ class JsonPluralsHandler(JsonHandler):
         :return: a string
         """
         plural_list = [
-            '{} {{{}}}'.format(
+            u'{} {{{}}}'.format(
                 Handler.get_rule_string(rule),
                 translation
             )
