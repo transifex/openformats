@@ -15,36 +15,39 @@ from ..exceptions import ParseError
 class YamlHandler(Handler):
 
     def _load_yaml(self, content, loader):
-        return yaml.load(content, Loader=loader)
+        """
+        Loads a YAML stream and returns a dictionary
+        representation for YAML data
 
-    def _parse_leaf_node(self, yaml_dict, parent_key, key,
-                         plural=False, style=[]):
+        Args:
+            content: A string, YAML content
+            loader: Yaml Loader class or None
+
+        Returns:
+            A dictionary
+        """
+        try:
+            return yaml.load(content, Loader=loader)
+        except yaml.scanner.ScannerError as e:
+            raise ParseError(unicode(e))
+
+    def _parse_leaf_node(self, yaml_dict, parent_key, key, style=[]):
         """Parse a leaf node in yaml_dict.
         Args:
             yaml_dict: A dictionary
             parent_key: A string of keys concatenated by '.' to
                 reach this node
             key: A string for the current key of yaml_dict
-            plural: A boolean, True if node is pluralized
             style: A list of YAML node styles from root node to
                    immediate parent node of the current YAML node.
 
         Returns:
             A dictionary representing the parsed leaf node
         """
-        if plural:
-            value = {}
-            for k in yaml_dict['value'].keys():
-                value[k] = {}
-                value[k]['value'] = yaml_dict['value'][k][0]
-                value[k]['style'] = yaml_dict['value'][k][3]
-            start = yaml_dict['start']
-            end = yaml_dict['end']
-        else:
-            value = yaml_dict[key][0]
-            start = yaml_dict[key][1]
-            end = yaml_dict[key][2]
-            style.append(yaml_dict[key][3] or '')
+        value = yaml_dict[0]
+        start = yaml_dict[1]
+        end = yaml_dict[2]
+        style.append(yaml_dict[3] or '')
         return {
             'start': start,
             'end': end,
@@ -61,7 +64,7 @@ class YamlHandler(Handler):
     def unescape_dots(k):
         return k.replace('.', '<TX_DOT>')
 
-    def _get_key_for_node(self, key, parent_key, plural=False):
+    def _get_key_for_node(self, key, parent_key):
         """
         Get key string for the current node.
 
@@ -70,7 +73,6 @@ class YamlHandler(Handler):
             parent_key: A string, containing all the keys
                 (traversed before reaching the current key node)
                 separated by '.'
-            plural: A boolean, True if node is pluralized
 
         Returns:
             A string similar to parent_key with key appended to it.
@@ -81,15 +83,14 @@ class YamlHandler(Handler):
             key = str('<%s>' % key)
         if '.' in key:
             key = self.unescape_dots(key)
-        if not plural:
-            if parent_key == '':
-                parent_key += key
-            else:
-                parent_key += '.' + key
+        if parent_key == '':
+            parent_key += key
+        else:
+            parent_key += '.' + key
         return parent_key
 
     def parse_dict(self, yaml_dict, parent_key, parsed_data,
-                   is_source, context="", parent_style=[]):
+                   context="", parent_style=[]):
         """
         Parse data returned by YAML loader and also handle plural
         data if available
@@ -98,7 +99,6 @@ class YamlHandler(Handler):
             parent_key: A string of keys concatenated by '.' to
                 reach this node,
             parsed_data: A list, containing the already parsed data
-            is_source: A boolean, True if upload is in source language
             context: A string
             parent_style: A list of YAML node styles for each parent node.
 
@@ -106,35 +106,45 @@ class YamlHandler(Handler):
             A list of dictionaries, where each dictionary maps a node
             key to its value
         """
-        value = yaml_dict.get('value') or yaml_dict
-        for key, val in value.items():
-            node_key = self._get_key_for_node(key, parent_key)
-            style = copy.copy(parent_style)
-            if isinstance(val, dict):
-                style.append(val.get('style', ''))
-                parsed_data = self.parse_dict(val, node_key,
-                    parsed_data, is_source, context,
-                    parent_style=copy.copy(style or []))
-            elif (isinstance(val[0], list) and val[0] and
-                    isinstance(val[0][0], dict)):
-                # If a list of dicts, add each dict element as a entry
-                # using the position (index) of it as parent key using
-                # brackets around it. I.e.: 'foo.[0].bar'.
-                for i, e in enumerate(val[0]):
-                    for k, v in e.items():
-                        p_key = node_key + '.[%s].%s' % (i, k)
-                        parsed_data.append(
-                            self._parse_leaf_node(
-                                e, p_key, k, style=copy.copy(parent_style or [])
-                            )
+        if isinstance(yaml_dict, dict):
+            for key, val in yaml_dict.items():
+                node_key = self._get_key_for_node(key, parent_key)
+                style = copy.copy(parent_style)
+                if isinstance(val[0], (dict, list)):
+                    # style.append(val.get('style', ''))
+                    parsed_data = self.parse_dict(
+                        val[0], node_key, parsed_data, context,
+                        parent_style=copy.copy(style or []))
+                else:
+                    parsed_data.append(
+                        self._parse_leaf_node(
+                            val, node_key, key, style=copy.copy(parent_style or
+                                                                [])
                         )
-            else:
-                parsed_data.append(
-                    self._parse_leaf_node(
-                        value, node_key, key,
-                        style=copy.copy(parent_style or [])
                     )
+        elif (isinstance(yaml_dict, list)):
+            # If a list of dicts, add each dict element as a entry
+            # using the position (index) of it as parent key using
+            # brackets around it. I.e.: 'foo.[0].bar'.
+            for i, e in enumerate(yaml_dict):
+                p_key = parent_key + '.[%s]' % (i)
+                if isinstance(e, (dict, list)):
+                    parsed_data = self.parse_dict(
+                        e, p_key, parsed_data, context,
+                        parent_style=copy.copy(parent_style or []))
+                else:
+                    parsed_data.append(
+                        self._parse_leaf_node(
+                            e, p_key, i, style=copy.copy(parent_style or [])
+                        )
+                    )
+        else:
+            parsed_data.append(
+                self._parse_leaf_node(
+                    yaml_dict, node_key, key,
+                    style=copy.copy(parent_style or [])
                 )
+            )
         return parsed_data
 
     def _find_comment(self, content, start, end):
@@ -165,12 +175,11 @@ class YamlHandler(Handler):
         template = ""
         context = ""
         stringset = []
-        is_source = True
         trailing_dashes = content[-5:]
         content = content[:-5]
         yaml_dict = self._load_yaml(content, loader=TxYamlLoader)
         parsed_data = self.parse_dict(
-            yaml_dict, '', [], is_source, context)
+            yaml_dict, '', [], context)
         parsed_data.sort()
 
         end = 0
@@ -291,13 +300,9 @@ class TxYamlLoader(yaml.SafeLoader):
             elif isinstance(value, str) or isinstance(value, unicode):
                 style = value_node.style
 
-            if not isinstance(value, dict):
-                if (isinstance(value, list) and not
-                        (value and isinstance(value[0], dict))):
-                    value = json.dumps(value)
-                value = (value, start, end, style)
-            else:
-                value = {'value': value, 'start': start,
-                         'end': end, 'style': style}
+            if (isinstance(value, list) and not
+                    (value and isinstance(value[0], dict))):
+                value = json.dumps(value)
+            value = (value, start, end, style)
             pairs.append((key, value))
         return pairs
