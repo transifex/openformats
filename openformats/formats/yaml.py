@@ -175,8 +175,6 @@ class YamlHandler(Handler):
         template = ""
         context = ""
         stringset = []
-        trailing_dashes = content[-5:]
-        content = content[:-5]
         yaml_dict = self._load_yaml(content, loader=TxYamlLoader)
         parsed_data = self.parse_dict(
             yaml_dict, '', [], context)
@@ -208,7 +206,6 @@ class YamlHandler(Handler):
             end = end_
 
         template += content[end:]
-        template += trailing_dashes
         return stringset, template
 
 

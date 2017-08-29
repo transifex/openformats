@@ -139,55 +139,20 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
     name = "Github_Markdown"
     extension = "md"
 
-    # Translatable YAML header attributes
-    YAML_ATTR = (u'title', u'description')
-
-    def yaml_parser(self, yaml_header):
-        # TODO: This is a temporary solution. Yaml header should be parsed
-        # with an actual yaml parser when it is implemented in openformats
-        yaml_strings = []
-        block = False
-        block_string = ''
-        indent = 0
-        for line in yaml_header.splitlines():
-            # ignore comments
-            if line.startswith('#'):
-                continue
-            if block:
-                # at least 2 spaces more indented that the parent line
-                if line.startswith(' ' * (indent + 2)):
-                    block_string += line
-                    block_string += '\n'
-                    continue
-                else:
-                    yaml_strings.append((block_string, None))
-                    block_string = ''
-                    block = False
-            key_value = line.split(':', 1)
-            if len(key_value) == 2:
-                value = key_value[1].strip()
-                # we parse all the lines that follow the '|' or '>' symbols
-                # and are at least 2 spaces more intented that the parent line
-                # as one string
-                if value and value in '|>[':
-                    indent = len(re.search(r'^( *)', key_value[0]).group(0))
-                    block = True
-                    continue
-                yaml_strings.append((value, None))
-        return yaml_strings
-
     def parse(self, content, **kwargs):
 
         stringset = []
 
-        yml_header = re.match(r'^(---\s+)([\s\S]*?[^`])\s*(\n---\s+)(?!-)',
+        yml_header = re.match(r'^(---\s+)([\s\S]*?[^`]\s*)(\n---\s+)(?!-)',
                               content)
         yaml_header_content = ''
         yaml_stringset = []
         yaml_template = ''
+        seperator = ''
         if yml_header:
-            yaml_header_content = yml_header.group()
-            md_content = content[len(yaml_header_content):]
+            yaml_header_content = ''.join(yml_header.group(1, 2))
+            seperator = yml_header.group(3)
+            md_content = content[len(yaml_header_content + seperator):]
             yaml_stringset, yaml_template = YamlHandler().parse(
                 yaml_header_content)
         else:
@@ -220,5 +185,5 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
                 curr_pos = md_template.find(string_object.template_replacement)
                 curr_pos = curr_pos + len(string_object.template_replacement)
 
-        template = yaml_template + md_template
+        template = yaml_template + seperator + md_template
         return template, stringset
