@@ -414,7 +414,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             'Invalid plural rule(s): once, mother in pluralized entry with key: total_files'  # noqa
         )
 
-    def test_intermediate_whitespace_ignored(self):
+    def test_irrelevant_whitespace_ignored(self):
         # Whitespace between the various parts of the message format structure
         # should be ignored.
         expected_translations = {0: 'Empty', 5: '{count} files'}
@@ -433,6 +433,20 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         )
         self._test_translations_equal(
             '{ "k": "{    cnt,  plural,     zero  {Empty} other   {{count} files} }   "     }',  # noqa
+            expected_translations
+        )
+        self._test_translations_equal(
+            '     {'
+            '    "k": "{cnt,plural,zero{Empty}other{{count} files} }"'
+            '}  ',
+            expected_translations
+        )
+
+    def test_nesting_with_plurals(self):
+        expected_translations = {0: 'Empty', 5: '{count} files'}
+
+        self._test_translations_equal(
+            '{ "k": { "a": "{ cnt, plural, zero {Empty} other {{count} files} }", "b": "c" } }',  # noqa
             expected_translations
         )
 
