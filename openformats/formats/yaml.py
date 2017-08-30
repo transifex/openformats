@@ -313,9 +313,9 @@ class TxYamlLoader(yaml.SafeLoader):
                 continue
             start = value_node.start_mark.index
             end = value_node.end_mark.index
-            style = ''
             if isinstance(value, (dict, list)):
                 values.append(value)
             else:
+                style = value_node.style
                 values.append((value, start, end, style))
         return values
