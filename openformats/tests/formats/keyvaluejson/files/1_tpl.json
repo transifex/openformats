@@ -1,5 +1,12 @@
 {
   "singular_key": "ab2800d7ccb83ba2d643174531d08e36_tr",
   "total_files": "{ item_count, plural, 9af043f75968a7df63dfa2b27c57e2dc_pl }",
-  "gold_coins": "{ count, plural, 8060865280cf7fc9e80b79145208a825_pl }"
+  "gold_coins": "{ count, plural, 8060865280cf7fc9e80b79145208a825_pl }",
+  "something": {
+    "else": "27fc99812beff2126b12708a336513c8_tr",
+    "is": {
+      "going_on": "38eb89d2562cc44ff2061a045b05ebca_tr",
+      "wrong": "{ sth, plural, a125aead7129e03261500e0cade68557_pl }"
+    }
+  }
 }
