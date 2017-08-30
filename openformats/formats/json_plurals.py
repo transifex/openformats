@@ -27,9 +27,6 @@ class JsonPluralsHandler(JsonHandler):
     name = "KEYVALUEJSON_PLURALS"
     extension = "json"
 
-    MESSAGE_FORMAT_STRUCTURE = re.compile(
-        ur'{\s*([A-Za-z-_\d]+),\s*([A-Za-z_]+)\s*,\s*(.*)}'
-    )
     PLURAL_ARG = 'plural'
     PLURAL_KEYS_STR = ' '.join(Handler._RULES_ATOI.keys())
 
@@ -120,7 +117,9 @@ class JsonPluralsHandler(JsonHandler):
             }
         :return: an OpenString or None
         """
-        matches = self.MESSAGE_FORMAT_STRUCTURE.match(value)
+        matches = re.match(
+            ur'{\s*([A-Za-z-_\d]+),\s*([A-Za-z_]+)\s*,\s*(.*)}', value
+        )
         if not matches:
             return None
 
