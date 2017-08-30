@@ -17,7 +17,6 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = JsonHandler
     TESTFILE_BASE = "openformats/tests/formats/keyvaluejson/files"
 
-
     def setUp(self):
         super(JsonTestCase, self).setUp()
 
