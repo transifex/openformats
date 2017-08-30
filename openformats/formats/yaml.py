@@ -125,7 +125,7 @@ class YamlHandler(Handler):
             for i, e in enumerate(yaml_data):
                 p_key = parent_key + '.[%s]' % (i)
                 if isinstance(e, (dict, list)):
-                    parsed_data = self.parse_dict(
+                    parsed_data = self.parse_yaml_data(
                         e, p_key, parsed_data, context,
                         parent_style=copy.copy(parent_style or []))
                 else:
@@ -171,7 +171,7 @@ class YamlHandler(Handler):
         context = ""
         stringset = []
         yaml_data = self._load_yaml(content, loader=TxYamlLoader)
-        parsed_data = self.parse_dict(yaml_data, '', [], context)
+        parsed_data = self.parse_yaml_data(yaml_data, '', [], context)
         parsed_data.sort()
 
         end = 0

@@ -30,7 +30,7 @@ def get_handler(ext):
         'xml': android.AndroidHandler(),
         'json': json.JsonHandler(),
         'po': po.PoHandler(),
-        'md': github_markdown.GithubMarkdownHandler(),
+        'md': github_markdown_v2.GithubMarkdownHandlerV2(),
     }[ext]
 
 
