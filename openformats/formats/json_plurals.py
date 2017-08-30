@@ -214,7 +214,9 @@ class JsonPluralsHandler(JsonHandler):
             for plurality_str, content in all_strings_dict.iteritems()
         }
 
-        openstring = OpenString(key, all_strings_dict, order=next(self._order))
+        openstring = OpenString(
+            key, all_strings_dict, pluralized=True, order=next(self._order)
+        )
 
         # ICU's message format contains an arbitrary string at the beginning.
         # We need to include that in the template, because otherwise we won't
