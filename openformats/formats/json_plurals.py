@@ -202,7 +202,7 @@ class JsonPluralsHandler(JsonHandler):
 
         # Create a list of tuples [(plurality_str, content_with_braces)]
         all_strings_list = [
-            JsonPluralsHandler._parse_plural_content(match[0])
+            self._parse_plural_content(match[0])
             for match in valid_matches
         ]
 
@@ -210,7 +210,7 @@ class JsonPluralsHandler(JsonHandler):
         # And then to a dict like { 1: '...', 5: '...' }
         all_strings_dict = dict(all_strings_list)
         all_strings_dict = {
-            Handler.get_rule_number(plurality_str): content[1:-1]
+            self.get_rule_number(plurality_str): content[1:-1]
             for plurality_str, content in all_strings_dict.iteritems()
         }
 
@@ -444,10 +444,9 @@ class JsonPluralsHandler(JsonHandler):
         replacement_pos = value.find(templ_replacement)
 
         if is_real_stringset:
-            replacement = \
-                JsonPluralsHandler.serialize_pluralized_string(
-                    string, delimiter=' '
-                )
+            replacement = self.serialize_pluralized_string(
+                string, delimiter=' '
+            )
         else:
             replacement = templ_replacement
 
