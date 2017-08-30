@@ -30,23 +30,22 @@ class YamlHandler(Handler):
         except yaml.scanner.ScannerError as e:
             raise ParseError(unicode(e))
 
-    def _parse_leaf_node(self, yaml_dict, parent_key, key, style=[]):
+    def _parse_leaf_node(self, yaml_data, parent_key, style=[]):
         """Parse a leaf node in yaml_dict.
         Args:
-            yaml_dict: A dictionary
+            yaml_data: A tuple of the form (string, start, end, style)
             parent_key: A string of keys concatenated by '.' to
                 reach this node
-            key: A string for the current key of yaml_dict
             style: A list of YAML node styles from root node to
                    immediate parent node of the current YAML node.
 
         Returns:
             A dictionary representing the parsed leaf node
         """
-        value = yaml_dict[0]
-        start = yaml_dict[1]
-        end = yaml_dict[2]
-        style.append(yaml_dict[3] or '')
+        value = yaml_data[0]
+        start = yaml_data[1]
+        end = yaml_data[2]
+        style.append(yaml_data[3] or '')
         return {
             'start': start,
             'end': end,
@@ -88,13 +87,12 @@ class YamlHandler(Handler):
             parent_key += '.' + key
         return parent_key
 
-    def parse_dict(self, yaml_dict, parent_key, parsed_data,
-                   context="", parent_style=[]):
+    def parse_yaml_data(self, yaml_data, parent_key, parsed_data,
+                        context="", parent_style=[]):
         """
-        Parse data returned by YAML loader and also handle plural
-        data if available
+        Parse data returned by YAML loader
         Args:
-            yaml_dict: A dictionary
+            yaml_data: The output of yaml.loads()
             parent_key: A string of keys concatenated by '.' to
                 reach this node,
             parsed_data: A list, containing the already parsed data
@@ -105,27 +103,26 @@ class YamlHandler(Handler):
             A list of dictionaries, where each dictionary maps a node
             key to its value
         """
-        if isinstance(yaml_dict, dict):
-            for key, val in yaml_dict.items():
+        if isinstance(yaml_data, dict):
+            for key, val in yaml_data.items():
                 node_key = self._get_key_for_node(key, parent_key)
                 style = copy.copy(parent_style)
                 if isinstance(val[0], (dict, list)):
                     # style.append(val.get('style', ''))
-                    parsed_data = self.parse_dict(
+                    parsed_data = self.parse_yaml_data(
                         val[0], node_key, parsed_data, context,
                         parent_style=copy.copy(style or []))
                 else:
                     parsed_data.append(
                         self._parse_leaf_node(
-                            val, node_key, key, style=copy.copy(parent_style or
-                                                                [])
+                            val, node_key, style=copy.copy(parent_style or [])
                         )
                     )
-        elif (isinstance(yaml_dict, list)):
+        elif (isinstance(yaml_data, list)):
             # If a list of dicts, add each dict element as a entry
             # using the position (index) of it as parent key using
             # brackets around it. I.e.: 'foo.[0].bar'.
-            for i, e in enumerate(yaml_dict):
+            for i, e in enumerate(yaml_data):
                 p_key = parent_key + '.[%s]' % (i)
                 if isinstance(e, (dict, list)):
                     parsed_data = self.parse_dict(
@@ -134,14 +131,13 @@ class YamlHandler(Handler):
                 else:
                     parsed_data.append(
                         self._parse_leaf_node(
-                            e, p_key, i, style=copy.copy(parent_style or [])
+                            e, p_key, style=copy.copy(parent_style or [])
                         )
                     )
         else:
             parsed_data.append(
                 self._parse_leaf_node(
-                    yaml_dict, node_key, key,
-                    style=copy.copy(parent_style or [])
+                    yaml_data, node_key, style=copy.copy(parent_style or [])
                 )
             )
         return parsed_data
@@ -174,9 +170,8 @@ class YamlHandler(Handler):
         template = ""
         context = ""
         stringset = []
-        yaml_dict = self._load_yaml(content, loader=TxYamlLoader)
-        parsed_data = self.parse_dict(
-            yaml_dict, '', [], context)
+        yaml_data = self._load_yaml(content, loader=TxYamlLoader)
+        parsed_data = self.parse_dict(yaml_data, '', [], context)
         parsed_data.sort()
 
         end = 0
