@@ -6,7 +6,7 @@ numeric_var: 12.5
 # one comment
 
 key1:
-  - list_key: 
+  - list_key:
     - el:li within li
     - el:li within li 2
   - el:li 2
@@ -21,7 +21,6 @@ custom_vars:
   var2: el:literal
 style
 text
-
 nested_key_outer:
   nested_key_inner:
     el:nested_value
