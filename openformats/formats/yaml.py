@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import yaml
 import re
-import json
 import copy
 
 from yaml.constructor import ConstructorError
@@ -297,9 +296,31 @@ class TxYamlLoader(yaml.SafeLoader):
             elif isinstance(value, str) or isinstance(value, unicode):
                 style = value_node.style
 
-            if (isinstance(value, list) and not
-                    (value and isinstance(value[0], dict))):
-                value = json.dumps(value)
             value = (value, start, end, style)
             pairs.append((key, value))
         return pairs
+
+    def construct_sequence(self, node, deep=True):
+        if not isinstance(node, yaml.SequenceNode):
+            raise ParseError(
+                "Expected a mapping node, but found %s" % node.id,
+            )
+        values = []
+
+        for value_node in node.value:
+            try:
+                value = self.construct_object(value_node, deep=deep)
+            except ConstructorError, e:
+                print("During parsing YAML file: %s" % unicode(e))
+                continue
+            if not(isinstance(value, unicode) or isinstance(value, str) or
+                    isinstance(value, list) or isinstance(value, dict)):
+                continue
+            start = value_node.start_mark.index
+            end = value_node.end_mark.index
+            style = ''
+            if isinstance(value, (dict, list)):
+                values.append(value)
+            else:
+                values.append((value, start, end, style))
+        return values
