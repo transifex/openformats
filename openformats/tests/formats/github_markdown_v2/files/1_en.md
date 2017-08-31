@@ -23,7 +23,7 @@ custom_vars:
   var1: some value
   var2: |
     literal
-    style
+    style with "quotes"
     text
 
 nested_key_outer:
@@ -32,6 +32,7 @@ nested_key_outer:
 
 key.with.dots: dot value
 
+1: integer key
 
 ---
 

@@ -55,10 +55,6 @@ class YamlHandler(Handler):
         }
 
     @staticmethod
-    def escape_dots(k):
-        return k.replace('<TX_DOT>', '.')
-
-    @staticmethod
     def unescape_dots(k):
         return k.replace('.', '<TX_DOT>')
 
@@ -119,7 +115,7 @@ class YamlHandler(Handler):
                         )
                     )
         elif (isinstance(yaml_data, list)):
-            # If a list of dicts, add each dict element as a entry
+            # If list add each dict element as a entry
             # using the position (index) of it as parent key using
             # brackets around it. I.e.: 'foo.[0].bar'.
             for i, e in enumerate(yaml_data):

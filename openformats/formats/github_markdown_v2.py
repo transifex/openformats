@@ -8,11 +8,53 @@ from openformats.formats.yaml import YamlHandler
 from ..handlers import Handler
 from ..strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
+from ..transcribers import Transcriber
 
 
 class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     name = "Github_Markdown_v2"
     extension = "md"
+
+    BACKSLASH = u'\\'
+    DOUBLE_QUOTES = u'"'
+    NEWLINE = u'\n'
+
+    def compile(self, template, stringset, **kwargs):
+        # assume stringset is ordered within the template
+        transcriber = Transcriber(template)
+        template = transcriber.source
+
+        for string in stringset:
+            tr_string = string.string
+            try:
+                # if string's key is int this is a markdown string
+                int(string.key)
+            except ValueError:
+                if self.NEWLINE in tr_string[:-1]:
+                    # escape double quotes inside strings
+                    tr_string = string.string.replace(
+                        self.DOUBLE_QUOTES,
+                        (self.BACKSLASH + self.DOUBLE_QUOTES)
+                    )
+                    # surround string with double quotes
+                    tr_string = (self.DOUBLE_QUOTES + tr_string +
+                                 self.DOUBLE_QUOTES)
+                # this is to ensure that if the style is literal or folded
+                # http://www.yaml.org/spec/1.2/spec.html#id2795688
+                # a new line always follows the string
+                if (string.flags and string.flags in '|>' and
+                        tr_string[-1] != self.NEWLINE):
+                    tr_string = tr_string + self.NEWLINE
+
+            hash_position = template.index(string.template_replacement)
+            transcriber.copy_until(hash_position)
+            transcriber.add(tr_string)
+            transcriber.skip(len(string.template_replacement))
+
+        transcriber.copy_until(len(template))
+        compiled = transcriber.get_destination()
+
+        return compiled
 
     def parse(self, content, **kwargs):
 
@@ -54,9 +96,11 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
                 order += 1
                 stringset.append(string_object)
                 # Keep track of the index of the last replaced hash
-                md_template = md_template[:curr_pos] + md_template[curr_pos:].replace(
-                    string, string_object.template_replacement, 1
+                md_template = (
+                    md_template[:curr_pos] + md_template[curr_pos:].replace(
+                        string, string_object.template_replacement, 1)
                 )
+
                 curr_pos = md_template.find(string_object.template_replacement)
                 curr_pos = curr_pos + len(string_object.template_replacement)
 

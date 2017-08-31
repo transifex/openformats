@@ -18,15 +18,17 @@ key2:
 description: el:folded style text
 custom_vars:
   var1: el:some value
-  var2: el:literal
-style
+  var2: "el:literal
+style with \"quotes\"
 text
+"
 nested_key_outer:
   nested_key_inner:
     el:nested_value
 
 key.with.dots: el:dot value
 
+1: el:integer key
 
 ---
 
