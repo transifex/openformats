@@ -141,7 +141,7 @@ class JsonHandler(Handler):
         :return: an OpenString or None
         """
         matches = re.match(
-            ur'{\s*([A-Za-z-_\d]+),\s*([A-Za-z_]+)\s*,\s*(.*)}\s*', value
+            ur'\s*{\s*([A-Za-z-_\d]+)\s*,\s*([A-Za-z_]+)\s*,\s*(.*)}\s*', value
         )
         if not matches:
             return None

@@ -441,6 +441,18 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             '}  ',
             expected_translations
         )
+        self._test_translations_equal(
+            '{'
+            '    "k": "  {cnt, plural, zero {Empty} other {{count} files} }"'
+            '}',
+            expected_translations
+        )
+        self._test_translations_equal(
+            '{'
+            '    "k": "{cnt , plural , zero {Empty} other {{count} files} }"'
+            '}',
+            expected_translations
+        )
 
     def test_nesting_with_plurals(self):
         expected_translations = {0: 'Empty', 5: '{count} files'}
