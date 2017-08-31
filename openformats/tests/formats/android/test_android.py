@@ -414,8 +414,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <string name="a">world</string>
                 </resources>
             ''',
-            u"Duplicate `tag_name` (string) for `name` (a) spcesify a"
-            u" product to differenciate"
+            u"Duplicate `tag_name` (string) for `name` (a) specify a"
+            u" product to differentiate"
         )
 
     def test_duplicate_names_and_products(self):
