@@ -133,7 +133,7 @@ class YamlHandler(Handler):
         else:
             parsed_data.append(
                 self._parse_leaf_node(
-                    yaml_data, node_key, style=copy.copy(parent_style or [])
+                    yaml_data, parent_key, style=copy.copy(parent_style or [])
                 )
             )
         return parsed_data
@@ -188,10 +188,6 @@ class YamlHandler(Handler):
                 order += 1
                 template += (content[end:start] +
                              string_object.template_replacement)
-            else:
-                template += content[end:end_]
-                end = end_
-                continue
             comment = self._find_comment(content, end, start)
             end = end_
 

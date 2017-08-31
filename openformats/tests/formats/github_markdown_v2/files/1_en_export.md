@@ -8,6 +8,7 @@ numeric_var: 12.5
 key1:
   - list_key:
     - li within li
+      # second comment
     - li within li 2
   - li 2
 key2:

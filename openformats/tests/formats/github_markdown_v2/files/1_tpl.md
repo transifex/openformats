@@ -8,6 +8,7 @@ numeric_var: 12.5
 key1:
   - list_key:
     - ac56af108b4b69b867c09f8542a51cb2_tr
+      # second comment
     - d2d20cce249c5d7e8ca96b9e30a3349c_tr
   - 17e2086737d2192e6665ea2c0f0b1e9a_tr
 key2:
