@@ -14,6 +14,7 @@ from ..transcribers import Transcriber
 class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     name = "Github_Markdown_v2"
     extension = "md"
+    EXTRACTS_RAW = False
 
     BACKSLASH = u'\\'
     DOUBLE_QUOTES = u'"'
