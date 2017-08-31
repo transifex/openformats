@@ -16,7 +16,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from openformats.formats import (
-    plaintext, srt, android, json, po, github_markdown)
+    plaintext, srt, android, json, po, github_markdown_v2)
 from openformats.tests.utils import translate_stringset
 
 args = argparse.ArgumentParser
@@ -30,7 +30,7 @@ def get_handler(ext):
         'xml': android.AndroidHandler(),
         'json': json.JsonHandler(),
         'po': po.PoHandler(),
-        'md': github_markdown.GithubMarkdownHandler(),
+        'md': github_markdown_v2.GithubMarkdownHandlerV2(),
     }[ext]
 
 
