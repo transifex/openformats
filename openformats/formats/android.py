@@ -261,7 +261,7 @@ class AndroidHandler(Handler):
                     else:
                         msg = (
                             u"Duplicate `tag_name` ({child_tag}) for `name`"
-                            u" ({name}) spcesify a product to differenciate"
+                            u" ({name}) specify a product to differentiate"
                         )
                     XMLUtils.raise_error(
                         self.transcriber,
