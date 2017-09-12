@@ -1,35 +1,36 @@
 ---
-title: el:About writing and formatting on GitHub
-intro: el:into text
+title: "el:About writing and formatting on GitHub"
+intro: "el:into text"
 numeric_var: 12.5
 
 # one comment
 
 key1:
   - list_key:
-    - el:li within li
+    - "el:li within li"
       # second comment
-    - el:li within li 2
-  - el:li 2
+    - "el:li within li 2"
+  - "el:li 2"
 key2:
-  - object_within_list: el:value
-  - el:li 4
-  - el:li 5
+  - object_within_list: "el:value"
+  - "el:li 4"
+  - "el:li 5"
 
-description: el:folded style text
+description: "el:folded style text
+"
 custom_vars:
-  var1: el:some value
+  var1: "el:text: some value"
   var2: "el:literal
 style with \"quotes\"
 text
 "
 nested_key_outer:
   nested_key_inner:
-    el:nested_value
+    "el:nested_value"
 
-key.with.dots: el:dot value
+key.with.dots: "el:dot value"
 
-1: el:integer key
+1: "el:integer key"
 
 ---
 

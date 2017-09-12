@@ -19,6 +19,19 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     BACKSLASH = u'\\'
     DOUBLE_QUOTES = u'"'
     NEWLINE = u'\n'
+    COLON = u':'
+    ASTERISK = u'*'
+    AMPERSAND = u'&'
+    DASH = u'-'
+
+    def _should_wrap_in_quotes(self, tr_string):
+        return any([
+            self.NEWLINE in tr_string[:-1],
+            self.COLON in tr_string,
+            tr_string.startswith(self.ASTERISK),
+            tr_string.startswith(self.AMPERSAND),
+            tr_string.startswith(self.DASH),
+        ])
 
     def compile(self, template, stringset, **kwargs):
         # assume stringset is ordered within the template
@@ -31,7 +44,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
                 # if string's key is int this is a markdown string
                 int(string.key)
             except ValueError:
-                if self.NEWLINE in tr_string[:-1]:
+                if self._should_wrap_in_quotes(tr_string):
                     # escape double quotes inside strings
                     tr_string = string.string.replace(
                         self.DOUBLE_QUOTES,
