@@ -28,9 +28,9 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         return any([
             self.NEWLINE in tr_string[:-1],
             self.COLON in tr_string,
-            tr_string.startswith(self.ASTERISK),
-            tr_string.startswith(self.AMPERSAND),
-            tr_string.startswith(self.DASH),
+            tr_string.lstrip().startswith(self.ASTERISK),
+            tr_string.lstrip().startswith(self.AMPERSAND),
+            tr_string.lstrip().startswith(self.DASH),
         ])
 
     def compile(self, template, stringset, **kwargs):
