@@ -18,7 +18,7 @@ key2:
 
 description: folded style text
 custom_vars:
-  var1: some value
+  var1: "text: some value"
   var2: "literal
 style with \"quotes\"
 text
