@@ -1,65 +1,70 @@
+from .utils.newlines import find_newline_type, force_newline_type
+
+
 class Transcriber(object):
     r"""
-    This class helps with creating a template from an imported file or compile
-    an output file from a template.
+        This class helps with creating a template from an imported file or
+        compile an output file from a template.
 
-    **Main functionality**
+        **Main functionality**
 
-    This class will help with both creating a template from an imported file
-    and with compiling a file from a template. It provides functions for
-    copying text. It depends on 3 things, the source content (self.source), the
-    target content (self.destination) which initially will contain an empty
-    string and a pointer (self.ptr) which will indicate which parts of 'source'
-    have already been copied to 'destination' (and will be initialized to 0).
+        This class will help with both creating a template from an imported
+        file and with compiling a file from a template. It provides functions
+        for copying text. It depends on 3 things, the source content
+        (self.source), the target content (self.destination) which initially
+        will contain an empty string and a pointer (self.ptr) which will
+        indicate which parts of 'source' have already been copied to
+        'destination' (and will be initialized to 0).
 
-    Transcriber detects and remembers the newline type (DOS, ``'\r\n'`` or UNIX
-    ``'\n'``) of 'source'. It then converts 'source' to UNIX-like newlines and
-    works on this. When returning the destination, the initial newline type
-    will be used. Because 'source' is being potentially edited, it's a good
-    idea to save Transcriber's source back on top of the original one:
+        Transcriber detects and remembers the newline type (DOS, ``'\r\n'`` or
+        UNIX ``'\n'``) of 'source'. It then converts 'source' to UNIX-like
+        newlines and works on this. When returning the destination, the initial
+        newline type will be used. Because 'source' is being potentially
+        edited, it's a good idea to save Transcriber's source back on top of
+        the original one:
 
-        >>> def parse(self, source):
-        ...     self.transcriber = Transcriber(source)
-        ...     self.source = self.transcriber.source
-        ...     # ...
+            >>> def parse(self, source):
+            ...     self.transcriber = Transcriber(source)
+            ...     self.source = self.transcriber.source
+            ...     # ...
 
-    The main methods provided are demonstrated below::
+        The main methods provided are demonstrated below::
 
-        >>> transcriber = Transcriber(source)
+            >>> transcriber = Transcriber(source)
 
-        source:      <string name="foo">hello world</string>
-        ptr:         ^ (0)
-        destination: []
+            source:      <string name="foo">hello world</string>
+            ptr:         ^ (0)
+            destination: []
 
-        >>> transcriber.copy_until(source.index('>') + 1)
+            >>> transcriber.copy_until(source.index('>') + 1)
 
-        source:      <string name="foo">hello world</string>
-        ptr:                            ^
-        destination: ['<string name="foo">']
+            source:      <string name="foo">hello world</string>
+            ptr:                            ^
+            destination: ['<string name="foo">']
 
-        >>> transcriber.add("aee8cc2abd5abd5a87cd784be_tr")
+            >>> transcriber.add("aee8cc2abd5abd5a87cd784be_tr")
 
-        source:      <string name="foo">hello world</string>
-        ptr:                            ^
-        destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr']
+            source:      <string name="foo">hello world</string>
+            ptr:                            ^
+            destination: ['<string name="foo">', 'ee8cc2abd5abd5a87cd784be_tr']
 
-        >>> transcriber.skip(len("hello world"))
+            >>> transcriber.skip(len("hello world"))
 
-        source:      <string name="foo">hello world</string>
-        ptr:                                       ^
-        destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr']
+            source:      <string name="foo">hello world</string>
+            ptr:                                       ^
+            destination: ['<string name="foo">', 'ee8cc2abd5abd5a87cd784be_tr']
 
-        >>> transcriber.copy_until(source.index("</string>") +
-        ...                        len("</string>"))
+            >>> transcriber.copy_until(source.index("</string>") +
+            ...                        len("</string>"))
 
-        source:      <string name="foo">hello world</string>
-        ptr:                                                ^
-        destination: ['<string name="foo">', 'aee8cc2abd5abd5a87cd784be_tr',
-        '</string>']
+            source:      <string name="foo">hello world</string>
+            ptr:                                                ^
+            destination: ['<string name="foo">', 'ee8cc2abd5abd5a87cd784be_tr',
+                          '</string>']
 
-        >>> print transcriber.get_destination()
+            >>> print transcriber.get_destination()
 
-        <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
+            <string name="foo">aee8cc2abd5abd5a87cd784be_tr</string>
     """
 
     class SectionStart:
@@ -76,10 +81,9 @@ class Transcriber(object):
         self.newline_count = 0
 
         # Handle newlines
-        self.newline_type = "UNIX"
-        if '\r\n' in self.source:
-            self.newline_type = "DOS"
-            self.source = self.source.replace('\r\n', '\n')
+        self.newline_type = find_newline_type(self.source)
+        if self.newline_type == 'DOS':
+            self.source = force_newline_type(self.source, 'UNIX')
 
     def copy(self, offset):
         chunk = self.source[self.ptr:self.ptr + offset]
@@ -265,6 +269,6 @@ class Transcriber(object):
 
         if ((enforce_newline_type is None and self.newline_type == "DOS") or
                 enforce_newline_type == "DOS"):
-            return chunk.replace('\n', '\r\n')
+            return force_newline_type(chunk, 'DOS')
         else:
             return chunk
