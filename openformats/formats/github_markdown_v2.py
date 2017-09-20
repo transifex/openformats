@@ -8,6 +8,7 @@ from openformats.formats.yaml import YamlHandler
 from ..handlers import Handler
 from ..strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
+from ..utils.newlines import find_newline_type, force_newline_type
 from ..transcribers import Transcriber
 
 
@@ -71,6 +72,10 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         return compiled
 
     def parse(self, content, **kwargs):
+        newline_type = find_newline_type(content)
+        if newline_type == 'DOS':
+            content = force_newline_type(content, 'UNIX')
+
         # mistune expands tabs to 4 spaces and trims trailing spaces, so we
         # need to do the same in order to be able to match the substrings
         template = content.expandtabs(4)
@@ -124,4 +129,4 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
                 curr_pos = curr_pos + len(string_object.template_replacement)
 
         template = yaml_template + seperator + md_template
-        return template, stringset
+        return force_newline_type(template, newline_type), stringset

@@ -6,6 +6,7 @@ from mistune import (BlockLexer, Markdown)
 from ..handlers import Handler
 from ..strings import OpenString
 from ..utils.compilers import OrderedCompilerMixin
+from ..utils.newlines import find_newline_type, force_newline_type
 
 
 def string_handler(token, template):
@@ -177,6 +178,10 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
 
     def parse(self, content, **kwargs):
 
+        newline_type = find_newline_type(content)
+        if newline_type == 'DOS':
+            content = force_newline_type(content, 'UNIX')
+
         template = content
         stringset = []
 
@@ -214,4 +219,4 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
                 )
                 curr_pos = template.find(string_object.template_replacement)
                 curr_pos = curr_pos + len(string_object.template_replacement)
-        return template, stringset
+        return force_newline_type(template, newline_type), stringset
