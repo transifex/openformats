@@ -1,0 +1,12 @@
+{
+  "singular_key": "This is a regular string.",
+  "total_files": "{ item_count, plural, one {You have {file_count} file.} other {You have {file_count} files.} }",
+  "gold_coins": "{ count, plural, zero {The chest is empty.} one {You have one gold coin.} other {You have {cnt} gold coins.} }",
+  "something": {
+    "else": "Something else",
+    "is": {
+      "going_on": "Something is going on.",
+      "wrong": "{ sth, plural, one {Something is wrong.} other {Somethings are wrong.} }"
+    }
+  }
+}
