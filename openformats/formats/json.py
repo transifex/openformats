@@ -187,6 +187,21 @@ class JsonHandler(Handler):
             e.g. 'one { I ate {count} apple. } other { I ate {count} apples. }'
         :return: A pluralized OpenString instance or None
         """
+        # The official plurals format supports defining an integer instead
+        # of the name of the plural rule, using a syntax like "=1" or "=2"
+        # We do not support this at the moment, but we want to have these
+        # strings be handled as non pluralized.
+        equality_item = (
+            pyparsing.Literal('=') + pyparsing.Word(pyparsing.alphanums) +
+            pyparsing.nestedExpr('{', '}')
+        )
+        equality_matches = pyparsing.originalTextFor(equality_item)\
+            .searchString(serialized_strings)
+
+        # If any match is found using this syntax, do not parse this
+        # as pluralized
+        if len(equality_matches) > 0:
+            return None
 
         # Each item should be like '<proper_plurality_rule_str> {<content>}'
         # Nested braces ({}) inside <content> are allowed.

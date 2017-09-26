@@ -8,5 +8,6 @@
       "going_on": "el:Something is going on.",
       "wrong": "{ sth, plural, one {el:Something is wrong.} other {el:Somethings are wrong.} }"
     }
-  }
+  },
+  "custom_plural_value": "el:{number, plural, =1 {1 New}, =2 {# New}}"
 }
