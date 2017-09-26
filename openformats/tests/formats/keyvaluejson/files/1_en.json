@@ -8,5 +8,6 @@
       "going_on": "Something is going on.",
       "wrong": "{ sth, plural, one {Something is wrong.} other {Somethings are wrong.} }"
     }
-  }
+  },
+  "custom_plural_value": "{number, plural, =1 {1 New}, =2 {# New}}"
 }
