@@ -23,3 +23,9 @@ class GithubMarkdownV2TestCase(CommonFormatTestMixin, unittest.TestCase):
         """Test that import-export is the same as the original file."""
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
         self.assertEquals(remade_orig_content, self.data["1_en_export"])
+
+    def test_parse(self):
+        """Test parse converts tabs to spaces"""
+        content_with_tab = self.handler.parse(content=u"# foo	bar")
+        content_with_spaces = self.handler.parse(content=u"# foo    bar")
+        self.assertEqual(content_with_tab[0], content_with_spaces[0])
