@@ -13,7 +13,7 @@ key1:
   - li 2
 key2:
   - object_within_list: value
-  - li 4
+  - "text with a #hashtag in it"
   - li 5
 
 description: >
