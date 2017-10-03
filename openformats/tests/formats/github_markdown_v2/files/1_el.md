@@ -13,7 +13,7 @@ key1:
   - "el:li 2"
 key2:
   - object_within_list: "el:value"
-  - "el:li 4"
+  - "el:text with a #hashtag in it"
   - "el:li 5"
 
 description: "el:folded style text

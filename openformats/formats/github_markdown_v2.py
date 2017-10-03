@@ -24,11 +24,13 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     ASTERISK = u'*'
     AMPERSAND = u'&'
     DASH = u'-'
+    HASHTAG = u'#'
 
     def _should_wrap_in_quotes(self, tr_string):
         return any([
             self.NEWLINE in tr_string[:-1],
             self.COLON in tr_string,
+            self.HASHTAG in tr_string,
             tr_string.lstrip().startswith(self.ASTERISK),
             tr_string.lstrip().startswith(self.AMPERSAND),
             tr_string.lstrip().startswith(self.DASH),
