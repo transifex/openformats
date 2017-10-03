@@ -182,6 +182,12 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         if newline_type == 'DOS':
             content = force_newline_type(content, 'UNIX')
 
+        # mistune expands tabs to 4 spaces and trims trailing spaces, so we
+        # need to do the same in order to be able to match the substrings
+        template = content.expandtabs(4)
+        pattern = re.compile(r'^ +$', re.M)
+        content = pattern.sub('', template)
+
         template = content
         stringset = []
 

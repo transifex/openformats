@@ -80,7 +80,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         # need to do the same in order to be able to match the substrings
         template = content.expandtabs(4)
         pattern = re.compile(r'^ +$', re.M)
-        template = pattern.sub('', template)
+        content = pattern.sub('', template)
 
         stringset = []
 
