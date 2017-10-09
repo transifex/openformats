@@ -700,6 +700,37 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             </resources>
         """.format(key=string.key, string=string.string))
 
+    def test_tools_locale(self):
+        random_key = generate_random_string()
+        random_string = generate_random_string()
+        random_openstring = OpenString(random_key, random_string, order=0)
+        random_hash = random_openstring.template_replacement
+
+        source_python_template = u'''
+            <resources tools:locale="{language_code}">
+                <string name="{key}">{string}</string>
+            </resources>
+        '''
+        source = source_python_template.format(language_code="en",
+                                               key=random_key,
+                                               string=random_string)
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [random_openstring],
+                                        language_info={'code': "fr"})
+
+        self.assertEquals(
+            template,
+            source_python_template.format(language_code="en", key=random_key,
+                                          string=random_hash)
+        )
+        self.assertEquals(len(stringset), 1)
+        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEquals(compiled,
+                          source_python_template.format(language_code="fr",
+                                                        key=random_key,
+                                                        string=random_string))
+
     def test_escape(self):
         cases = (
             # a"b => a\"b
