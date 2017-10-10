@@ -1,4 +1,5 @@
 import re
+from itertools import count
 
 
 class DumbXml(object):
@@ -187,6 +188,10 @@ class NewDumbXml(object):
             - In case of a comment, this will return '!--' which is equal to
               DumbXml.COMMENT
 
+        - `dumb_xml.attributes`: The attributes of the tag, if any, as list of
+          tuples in `(key_position, key, value_position, value)` format
+          (in our example: `[(3, 'key', 8, "value")]`)
+
         - `dumb_xml.attrib`: The attributes of the tag, if any, in dict format
           (in our example: `{'key': "value"}`)
 
@@ -240,6 +245,7 @@ class NewDumbXml(object):
     LESS_THAN = u"<"
     GREATER_THAN = u">"
     NEWLINE = u"\n"
+    EQUAL_SIGN = u"="
 
     class NOT_CACHED:
         "Special value for None because for some properties, None is valid"
@@ -250,8 +256,9 @@ class NewDumbXml(object):
         self.source = source
         self.start = start
         self._position = self._tag = self._attrib = self._attrib_string =\
-            self._text_position = self._text = self._content_end =\
-            self._tail_position = self._tail = self.NOT_CACHED
+            self._attributes = self._text_position = self._text =\
+            self._content_end = self._tail_position = self._tail =\
+            self.NOT_CACHED
 
         # Start with tag because if this is a comment, it will mess up with the
         # retrieving of other attributes
@@ -299,40 +306,77 @@ class NewDumbXml(object):
                                  format(self._find_line_number()))
 
     @property
+    def attributes(self):
+        if self._attributes is not self.NOT_CACHED:
+            return self._attributes
+
+        start = self.position + 1 + len(self.tag)
+        self._attributes = []
+        (status,
+         key_position, key, value_position, value, quote_type) = [None] * 6
+
+        for ptr in count(start):
+            try:
+                candidate = self.source[ptr]
+            except IndexError:
+                raise DumbXmlSyntaxError(
+                    u"Opening tag '{}' not closed on line {}".
+                    format(self.tag, self._find_line_number())
+                )
+
+            # `status` lifecycle should be:
+            #   None -> IN_KEY -> AFTER_KEY -> IN_VALUE -> None -> ...
+            if status is None:
+                if candidate in (self.FORWARD_SLASH, self.GREATER_THAN):
+                    # <a .... /> or <a .... >
+                    #         ^             ^
+                    break
+                elif candidate.isspace():
+                    # <a   b="c">
+                    #    ^
+                    continue
+                else:
+                    # <a  b="c" ...>
+                    #     ^
+                    status, key_position, key = "IN_KEY", ptr, [candidate]
+            elif status == "IN_KEY":
+                if candidate == self.EQUAL_SIGN:
+                    # <a b="c" ... >
+                    #     ^
+                    status = "AFTER_KEY"
+                else:
+                    # <a bcd="ef" ... >
+                    #     ^
+                    key.append(candidate)
+            elif status == "AFTER_KEY":
+                if candidate in (self.SINGLE_QUOTE, self.DOUBLE_QUOTES):
+                    # <a b="cde" ... >
+                    #      ^
+                    (status, quote_type, value_position,
+                     value) = "IN_VALUE", candidate, ptr + 1, []
+            elif status == "IN_VALUE":
+                if candidate == quote_type:
+                    # <a b="c" ... >
+                    #        ^
+                    status = None
+                    self._attributes.append((key_position, u''.join(key),
+                                             value_position, u''.join(value)))
+                else:
+                    # <a b="cde" ... >
+                    #        ^
+                    value.append(candidate)
+
+        self._attrib_string = self.source[start:ptr]
+
+        return self._attributes
+
+    @property
     def attrib(self):
         if self._attrib is not self.NOT_CACHED:
             return self._attrib
 
-        attrib_start_p = self.position + 1 + len(self.tag)
-        in_quotes = False
-        for ptr in xrange(attrib_start_p, len(self.source)):
-            candidate = self.source[ptr]
-            if candidate in (self.SINGLE_QUOTE, self.DOUBLE_QUOTES):
-                in_quotes = not in_quotes
-            if not in_quotes and candidate in (self.FORWARD_SLASH,
-                                               self.GREATER_THAN):
-                attrib_end_p = ptr
-                break
-        else:
-            raise DumbXmlSyntaxError(
-                u"Opening tag '{}' not closed on line {}".
-                format(self.tag, self._find_line_number())
-            )
+        self._attrib = {key: value for _, key, _, value in self.attributes}
 
-        self._attrib_string = self.source[attrib_start_p:attrib_end_p]
-        pat = re.compile(r"""(?P<key>[^\s=]+)
-                             \s*=\s*
-                             (
-                                 ('(?P<value_apos>[^']+)') |
-                                 ("(?P<value_quot>[^"]+)")
-                             )""", re.VERBOSE)
-
-        self._attrib = {}
-        for match in pat.finditer(self._attrib_string):
-            groupdict = match.groupdict()
-            key = groupdict['key']
-            value = groupdict['value_apos'] or groupdict['value_quot']
-            self._attrib[key] = value
         return self._attrib
 
     @property
@@ -553,6 +597,7 @@ class NewDumbXml(object):
         # We already know position and tag
 
         self._attrib_string = ""
+        self._attributes = []
         self._attrib = {}
 
         self._text_position = self.position + len("<!--")
@@ -574,5 +619,5 @@ class NewDumbXml(object):
 for symbol in (NewDumbXml.BACKSLASH, NewDumbXml.FORWARD_SLASH,
                NewDumbXml.SINGLE_QUOTE, NewDumbXml.DOUBLE_QUOTES,
                NewDumbXml.LESS_THAN, NewDumbXml.GREATER_THAN,
-               NewDumbXml.NEWLINE):
+               NewDumbXml.NEWLINE, NewDumbXml.EQUAL_SIGN):
     assert len(symbol) == 1

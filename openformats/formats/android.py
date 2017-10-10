@@ -355,13 +355,26 @@ class AndroidHandler(Handler):
 
     """ Compile Methods """
 
-    def compile(self, template, stringset, is_source=True):
+    def compile(self, template, stringset, is_source=True, language_info=None,
+                **kwargs):
         resources_tag_position = template.index(self.PARSE_START)
 
         self.transcriber = Transcriber(template[resources_tag_position:])
         source = self.transcriber.source
 
         parsed = DumbXml(source)
+
+        # Check against 'tools:locale' attribute
+        if language_info is not None and 'tools:locale' in parsed.attrib:
+            value_position, value = next((
+                (value_position, value)
+                for _, key, value_position, value in parsed.attributes
+                if key == 'tools:locale'
+            ))
+            self.transcriber.copy_until(value_position)
+            self.transcriber.add(language_info['code'])
+            self.transcriber.skip(len(value))
+
         # This is needed in case the first tag is skipped to retain
         # the file's formating
         first_tag_position = parsed.text_position + len(parsed.text)
