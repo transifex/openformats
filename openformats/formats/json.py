@@ -205,9 +205,18 @@ class JsonHandler(Handler):
 
         # Each item should be like '<proper_plurality_rule_str> {<content>}'
         # Nested braces ({}) inside <content> are allowed.
+        #
+        # Note:
+        # Be sure to ignore single quotes ('), otherwise strings that include
+        # one quote in one plural and another one in another plural, will be
+        # parsed as pluralized but with less rules than they actually have.
+        # (matching will actually include content from multiple rules combined,
+        # instead of separating the content per rule). This seems like a
+        # pyparsing bug. Any other character that could be a potential
+        # separator doesn't seem cause any problem.
         valid_plural_item = (
             pyparsing.oneOf(self.PLURAL_KEYS_STR) +
-            pyparsing.nestedExpr('{', '}')
+            pyparsing.nestedExpr('{', '}', ignoreExpr=pyparsing.Literal("'"))
         )
 
         # We need to make sure that the plural rules are valid.
@@ -216,7 +225,7 @@ class JsonHandler(Handler):
         # we got above.
         any_plural_item = (
             pyparsing.Word(pyparsing.alphanums) +
-            pyparsing.nestedExpr('{', '}')
+            pyparsing.nestedExpr('{', '}', ignoreExpr=pyparsing.Literal("'"))
         )
 
         all_matches = pyparsing.originalTextFor(any_plural_item).searchString(
