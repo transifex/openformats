@@ -2,7 +2,7 @@
   "singular_key": "ab2800d7ccb83ba2d643174531d08e36_tr",
   "total_files": "{ item_count, plural, 9af043f75968a7df63dfa2b27c57e2dc_pl }",
   "special_chars": "{ cnt, plural, 00fe762ad9b56187fed536350bc3a40c_pl }",
-  "gold_coins": "{ count, plural, 8060865280cf7fc9e80b79145208a825_pl }",
+  "gold_coins": "{ count, plural,\n 8060865280cf7fc9e80b79145208a825_pl \n}",
   "something": {
     "else": "27fc99812beff2126b12708a336513c8_tr",
     "is": {

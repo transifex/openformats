@@ -308,11 +308,19 @@ class JsonHandler(Handler):
 
         :raise: ParseError
         """
+        # Replace all matches with spaces in the given string.
         remaining_str = serialized_strings
         for match in all_matches:
             remaining_str = remaining_str.replace(match[0], '')
 
-        if len(remaining_str.strip()) > 0:
+        # Then make sure all whitespace is removed as well
+        # Special characters may be present with double backslashes,
+        # e.g. \\n
+        remaining_str = remaining_str.replace('\\n', '\n')\
+            .replace('\\t', '\t')\
+            .strip()
+
+        if len(remaining_str) > 0:
             raise ParseError(
                 'Invalid format of pluralized entry '
                 'with key: "{}", serialized translations: "{}". '
