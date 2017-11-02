@@ -1,0 +1,15 @@
+version: "3.2"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - target: 8010
+        published: 8010
+        protocol: tcp
+        mode: host
+    volumes:
+        - ./:/app
+    stdin_open: true
+    tty: true
