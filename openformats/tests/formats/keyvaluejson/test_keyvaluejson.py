@@ -454,6 +454,23 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             expected_translations
         )
 
+        # Escaped new lines should be allowed
+        self._test_translations_equal(
+            '{'
+            '    "k": "{cnt, plural,\\n zero {Empty} other {{count} files} \\n}"'  #noqa
+            '}',
+            expected_translations
+        )
+
+        # Renderind a template with escaped new lines should work. However,
+        # these characters cannot be inside the pluralized string, because the
+        # template would be very hard to create in that case (e.g. not allowed
+        # in: 'zero {Empty} \n other {{count} files}'
+        source = '{"a": "{cnt, plural,\\n one {0} other {{count} files} \\n}"}'
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEquals(compiled, source)
+
     def test_nesting_with_plurals(self):
         expected_translations = {0: 'Empty', 5: '{count} files'}
 
