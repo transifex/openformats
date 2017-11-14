@@ -34,6 +34,9 @@ custom_vars:
 * 26101031d5115f57d3e8c34f2ac1f741_tr
   * ac435aa88d7932bc7c26dbe0277119a3_tr
   * 311a0516b1c6eb11a28e8deaa5c64c78_tr
+  * ```
+    Item 2c
+    ```
 
 ### a3575631fc76819748da773b5b0087a4_tr
 
@@ -42,6 +45,9 @@ custom_vars:
 1. 867da7e2af8e6b2f3aa7213a4080edb3_tr
    1. a6c1243676462dae35ed0c9122125d4e_tr
    1. 6994d1415b92982eb7cf57740b15b949_tr
+   1. ```
+      Item 3c
+      ```
 
 
 ## 061c16448aee6be07e20ab574ef27ea4_tr

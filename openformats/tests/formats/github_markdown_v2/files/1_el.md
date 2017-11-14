@@ -57,6 +57,9 @@ el:_You **can** combine bold and italic_
 * el:Item 2
   * el:Item 2a
   * el:Item 2b
+  * ```
+    Item 2c
+    ```
 
 ### el:Ordered
 
@@ -65,6 +68,9 @@ el:_You **can** combine bold and italic_
 1. el:Item 3
    1. el:Item 3a
    1. el:Item 3b
+   1. ```
+      Item 3c
+      ```
 
 
 ## el:Images

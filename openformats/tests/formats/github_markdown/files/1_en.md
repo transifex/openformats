@@ -38,6 +38,9 @@ _You **can** combine bold and italic_
 * Item 2
   * Item 2a
   * Item 2b
+  * ```
+    Item 2c
+    ```
 
 ### Ordered
 
@@ -46,6 +49,9 @@ _You **can** combine bold and italic_
 1. Item 3
    1. Item 3a
    1. Item 3b
+   1. ```
+      Item 3c
+      ```
 
 
 ## Images

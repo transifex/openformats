@@ -215,7 +215,7 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         curr_pos = 0
         for string in (yaml_stringset + block.md_stringset):
             string = string_handler(string, template)
-            if string:
+            if string and string in template[curr_pos:]:
                 string_object = OpenString(str(order), string, order=order)
                 order += 1
                 stringset.append(string_object)
