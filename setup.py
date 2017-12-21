@@ -7,6 +7,9 @@ install_requires = [
     'mistune==0.7.3',
     'PyYAML==3.10',
     'pyparsing==2.2.0',
+    'lxml==4.1.1',
+    'beautifulsoup4==4.6.0',
+    'UCFlib==0.2.1',
 ]
 
 tests_require = [
