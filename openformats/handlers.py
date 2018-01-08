@@ -21,6 +21,10 @@ class Handler(object):
 
     EXTRACTS_RAW = True
 
+    # Use this flag for handlers whose the content should be processed as
+    # binary and not be converted to unicode
+    PROCESSES_BINARY = False
+
     _RULES_ITOA = {value: key for key, value in _RULES_ATOI.iteritems()}
 
     _RULE_ERROR_MSG = (

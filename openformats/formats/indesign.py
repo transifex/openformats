@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from base64 import b64encode, b64decode
 import io
 
+from base64 import b64encode, b64decode
 from bs4 import BeautifulSoup
 from ucf import UCF
 
@@ -21,6 +21,7 @@ class InDesignHandler(Handler):
     name = "InDesign"
     extension = "idml"
     SPECIFIER = None
+    PROCESSES_BINARY = True
 
     def bind_content(self, content):
         self.content = content
@@ -35,8 +36,7 @@ class InDesignHandler(Handler):
         stringset = []
         order = 0
 
-        # The content is a base64 encoded IDML file
-        idml = UCF(io.BytesIO(b64decode(content)))
+        idml = UCF(io.BytesIO(content))
 
         # Iterate over the contents of the IDML file
         for key in idml.keys():
@@ -49,7 +49,7 @@ class InDesignHandler(Handler):
             # the newly altered content too
             for content in self._get_all_contents(soup):
                 for string in content.stripped_strings:
-                    string_object = OpenString(str(order), string, order=order)
+                    string_object = OpenString(string, string, order=order)
                     stringset.append(string_object)
                     replacements.append(string_object.template_replacement)
                     order += 1
@@ -67,13 +67,13 @@ class InDesignHandler(Handler):
 
         out = io.BytesIO()
         idml.save(out)
-        template = b64encode(out.getvalue())
+        template = out.getvalue()
 
         return template, stringset
 
     def _get_all_contents(self, idml):
         """Return an array with all the strings of an IDML file."""
-        for story in idml.find_all("Story"):
+        for story in idml.find_all("idPkg:Story"):
             for content in story.find_all("Content"):
                 yield content
 
@@ -81,7 +81,7 @@ class InDesignHandler(Handler):
 
     def compile(self, template, stringset, **kwargs):
         # The content is a base64 encoded IDML file
-        idml = UCF(io.BytesIO(b64decode(template)))
+        idml = UCF(io.BytesIO(template))
 
         _stringset = list(stringset)
 
