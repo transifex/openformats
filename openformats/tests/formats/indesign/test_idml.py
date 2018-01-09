@@ -1,4 +1,3 @@
-import base64
 import unittest
 
 from openformats.formats.indesign import InDesignHandler
@@ -12,15 +11,14 @@ class InDesignTestCase(unittest.TestCase):
         """Test parsing to template and re-compiling to the initial file."""
 
         _file = open("%s/sample.idml" % self.TESTFILE_BASE, "r")
-        _file_enc = base64.b64encode(_file.read())
+        _file_enc = _file.read()
 
         handler = self.HANDLER_CLASS()
 
         template, stringset = handler.parse(_file_enc)
         finalidml = handler.compile(template, stringset)
 
-        finalidml_enc = base64.b64encode(finalidml)
-        template2, stringset2 = self.HANDLER_CLASS().parse(finalidml_enc)
+        template2, stringset2 = self.HANDLER_CLASS().parse(finalidml)
 
         self.assertEqual(str(stringset), str(stringset2))
         self.assertEqual(template, template2)
@@ -29,7 +27,7 @@ class InDesignTestCase(unittest.TestCase):
         """Test parsing to template and re-compiling to the initial file."""
 
         _file = open("%s/sample.idml" % self.TESTFILE_BASE, "r")
-        _file_enc = base64.b64encode(_file.read())
+        _file_enc = _file.read()
 
         handler = self.HANDLER_CLASS()
 
