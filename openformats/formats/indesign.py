@@ -24,13 +24,6 @@ class InDesignHandler(Handler):
     SPECIFIER = None
     PROCESSES_BINARY = True
 
-    def bind_content(self, content):
-        self.content = content
-
-    def bind_file(self, filename):
-        with open(filename) as f:
-            self.content = f.read()
-
     """ Parse Methods """
 
     def parse(self, content, **kwargs):
@@ -122,33 +115,27 @@ class InDesignHandler(Handler):
     """ Compile Methods """
 
     def compile(self, template, stringset, **kwargs):
-        # The content is a base64 encoded IDML file
+        # The content is a binary IDML file
         idml = UCF(io.BytesIO(template))
 
-        _stringset = list(stringset)
+        translations_dict = {s.template_replacement: s for s in stringset}
 
         # Iterate over the contents of the IDML file
         for key in idml.keys():
             if not key.startswith("Stories/"):
                 continue
             soup = BeautifulSoup(idml[key], "xml")
-            translations = []
-            # First, we save the strings to the string-set. We don't alter the
-            # XML DOM contents because is will cause the for loops to process
-            # the newly altered content too
-            for content in self._get_all_contents(soup):
-                for template in content.stripped_strings:
-                    translation = self._get_translation(template, _stringset)
-                    translations.append(translation)
 
-            # Reiterate over the XML and replace the original strings with
-            # their template replacements
+            # Iterate over the story XML and replace the template hashes with
+            # their translation string
             for content in self._get_all_contents(soup):
                 strings = list(content.stripped_strings)
-                for temp in strings:
-                    translation = translations.pop(0)
-                    content.string = content.string.replace(temp,
-                                                            translation, 1)
+                for string_hash in strings:
+                    translation = translations_dict.get(string_hash)
+                    if content.string and translation:
+                        content.string = content.string.replace(
+                            string_hash, translation.string, 1
+                        )
 
             # Update the XML file to contain the template strings
             idml[key] = str(soup)
@@ -157,11 +144,3 @@ class InDesignHandler(Handler):
         idml.save(out)
 
         return out.getvalue()
-
-    def _get_translation(self, template, stringset):
-        """Get the translation of a template placeholder."""
-        for string in stringset:
-            if string.template_replacement == template:
-                # stringset.remove(string)
-                return string.string
-        print "Template %s not found" % template
