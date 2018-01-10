@@ -126,26 +126,23 @@ class InDesignHandler(Handler):
         idml = UCF(io.BytesIO(template))
 
         translations_dict = {s.template_replacement: s for s in stringset}
+        hash_regex = re.compile('[a-z,0-9]{32}_tr')
 
         # Iterate over the contents of the IDML file
         for key in idml.keys():
             if not key.startswith("Stories/"):
                 continue
-            soup = BeautifulSoup(idml[key], "xml")
 
-            # Iterate over the story XML and replace the template hashes with
-            # their translation string
-            for content in self._get_all_contents(soup):
-                strings = list(content.stripped_strings)
-                for string_hash in strings:
-                    translation = translations_dict.get(string_hash)
-                    if content.string and translation:
-                        content.string = content.string.replace(
-                            string_hash, translation.string, 1
-                        )
+            story_content = idml[key]
+            for match in hash_regex.finditer(story_content):
+                string_hash = match.group()
+                story_content = story_content.replace(
+                    string_hash,
+                    translations_dict.get(string_hash).string.encode('utf-8')
+                )
 
             # Update the XML file to contain the template strings
-            idml[key] = str(soup)
+            idml[key] = story_content
 
         out = io.BytesIO()
         idml.save(out)
