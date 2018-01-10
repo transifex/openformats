@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import io
+import re
 
 from collections import OrderedDict
 from itertools import chain
@@ -24,6 +25,8 @@ class InDesignHandler(Handler):
     SPECIFIER = None
     PROCESSES_BINARY = True
 
+    SPECIAL_CHARACTERS_REGEX = r'<\?ACE \d+\?>|<Br/>;'
+
     """ Parse Methods """
 
     def parse(self, content, **kwargs):
@@ -40,24 +43,16 @@ class InDesignHandler(Handler):
             except KeyError:
                 continue
             soup = BeautifulSoup(story_content, "xml")
-            replacements = []
-            # First, we save the strings to the string-set. We don't alter the
-            # XML DOM contents because is will cause the for loops to process
-            # the newly altered content too
-            for content in self._get_all_contents(soup):
-                for string in content.stripped_strings:
-                    string_object = OpenString(string, string, order=order)
-                    stringset.append(string_object)
-                    replacements.append(string_object.template_replacement)
-                    order += 1
-
-            # Reiterate over the XML and replace the original strings with
+            # Iterate over the XML and replace the original strings with
             # their template replacements
             for content in self._get_all_contents(soup):
-                for string in list(content.stripped_strings):
-                    replacement = replacements.pop(0)
-                    content.string = content.string.replace(string,
-                                                            replacement, 1)
+                string = content.decode_contents().strip()
+                if self._can_skip_content(string):
+                    continue
+                string_object = OpenString(string, string, order=order)
+                stringset.append(string_object)
+                content.string = string_object.template_replacement
+                order += 1
 
             # Update the XML file to contain the template strings
             idml[key] = str(soup)
@@ -111,6 +106,18 @@ class InDesignHandler(Handler):
         for story in idml.find_all("idPkg:Story"):
             for content in story.find_all("Content"):
                 yield content
+
+    def _can_skip_content(self, string):
+        """Check if the contents of an XML files are translateable."""
+        regex = re.compile(self.SPECIAL_CHARACTERS_REGEX)
+        if not regex.sub('', string).strip():
+            return True
+        try:
+            float(string)
+            return True
+        except ValueError:
+            pass
+        return False
 
     """ Compile Methods """
 
