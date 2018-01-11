@@ -25,6 +25,10 @@ class InDesignHandler(Handler):
     SPECIFIER = None
     PROCESSES_BINARY = True
 
+    CONTENT_START_REGEX = r'.*<Content>.*'
+    CONTENT_END_REGEX = r'.*</Content>.*'
+    SPECIAL_SYMBOLS_COMPILE_REGEX = r'&amp;(#x[0-9A-Fa-f]+;)'
+    SPECIAL_SYMBOLS_PARSE_REGEX = r'&(#x[0-9A-Fa-f]+;)'
     SPECIAL_CHARACTERS_REGEX = r'<\?ACE \d+\?>|<Br/>;'
 
     """ Parse Methods """
@@ -42,6 +46,7 @@ class InDesignHandler(Handler):
                 story_content = idml[key]
             except KeyError:
                 continue
+            story_content = self._preserve_symbols(story_content)
             soup = BeautifulSoup(story_content, "xml")
             # Iterate over the XML and replace the original strings with
             # their template replacements
@@ -119,6 +124,30 @@ class InDesignHandler(Handler):
             pass
         return False
 
+    def _preserve_symbols(self, xml):
+        """Encode the '&' character of HTML symbols in the content."""
+        regex = (self.CONTENT_START_REGEX + self.SPECIAL_SYMBOLS_PARSE_REGEX +
+                 self.CONTENT_END_REGEX)
+        symbols = re.compile(regex, flags=re.DOTALL)
+        match = symbols.match(xml)
+        while match is not None:
+            xml = xml.replace('&%s' % match.group(1),
+                              '&amp;%s' % match.group(1))
+            match = symbols.match(xml)
+        return xml
+
+    def _restore_symbols(self, xml):
+        """Restore any special HTML symbols in the content."""
+        regex = (self.CONTENT_START_REGEX + self.SPECIAL_SYMBOLS_COMPILE_REGEX
+                 + self.CONTENT_END_REGEX)
+        symbols = re.compile(regex, flags=re.DOTALL)
+        match = symbols.match(xml)
+        while match is not None:
+            xml = xml.replace('&amp;%s' % match.group(1),
+                              '&%s' % match.group(1))
+            match = symbols.match(xml)
+        return xml
+
     """ Compile Methods """
 
     def compile(self, template, stringset, **kwargs):
@@ -142,7 +171,7 @@ class InDesignHandler(Handler):
                 )
 
             # Update the XML file to contain the template strings
-            idml[key] = story_content
+            idml[key] = self._restore_symbols(story_content)
 
         out = io.BytesIO()
         idml.save(out)
