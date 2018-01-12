@@ -25,17 +25,22 @@ class InDesignHandler(Handler):
     SPECIFIER = None
     PROCESSES_BINARY = True
 
-    CONTENT_START_REGEX = r'.*<Content>.*'
-    CONTENT_END_REGEX = r'.*</Content>.*'
-    SPECIAL_SYMBOLS_COMPILE_REGEX = r'&amp;(#x[0-9A-Fa-f]+;)'
-    SPECIAL_SYMBOLS_PARSE_REGEX = r'&(#x[0-9A-Fa-f]+;)'
-    SPECIAL_CHARACTERS_REGEX = r'<\?ACE \d+\?>|<Br/>;'
+    CONTENT_REGEX = re.compile(r'(<Content>)(.*)?(</Content>)')
+    SPECIAL_CHARACTERS_REGEX = re.compile(r'<\?ACE \d+\?>|<Br/>;')
 
     """ Parse Methods """
 
     def parse(self, content, **kwargs):
-        stringset = []
-        order = 0
+        """ Parses .idml file content and returns the resource template and
+            stringset.
+            * Use UCF to unpack `content` to xml fragments
+            * Parse all Story fragments to extract the translatable strings
+              and replace them with a replacement hash
+            * Pack the fragments back to create the template
+            * Return the (template, stringset) tuple
+        """
+        self.stringset = []
+        self.order = 0
 
         idml = UCF(io.BytesIO(content))
         ordered_stories = self._get_ordered_stories(idml)
@@ -46,27 +51,16 @@ class InDesignHandler(Handler):
                 story_content = idml[key]
             except KeyError:
                 continue
-            story_content = self._preserve_symbols(story_content)
-            soup = BeautifulSoup(story_content, "xml")
-            # Iterate over the XML and replace the original strings with
-            # their template replacements
-            for content in self._get_all_contents(soup):
-                string = content.decode_contents().strip()
-                if self._can_skip_content(string):
-                    continue
-                string_object = OpenString(string, string, order=order)
-                stringset.append(string_object)
-                content.string = string_object.template_replacement
-                order += 1
+            story_content = self._find_and_replace(story_content)
 
             # Update the XML file to contain the template strings
-            idml[key] = str(soup)
+            idml[key] = str(story_content)
 
         out = io.BytesIO()
         idml.save(out)
         template = out.getvalue()
 
-        return template, stringset
+        return template, self.stringset
 
     def _get_ordered_stories(self, idml):
         """
@@ -106,16 +100,13 @@ class InDesignHandler(Handler):
         unique_stories.extend(all_stories - set(unique_stories))
         return unique_stories
 
-    def _get_all_contents(self, idml):
-        """Return an array with all the strings of an IDML file."""
-        for story in idml.find_all("idPkg:Story"):
-            for content in story.find_all("Content"):
-                yield content
-
     def _can_skip_content(self, string):
-        """Check if the contents of an XML files are translateable."""
-        regex = re.compile(self.SPECIAL_CHARACTERS_REGEX)
-        if not regex.sub('', string).strip():
+        """
+        Checks if the contents of an XML files are translateable.
+        Strings that contain only special characters or can be evaluated
+        to a nunber are skipped.
+        """
+        if not self.SPECIAL_CHARACTERS_REGEX.sub('', string).strip():
             return True
         try:
             float(string)
@@ -124,29 +115,35 @@ class InDesignHandler(Handler):
             pass
         return False
 
-    def _preserve_symbols(self, xml):
-        """Encode the '&' character of HTML symbols in the content."""
-        regex = (self.CONTENT_START_REGEX + self.SPECIAL_SYMBOLS_PARSE_REGEX +
-                 self.CONTENT_END_REGEX)
-        symbols = re.compile(regex, flags=re.DOTALL)
-        match = symbols.match(xml)
-        while match is not None:
-            xml = xml.replace('&%s' % match.group(1),
-                              '&amp;%s' % match.group(1))
-            match = symbols.match(xml)
-        return xml
+    def _find_and_replace(self, story_xml):
+        """
+        Finds all the translatable content in the given XML string
+        replaces it with the string_hash and returns the resulting
+        template while updating `self.stringset` in the process.
+        args:
+            story_xml (str): The xml content of a single Story of the IDML file
+        returns:
+            the input string with all translatable content replaced by the
+            md5 hash of the string.
+        """
 
-    def _restore_symbols(self, xml):
-        """Restore any special HTML symbols in the content."""
-        regex = (self.CONTENT_START_REGEX + self.SPECIAL_SYMBOLS_COMPILE_REGEX
-                 + self.CONTENT_END_REGEX)
-        symbols = re.compile(regex, flags=re.DOTALL)
-        match = symbols.match(xml)
-        while match is not None:
-            xml = xml.replace('&amp;%s' % match.group(1),
-                              '&%s' % match.group(1))
-            match = symbols.match(xml)
-        return xml
+        template = self.CONTENT_REGEX.sub(self._replace, story_xml)
+        return template
+
+    def _replace(self, match):
+        """ Implements the logic used by `self.CONTENT_REGEX.sub(...)` to
+        replace strings with their template replacement and appends new strings
+        to `self.stringset`.
+        """
+        opening_tag = match.group(1)
+        string = match.group(2).decode('utf-8')
+        closing_tag = match.group(3)
+        if self._can_skip_content(string):
+            return opening_tag + string + closing_tag
+        string_object = OpenString(string, string, order=self.order)
+        self.stringset.append(string_object)
+        self.order += 1
+        return opening_tag + string_object.template_replacement + closing_tag
 
     """ Compile Methods """
 
@@ -171,7 +168,7 @@ class InDesignHandler(Handler):
                 )
 
             # Update the XML file to contain the template strings
-            idml[key] = self._restore_symbols(story_content)
+            idml[key] = story_content
 
         out = io.BytesIO()
         idml.save(out)
