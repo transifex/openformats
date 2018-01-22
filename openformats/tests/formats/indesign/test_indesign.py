@@ -11,7 +11,7 @@ class InDesignTestCase(unittest.TestCase):
     def test_parse_and_compile(self):
         """Test parsing to template and re-compiling to the initial file."""
 
-        with open("%s/sample.idml" % self.TESTFILE_BASE, "r") as _file:
+        with open("%s/sample.idml" % self.TESTFILE_BASE, "rb") as _file:
             _file_enc = _file.read()
 
         handler = self.HANDLER_CLASS()
@@ -27,8 +27,8 @@ class InDesignTestCase(unittest.TestCase):
     def test_parser(self):
         """Test parsing to template and validate template."""
 
-        _file = open("%s/sample.idml" % self.TESTFILE_BASE, "r")
-        _file_enc = _file.read()
+        with open("%s/sample.idml" % self.TESTFILE_BASE, "rb") as _file:
+            _file_enc = _file.read()
 
         handler = self.HANDLER_CLASS()
 

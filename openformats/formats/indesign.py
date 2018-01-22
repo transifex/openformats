@@ -117,7 +117,6 @@ class InDesignHandler(Handler):
             the input string with all translatable content replaced by the
             md5 hash of the string.
         """
-
         template = self.CONTENT_REGEX.sub(self._replace, story_xml)
         return template
 
@@ -142,9 +141,9 @@ class InDesignHandler(Handler):
     def compile(self, template, stringset, **kwargs):
         # The content is a binary IDML file
         idml = UCF(io.BytesIO(template))
+        pending_string = False
 
-        translations_dict = {s.template_replacement: s for s in stringset}
-        hash_regex = re.compile('[a-z,0-9]{32}_tr')
+        stringset = iter(stringset)
 
         # Iterate over the contents of the IDML file
         for key in self._get_ordered_stories(idml):
@@ -153,17 +152,30 @@ class InDesignHandler(Handler):
             except KeyError:
                 continue
 
-            for match in hash_regex.finditer(story_content):
-                string_hash = match.group()
-                story_content = story_content.replace(
-                    string_hash,
-                    translations_dict.get(string_hash).string.encode('utf-8')
-                )
+            story_content = idml[key]
+            transcriber = Transcriber(story_content)
+            found = True
+            while found:
+                try:
+                    if not pending_string:
+                        string = next(stringset)
+                    hash_position = story_content.index(
+                        string.template_replacement
+                    )
+                    pending_string = False
+                    transcriber.copy_until(hash_position)
+                    transcriber.add(string.string.encode('utf-8'))
+                    transcriber.skip(len(string.template_replacement))
+                except ValueError:
+                    found = False
+                    pending_string = True
+                except StopIteration:
+                    break
 
             # Update the XML file to contain the template strings
-            idml[key] = story_content
+            transcriber.copy_until(len(story_content))
+            idml[key] = transcriber.get_destination()
 
         out = io.BytesIO()
         idml.save(out)
-
         return out.getvalue()
