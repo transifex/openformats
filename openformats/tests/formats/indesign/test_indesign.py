@@ -2,6 +2,7 @@
 import unittest
 
 from openformats.formats.indesign import InDesignHandler
+from openformats.strings import OpenString
 
 
 class InDesignTestCase(unittest.TestCase):
@@ -81,3 +82,103 @@ class InDesignTestCase(unittest.TestCase):
         out = handler._find_and_replace(simple_input)
         self.assertEqual(out, simple_output)
         self.assertEqual(len(handler.stringset), 1)
+
+    def test_compile_story(self):
+        simple_story_template = """
+            <Story>
+              <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
+              <Content>3afcdbfeb6ecfbdd0ba628696e3cc163_tr</Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        simple_compiled_story = """
+            <Story>
+              <Content>Some string 1</Content>
+              <Content>Some string 2</Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        handler = self.HANDLER_CLASS()
+        handler.stringset = [
+            OpenString(str(0), "Some string 1", order=0),
+            OpenString(str(1), "Some string 2", order=1),
+        ]
+
+        compiled_story = handler._compile_story(simple_story_template)
+        self.assertEqual(compiled_story, simple_compiled_story)
+
+    def test_compile_story_missing_strings(self):
+        simple_story_template = """
+            <Story>
+              <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
+              <Content>3afcdbfeb6ecfbdd0ba628696e3cc163_tr</Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        simple_compiled_story = """
+            <Story>
+              <Content>Some string 1</Content>
+              <Content></Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        handler = self.HANDLER_CLASS()
+        handler.stringset = [
+            OpenString(str(0), "Some string 1", order=0),
+        ]
+
+        compiled_story = handler._compile_story(simple_story_template)
+        self.assertEqual(compiled_story, simple_compiled_story)
+
+    def test_compile_two_stories_with_strings(self):
+        first_story_template = """
+            <Story>
+              <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
+              <Content>3afcdbfeb6ecfbdd0ba628696e3cc163_tr</Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        second_story_template = """
+            <Story>
+              <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
+              <Content>cdee9bf40a070d58d14dfa3bb61e0032_tr</Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        expected_first_compiled_story = """
+            <Story>
+              <Content>Some string 1</Content>
+              <Content></Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        expected_second_compiled_story = """
+            <Story>
+              <Content></Content>
+              <Content>Some string 2</Content>
+              <Metadata></Metadata>
+              <Content>  <?ACE 7?></Content>
+            </Story>
+        """
+        # strings #1 and #2 are missing from the stringset
+        handler = self.HANDLER_CLASS()
+        handler.stringset = [
+            OpenString(str(0), "Some string 1", order=0),
+            OpenString(str(3), "Some string 2", order=3),
+        ]
+
+        first_compiled_story = handler._compile_story(
+            first_story_template
+        )
+        second_compiled_story = handler._compile_story(
+            second_story_template
+        )
+        self.assertEqual(first_compiled_story, expected_first_compiled_story)
+        self.assertEqual(second_compiled_story, expected_second_compiled_story)

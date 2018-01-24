@@ -141,9 +141,8 @@ class InDesignHandler(Handler):
     def compile(self, template, stringset, **kwargs):
         # The content is a binary IDML file
         idml = UCF(io.BytesIO(template))
-        pending_string = False
 
-        stringset = iter(stringset)
+        self.stringset = list(stringset)
 
         # Iterate over the contents of the IDML file
         for key in self._get_ordered_stories(idml):
@@ -153,29 +152,42 @@ class InDesignHandler(Handler):
                 continue
 
             story_content = idml[key]
-            transcriber = Transcriber(story_content)
-            found = True
-            while found:
-                try:
-                    if not pending_string:
-                        string = next(stringset)
-                    hash_position = story_content.index(
-                        string.template_replacement
-                    )
-                    pending_string = False
-                    transcriber.copy_until(hash_position)
-                    transcriber.add(string.string.encode('utf-8'))
-                    transcriber.skip(len(string.template_replacement))
-                except ValueError:
-                    found = False
-                    pending_string = True
-                except StopIteration:
-                    break
-
-            # Update the XML file to contain the template strings
-            transcriber.copy_until(len(story_content))
-            idml[key] = transcriber.get_destination()
+            idml[key] = self._compile_story(story_content)
 
         out = io.BytesIO()
         idml.save(out)
         return out.getvalue()
+
+    def _compile_story(self, story_content):
+        """ Handles the compilation of a single story
+        args:
+            story_content: the xml content of the story
+        returns:
+            compiled_story: the compiled story content
+        """
+        transcriber = Transcriber(story_content)
+        hash_regex = re.compile('[a-z,0-9]{32}_tr')
+        found = True
+        while found:
+            try:
+                current_string = self.stringset.pop(0)
+                hash_position = story_content.index(
+                    current_string.template_replacement
+                )
+            except ValueError:
+                found = False
+                self.stringset.insert(0, current_string)
+            except IndexError:
+                break
+            else:
+                transcriber.copy_until(hash_position)
+                transcriber.add(current_string.string.encode('utf-8'))
+                transcriber.skip(len(current_string.template_replacement))
+
+        # Update the XML file to contain the template strings
+        transcriber.copy_until(len(story_content))
+        compiled_story = transcriber.get_destination()
+        # in case there are any hashes that have not been replaced, replace
+        # them with an empty string
+        compiled_story = hash_regex.sub('', compiled_story)
+        return compiled_story
