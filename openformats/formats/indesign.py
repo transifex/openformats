@@ -125,16 +125,16 @@ class InDesignHandler(Handler):
         replace strings with their template replacement and appends new strings
         to `self.stringset`.
         """
-        opening_tag = match.group(1)
-        string = match.group(2).decode('utf-8')
-        closing_tag = match.group(3)
+        opening_tag, string, closing_tag = match.groups()
+        string = string.decode('utf-8')
 
         if self._can_skip_content(string):
-            return opening_tag + string + closing_tag
+            return match.group()
         order = next(self.order)
         string_object = OpenString(str(order), string, order=order)
         self.stringset.append(string_object)
-        return opening_tag + string_object.template_replacement + closing_tag
+        return "".join((opening_tag, string_object.template_replacement,
+                        closing_tag))
 
     """ Compile Methods """
 
