@@ -1,0 +1,36 @@
+---
+title: About writing and formatting on GitHub
+intro: into text
+numeric_var: 12.5
+
+# one comment
+
+key1:
+  - list_key:
+    - li within li
+      # second comment
+    - li within li 2
+  - li 2
+key2:
+  - object_within_list: value
+  - "text with a #hashtag in it"
+  - li 5
+
+description: >
+  folded
+  style
+  text
+custom_vars:
+  var1: "text: some value"
+  var2: |
+    literal
+    style with "quotes"
+    text
+
+nested_key_outer:
+  nested_key_inner:
+    nested_value
+
+key.with.dots: dot value
+
+1: integer key

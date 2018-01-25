@@ -1,0 +1,27 @@
+---
+title: 6391362253bdac99fff7bf50ff014be3_tr
+intro: e8c07422d0167fee3ecf8f3375ea5739_tr
+numeric_var: 12.5
+
+# one comment
+
+key1:
+  - list_key:
+    - ac56af108b4b69b867c09f8542a51cb2_tr
+      # second comment
+    - d2d20cce249c5d7e8ca96b9e30a3349c_tr
+  - 17e2086737d2192e6665ea2c0f0b1e9a_tr
+key2:
+  - object_within_list: 1a397fe7999e432441bfce7a1f4fb1f3_tr
+  - aa8c6113a4236d576f96ba9b0bd4dfa4_tr
+  - 76d7c5ccc4301f10b39115b2c1a9ca47_tr
+
+description: fdba4efe4ab9d38afee4054a7fa06e29_trcustom_vars:
+  var1: 8b9f5508bd423a15a188813d60e52946_tr
+  var2: 7169ba1087c5204f12ab8b7c066884a2_trnested_key_outer:
+  nested_key_inner:
+    94b99ee5f1d082d7df28c4b48aa99ff8_tr
+
+key.with.dots: ddbc5d72cdd64acc258ab3446b6466ed_tr
+
+1: 9354e4f807073d6a146138fe6d81e4ef_tr

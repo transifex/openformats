@@ -59,7 +59,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
                 # this is to ensure that if the style is literal or folded
                 # http://www.yaml.org/spec/1.2/spec.html#id2795688
                 # a new line always follows the string
-                if (string.flags and string.flags in '|>' and
+                if (string.flags and string.flags[-1] in '|>' and
                         tr_string[-1] != self.NEWLINE):
                     tr_string = tr_string + self.NEWLINE
 
@@ -96,7 +96,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             yaml_header_content = ''.join(yml_header.group(1, 2))
             seperator = yml_header.group(3)
             md_content = content[len(yaml_header_content + seperator):]
-            yaml_stringset, yaml_template = YamlHandler().parse(
+            yaml_template, yaml_stringset = YamlHandler().parse(
                 yaml_header_content)
         else:
             md_content = content
