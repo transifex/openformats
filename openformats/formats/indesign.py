@@ -80,7 +80,8 @@ class InDesignHandler(Handler):
         BACKING_STORY = 'XML/BackingStory.xml'
 
         designmap = idml.get('designmap.xml')
-        designmap_tree = etree.fromstring(designmap)
+        parser = etree.XMLParser(resolve_entities=False)
+        designmap_tree = etree.fromstring(designmap, parser=parser)
 
         story_ids = designmap_tree.attrib.get("StoryList", "").split()
         story_keys = [STORY_KEY.format(s) for s in story_ids]
