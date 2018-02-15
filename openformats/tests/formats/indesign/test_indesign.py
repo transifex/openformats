@@ -44,16 +44,23 @@ class InDesignTestCase(unittest.TestCase):
         """ Test cases when a string sould be skipped """
         handler = self.HANDLER_CLASS()
         valid_strings = [
-            'A simple string',
-            'A simple string with special <?ACE 7?> character',
-            'Ενα απλό string',
-            '<?ACE 8?> string <Br/>;',
+            u'A simple string',
+            u'A simple string with special <?ACE 7?> character',
+            u'Ενα απλό string',
+            u'<?ACE 8?> string <Br/>;',
+            u'\ufeff  #',
+            u'\ufef0  ()',
+            u'\ufef0  A',
         ]
         invalid_strings = [
-            ' ',
-            '   <?ACE 7?> ',
-            '',
-            '<?ACE 8?> <Br/>;',
+            u' ',
+            u'   <?ACE 7?> ',
+            u'',
+            u'<?ACE 8?> <Br/>;',
+            u'\ufeff',
+            u' \ufeff ',
+            u' \ufeff 5',
+            u'\ufeff<Br/>;',
         ]
 
         for string in valid_strings:
