@@ -26,7 +26,9 @@ class InDesignHandler(Handler):
     SPECIFIER = None
     PROCESSES_BINARY = True
 
-    CONTENT_REGEX = re.compile(r'(<Content>)(.*)?(</Content>)')
+    # The ? at the end of the string regex, makes it non-greedy in order to
+    # allow trailing spaces to be preserved
+    CONTENT_REGEX = re.compile(r'(<Content>\s*)(.*?)(\s*</Content>)')
     SPECIAL_CHARACTERS_REGEX = re.compile(r'<\?ACE \d+\?>|<Br/>;')
 
     """ Parse Methods """
