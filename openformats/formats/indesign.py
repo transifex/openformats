@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import io
 import re
+import unicodedata
 
 from itertools import count
 from lxml import etree
@@ -25,7 +26,9 @@ class InDesignHandler(Handler):
     SPECIFIER = None
     PROCESSES_BINARY = True
 
-    CONTENT_REGEX = re.compile(r'(<Content>)(.*)?(</Content>)')
+    # The ? at the end of the string regex, makes it non-greedy in order to
+    # allow trailing spaces to be preserved
+    CONTENT_REGEX = re.compile(r'(<Content>\s*)(.*?)(\s*</Content>)')
     SPECIAL_CHARACTERS_REGEX = re.compile(r'<\?ACE \d+\?>|<Br/>;')
 
     """ Parse Methods """
@@ -97,13 +100,30 @@ class InDesignHandler(Handler):
         Strings that contain only special characters or can be evaluated
         to a nunber are skipped.
         """
-        if not self.SPECIAL_CHARACTERS_REGEX.sub('', string).strip():
+        stripped_string = self.SPECIAL_CHARACTERS_REGEX.sub('', string).strip()
+        if not stripped_string:
             return True
         try:
             float(string.strip())
             return True
         except ValueError:
             pass
+        if not self._contains_translatable_character(stripped_string):
+            return True
+        return False
+
+    def _contains_translatable_character(self, string):
+        """
+        Checks if a string contains at least one character that can be
+        translated. We assume that translatable characters are the letters,
+        the symbols and the punctuation.
+        """
+        acceptable = ["L", "P", "S"]
+
+        for letter in string:
+            char_type = unicodedata.category(letter)
+            if char_type[0] in acceptable:
+                return True
         return False
 
     def _find_and_replace(self, story_xml):
