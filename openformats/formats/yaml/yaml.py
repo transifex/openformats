@@ -1,15 +1,18 @@
 from __future__ import absolute_import
 
-import yaml
 import re
 import copy
+from StringIO import StringIO
+from yaml.emitter import Emitter
 
-from yaml.constructor import ConstructorError
-
-from ..handlers import Handler
-from ..strings import OpenString
-from ..exceptions import ParseError
-from ..transcribers import Transcriber
+from openformats.handlers import Handler
+from openformats.strings import OpenString
+from openformats.exceptions import ParseError
+from openformats.transcribers import Transcriber
+from openformats.formats.yaml.utils import (
+    TxYamlLoader, YamlGenerator, TxYamlDumper
+)
+from openformats.formats.yaml.utils import yaml
 
 
 class YamlHandler(Handler):
@@ -17,51 +20,8 @@ class YamlHandler(Handler):
     extension = "yml"
     EXTRACTS_RAW = False
 
-    BACKSLASH = u'\\'
-    DOUBLE_QUOTES = u'"'
-    SINGLE_QUOTES = u'\''
-    NEWLINE = u'\n'
-    COLON = u':'
-    ASTERISK = u'*'
-    AMPERSAND = u'&'
-    DASH = u'-'
-    HASHTAG = u'#'
-    BACKTICK = u'`'
-
-    def _should_wrap_in_quotes(self, tr_string):
-        return any([
-            self.NEWLINE in tr_string[:-1],
-            self.COLON in tr_string,
-            self.HASHTAG in tr_string,
-            tr_string.lstrip().startswith(self.ASTERISK),
-            tr_string.lstrip().startswith(self.AMPERSAND),
-            tr_string.lstrip().startswith(self.DASH),
-            tr_string.lstrip().startswith(self.SINGLE_QUOTES),
-            tr_string.lstrip().startswith(self.BACKTICK),
-            tr_string.rstrip().endswith(self.BACKTICK),
-        ])
-
-    def _wrap_in_quotes(self, tr_string):
-        if self._should_wrap_in_quotes(tr_string):
-            # escape double quotes inside strings
-            tr_string = tr_string.replace(
-                self.DOUBLE_QUOTES,
-                (self.BACKSLASH + self.DOUBLE_QUOTES)
-            )
-            # surround string with double quotes
-            tr_string = (self.DOUBLE_QUOTES + tr_string +
-                         self.DOUBLE_QUOTES)
-        return tr_string
-
-    def _compile_single(self, string):
-        tr_string = self._wrap_in_quotes(string.string)
-        # this is to ensure that if the style is literal or folded
-        # http://www.yaml.org/spec/1.2/spec.html#id2795688
-        # a new line always follows the string
-        if (string.flags and string.flags in '|>' and
-                tr_string[-1] != self.NEWLINE):
-            tr_string = tr_string + self.NEWLINE
-        return tr_string
+    extra_indent = 0
+    should_use_template = True
 
     def _load_yaml(self, content, loader):
         """
@@ -96,7 +56,7 @@ class YamlHandler(Handler):
         val = yaml_data[0]
         value = self.parse_pluralized_value(val) if pluralized else val
         start = yaml_data[1]
-        end = yaml_data[2]
+        end = self._find_pluralized_end_pos(val) if pluralized else yaml_data[2]
         style.append(yaml_data[3] or '')
         return {
             'start': start,
@@ -107,11 +67,8 @@ class YamlHandler(Handler):
             'pluralized': pluralized,
         }
 
-    @staticmethod
-    def unescape_dots(k):
-        """ We use dots to construct the strings key, so we need to
-        escape dots that are part of an actual YAML key """
-        return k.replace('.', '<TX_DOT>')
+    def _find_pluralized_end_pos(self, value):
+        return max([entry[2] for entry in value.values()])
 
     def _get_key_for_node(self, key, parent_key):
         """
@@ -168,10 +125,12 @@ class YamlHandler(Handler):
                             )
                         )
                     else:
+                        style.append(val[3] or '')
                         parsed_data = self.parse_yaml_data(
                             val[0], node_key, parsed_data, context,
                             parent_style=copy.copy(style or []))
                 elif isinstance(val[0], list):
+                    style.append(val[3] or '')
                     parsed_data = self.parse_yaml_data(
                         val[0], node_key, parsed_data, context,
                         parent_style=copy.copy(style or []))
@@ -187,9 +146,10 @@ class YamlHandler(Handler):
             # brackets around it. I.e.: 'foo.[0].bar'.
             for i, e in enumerate(yaml_data):
                 node_key = self._get_key_for_node('[%s]' % (i), parent_key)
-                if isinstance(e, (dict, list)):
+                if isinstance(e[0], (dict, list)):
+                    parent_style.append(e[3] or '')
                     parsed_data = self.parse_yaml_data(
-                        e, node_key, parsed_data, context,
+                        e[0], node_key, parsed_data, context,
                         parent_style=copy.copy(parent_style or []))
                 else:
                     parsed_data.append(
@@ -197,12 +157,7 @@ class YamlHandler(Handler):
                             e, node_key, style=copy.copy(parent_style or [])
                         )
                     )
-        else:
-            parsed_data.append(
-                self._parse_leaf_node(
-                    yaml_data, parent_key, style=copy.copy(parent_style or [])
-                )
-            )
+
         return parsed_data
 
     def _find_comment(self, content, start, end):
@@ -280,23 +235,52 @@ class YamlHandler(Handler):
             key = node.get('key')
             value = node.get('value')
             style = node.get('style')
-            comment = None
-            if isinstance(value, dict) or value:
-                string_object = OpenString(
-                    key, value, context=context, flags=style, order=order,
-                    comment=comment
-                )
-                stringset.append(string_object)
-                order += 1
-                template += (content[end:start] +
-                             string_object.template_replacement)
+            comment = ''
+            if not value:
+                continue
+            if isinstance(value, dict) and not all(value.values()):
+                continue
+            string_object = OpenString(
+                key, value, context=context, flags=style, order=order,
+            )
+            stringset.append(string_object)
+            order += 1
+            template += (content[end:start] +
+                         string_object.template_replacement)
             comment = self._find_comment(content, end, start)
+            string_object.developer_comment = comment
             end = end_
 
         template += content[end:]
         return template, stringset
 
-    def compile(self, template, stringset, **kwargs):
+    def _write_styled_literal(self, string):
+        style = string.flags.split(':')[-1]
+        stream = StringIO()
+        indent = self.indent * (len(string.key.split('.')) + self.extra_indent)
+        emitter = Emitter(stream, allow_unicode=True)
+        emitter.indent = indent
+        emitter.best_width = float('inf')
+        if style == '"':
+            emitter.write_double_quoted(string.string)
+            return emitter.stream.getvalue()
+        elif style == '\'':
+            emitter.write_single_quoted(string.string)
+            return emitter.stream.getvalue()
+        elif style == '':
+            emitter.write_plain(string.string)
+            return emitter.stream.getvalue()
+        elif style == '|':
+            emitter.write_literal(string.string)
+            return emitter.stream.getvalue()
+        elif style == '>':
+            emitter.write_folded(string.string)
+            return emitter.stream.getvalue()
+        else:
+            return string.string
+        emitter.stream.close()
+
+    def _apply_translations(self, template, stringset, **kwargs):
         """ Compiles translation file from template
 
         Iterates over the stringset and for each strings replaces
@@ -309,18 +293,68 @@ class YamlHandler(Handler):
 
         for string in stringset:
             if string.pluralized:
-                tr_string = self._compile_pluralized(string)
+                trans = self._compile_pluralized(string).decode('utf-8')
             else:
-                tr_string = self._compile_single(string)
+                trans = self._write_styled_literal(string)
             hash_position = template.index(string.template_replacement)
             transcriber.copy_until(hash_position)
-            transcriber.add(tr_string)
+            transcriber.add(trans)
             transcriber.skip(len(string.template_replacement))
 
         transcriber.copy_until(len(template))
         compiled = transcriber.get_destination()
 
         return compiled
+
+    @staticmethod
+    def escape_dots(k):
+        return k.replace('<TX_DOT>', '.')
+
+    @staticmethod
+    def unescape_dots(k):
+        """ We use dots to construct the strings key, so we need to
+        escape dots that are part of an actual YAML key """
+        return k.replace('.', '<TX_DOT>')
+
+    def _get_indent(self, template):
+        """
+        Get indent used in the saved template.
+
+        Args:
+            template: A string, content of saved template
+        Returns:
+            An integer representing indent
+        """
+        indent_pattern = re.compile(':\r?\n(?P<indent>[ \t\n]+)')
+        m = indent_pattern.search(template)
+        indent = m.groups('indent')[0] if m else ' ' * 2
+        indent = indent.replace('\t', ' ' * 4)
+        return len(indent)
+
+    def compile(self, template, stringset, **kwargs):
+        """
+        Dump YAML content for a resource translation taking
+        into account the mode used for compilation.
+
+        Args:
+            handler: A YamlHandler instance for the concerned
+                resource, language.
+            content: Template content for the resource.
+
+        Returns:
+            A unicode, dumped YAML content.
+        """
+        self.indent = self._get_indent(template)
+        if self.should_use_template:
+            return self._apply_translations(template, stringset)
+        else:
+            yg = YamlGenerator(self)
+            yaml_dict = yg._generate_yaml_dict(stringset)
+            # lang_code = self._get_language_code_from_template(template)
+            # # yaml_dict = yg._wrap_yaml_dict(yaml_dict, lang_code)
+            return yaml.dump(yaml_dict, width=float('inf'),
+                             Dumper=TxYamlDumper, allow_unicode=True,
+                             indent=self.indent).decode("utf-8")
 
     def _compile_pluralized(self, string):
         """ Prepare a pluralized string to be added to the template
@@ -344,120 +378,18 @@ class YamlHandler(Handler):
         strings """
         return False
 
-
-class TxYamlLoader(yaml.SafeLoader):
-    """
-    Custom YAML Loader for Tx
-    """
-    def __init__(self, *args, **kwargs):
-        super(TxYamlLoader, self).__init__(*args, **kwargs)
-        self.stream = args[0]
-        self.post_block_comment_pattern = re.compile(
-            r'(?:#.*\r?\n\s*)+$')
-
-    def construct_yaml(self, node):
-        value = self.construct_scalar(node)
-        try:
-            return value.encode('utf-8')
-        except UnicodeEncodeError, e:
-            print(
-                'Unicode decode error in TxYamlLoader.construct_yaml: %s'
-                % unicode(e)
-            )
-            return value
-        except Exception, e:
-            raise ParseError(
-                "Unhandled exception in TxYamlLoader.construct_yaml(): %s"
-                % unicode(e)
-            )
-
-    def _calculate_block_end_pos(self, start, end):
+    def _wrap_yaml_dict(self, yaml_dict, lang_code=None):
         """
-        This recalculates the end position of a block seq
-        in self.stream. This is done to take into account
-        comments between a block sequence or mapping node
-        and the next node.
+        Update YAML dictionary with *language code* as the
+        root of the dictionary.
 
         Args:
-            start: An integer, start position of block sequence
-                   in self.stream
-            end: An integer, end position of block sequence in
-                self.stream.
+            yaml_dict: A Dictionary/OrderedDict instance.
+            lang_code: A language code string.
 
         Returns:
-            An integer for the new end position.
+            A Dictionary instance.
         """
-        content = self.stream[start:end]
-        m = self.post_block_comment_pattern.search(content)
-        if m:
-            end = start + m.start()
-        return end
-
-    def construct_mapping(self, node, deep=True):
-        if not isinstance(node, yaml.MappingNode):
-            raise ParseError(
-                "Expected a mapping node, but found %s" % node.id,
-            )
-        pairs = []
-        for key_node, value_node in node.value:
-            try:
-                key = self.construct_object(key_node, deep=deep)
-                value = self.construct_object(value_node, deep=deep)
-            except ConstructorError, e:
-                print("During parsing YAML file: %s" % unicode(e))
-                continue
-            if not(isinstance(value, unicode) or isinstance(value, str) or
-                    isinstance(value, list) or isinstance(value, dict)):
-                continue
-            start = value_node.start_mark.index
-            end = value_node.end_mark.index
-            style = ''
-
-            # take into account key strings that translate into
-            # boolean objects.
-            if isinstance(key, bool):
-                key = self.stream[key_node.start_mark.index:
-                                  key_node.end_mark.index]
-
-            if isinstance(value, list) or isinstance(value, dict):
-                if value_node.flow_style:
-                    style = 'flow'
-                else:
-                    style = 'block'
-                    start = (start - (value_node.start_mark.column -
-                             key_node.start_mark.column))
-                    # re calculate end position taking into account
-                    # comments after a block node (seq or mapping)
-                    end = self._calculate_block_end_pos(start, end)
-
-            elif isinstance(value, str) or isinstance(value, unicode):
-                style = value_node.style
-
-            value = (value, start, end, style)
-            pairs.append((key, value))
-        return pairs
-
-    def construct_sequence(self, node, deep=True):
-        if not isinstance(node, yaml.SequenceNode):
-            raise ParseError(
-                "Expected a mapping node, but found %s" % node.id,
-            )
-        values = []
-
-        for value_node in node.value:
-            try:
-                value = self.construct_object(value_node, deep=deep)
-            except ConstructorError, e:
-                print("During parsing YAML file: %s" % unicode(e))
-                continue
-            if not(isinstance(value, unicode) or isinstance(value, str) or
-                    isinstance(value, list) or isinstance(value, dict)):
-                continue
-            start = value_node.start_mark.index
-            end = value_node.end_mark.index
-            if isinstance(value, (dict, list)):
-                values.append(value)
-            else:
-                style = value_node.style
-                values.append((value, start, end, style))
-        return values
+        if lang_code:
+            yaml_dict = {lang_code: yaml_dict}
+        return yaml_dict
