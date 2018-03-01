@@ -14,7 +14,7 @@ from ..transcribers import Transcriber
 
 class YamlHandler(Handler):
     name = "Yaml"
-    extension = ".yml"
+    extension = "yml"
     EXTRACTS_RAW = False
 
     BACKSLASH = u'\\'
