@@ -30,3 +30,7 @@ nested_key_outer:
 key.with.dots: dot value
 
 1: integer key
+
+value with quote: "'value"
+value with start backtick: "`value"
+value with end backtick: "value`"

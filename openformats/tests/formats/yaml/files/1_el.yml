@@ -31,3 +31,7 @@ nested_key_outer:
 key.with.dots: "el:dot value"
 
 1: "el:integer key"
+
+value with quote: "el:'value"
+value with start backtick: "el:`value"
+value with end backtick: "el:value`"
