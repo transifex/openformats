@@ -19,12 +19,14 @@ class YamlHandler(Handler):
 
     BACKSLASH = u'\\'
     DOUBLE_QUOTES = u'"'
+    SINGLE_QUOTES = u'\''
     NEWLINE = u'\n'
     COLON = u':'
     ASTERISK = u'*'
     AMPERSAND = u'&'
     DASH = u'-'
     HASHTAG = u'#'
+    BACKTICK = u'`'
 
     def _should_wrap_in_quotes(self, tr_string):
         return any([
@@ -34,6 +36,9 @@ class YamlHandler(Handler):
             tr_string.lstrip().startswith(self.ASTERISK),
             tr_string.lstrip().startswith(self.AMPERSAND),
             tr_string.lstrip().startswith(self.DASH),
+            tr_string.lstrip().startswith(self.SINGLE_QUOTES),
+            tr_string.lstrip().startswith(self.BACKTICK),
+            tr_string.rstrip().endswith(self.BACKTICK),
         ])
 
     def _wrap_in_quotes(self, tr_string):
