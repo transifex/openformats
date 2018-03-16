@@ -20,8 +20,22 @@ class YamlHandler(Handler):
     extension = "yml"
     EXTRACTS_RAW = False
 
+    # number of spaces used for indentation in YAML content
+    indent = 2
+
+    # the levels of indentation of a string can be extracted by doing
+    # `len(keys.split('.'))`. For files that we ignore the root key
+    # (e.g ruby i18n files) we need to set an extra level of indentation
+    # `extra_indent = 1`
     extra_indent = 0
+
+    # When compiling for a mode that needs needs to completely remove
+    # an entry from the compiled file we cannot use the template for
+    # compilation but we need to custruct the yaml file from scratch
+    # only we the subset of encluded entries
     should_use_template = True
+
+    language = None
 
     def _load_yaml(self, content, loader):
         """
@@ -56,7 +70,7 @@ class YamlHandler(Handler):
         val = yaml_data[0]
         value = self.parse_pluralized_value(val) if pluralized else val
         start = yaml_data[1]
-        end = self._find_pluralized_end_pos(val) if pluralized else yaml_data[2]
+        end = self.find_pluralized_end_pos(val) if pluralized else yaml_data[2]
         style.append(yaml_data[3] or '')
         return {
             'start': start,
@@ -67,7 +81,7 @@ class YamlHandler(Handler):
             'pluralized': pluralized,
         }
 
-    def _find_pluralized_end_pos(self, value):
+    def find_pluralized_end_pos(self, value):
         return max([entry[2] for entry in value.values()])
 
     def _get_key_for_node(self, key, parent_key):
@@ -88,7 +102,7 @@ class YamlHandler(Handler):
             # on int again on compiling.
             key = str('<%s>' % key)
         if '.' in key:
-            key = self.unescape_dots(key)
+            key = self.escape_dots(key)
         if parent_key == '':
             parent_key += key
         else:
@@ -161,6 +175,7 @@ class YamlHandler(Handler):
         return parsed_data
 
     def _find_comment(self, content, start, end):
+        """ Finds comment lines that preceed a part of the YAML structure """
         lines = [
             line.strip()
             for line in content[start:end].split('\n')
@@ -182,7 +197,7 @@ class YamlHandler(Handler):
             returned_lines.reverse()
             return " ".join(returned_lines)
         else:
-            return None
+            return ''
 
     def get_yaml_data_to_parse(self, yaml_data):
         """ Returns the part of the yaml_data that actually need to be parsed
@@ -255,30 +270,46 @@ class YamlHandler(Handler):
         return template, stringset
 
     def _write_styled_literal(self, string):
-        style = string.flags.split(':')[-1]
+        """ Produce a properly formatted yaml string
+
+        Properly format translation string based on string's style
+        on the original source file using yaml.emitter.Emitter class.
+
+        Args:
+            string: An OpenString instance
+
+        Returns:
+            The formatted string.
+        """
+        if string.flags is None:
+            return string.string
+
         stream = StringIO()
-        indent = self.indent * (len(string.key.split('.')) + self.extra_indent)
         emitter = Emitter(stream, allow_unicode=True)
+        indent = self.indent * (len(string.key.split('.')) + self.extra_indent)
         emitter.indent = indent
         emitter.best_width = float('inf')
+
+        style = string.flags.split(':')[-1]
+
         if style == '"':
             emitter.write_double_quoted(string.string)
-            return emitter.stream.getvalue()
+            translation = emitter.stream.getvalue()
         elif style == '\'':
             emitter.write_single_quoted(string.string)
-            return emitter.stream.getvalue()
+            translation = emitter.stream.getvalue()
         elif style == '':
             emitter.write_plain(string.string)
-            return emitter.stream.getvalue()
+            translation = emitter.stream.getvalue()
         elif style == '|':
             emitter.write_literal(string.string)
-            return emitter.stream.getvalue()
+            translation = emitter.stream.getvalue()
         elif style == '>':
             emitter.write_folded(string.string)
-            return emitter.stream.getvalue()
-        else:
-            return string.string
+            translation = emitter.stream.getvalue()
+
         emitter.stream.close()
+        return translation
 
     def _apply_translations(self, template, stringset, **kwargs):
         """ Compiles translation file from template
@@ -286,7 +317,8 @@ class YamlHandler(Handler):
         Iterates over the stringset and for each strings replaces
         template replacement in the template with the actual translation.
 
-        Returns the compiled file content.
+        Returns:
+            The compiled file content.
         """
         transcriber = Transcriber(template)
         template = transcriber.source
@@ -307,11 +339,12 @@ class YamlHandler(Handler):
         return compiled
 
     @staticmethod
-    def escape_dots(k):
+    def unescape_dots(k):
+        """ Replace <TX_DOT> placeholder with a dot. """
         return k.replace('<TX_DOT>', '.')
 
     @staticmethod
-    def unescape_dots(k):
+    def escape_dots(k):
         """ We use dots to construct the strings key, so we need to
         escape dots that are part of an actual YAML key """
         return k.replace('.', '<TX_DOT>')
@@ -325,9 +358,13 @@ class YamlHandler(Handler):
         Returns:
             An integer representing indent
         """
+        # match all whilespace characters after first `:` (end of first
+        # key). Stops on first non whitespace character.
         indent_pattern = re.compile(':\r?\n(?P<indent>[ \t\n]+)')
         m = indent_pattern.search(template)
         indent = m.groups('indent')[0] if m else ' ' * 2
+        # keep only last line
+        indent = indent.splitlines()[-1]
         indent = indent.replace('\t', ' ' * 4)
         return len(indent)
 
@@ -337,9 +374,8 @@ class YamlHandler(Handler):
         into account the mode used for compilation.
 
         Args:
-            handler: A YamlHandler instance for the concerned
-                resource, language.
-            content: Template content for the resource.
+            template: Template content for the resource.
+            stringset: The resource's stringset.
 
         Returns:
             A unicode, dumped YAML content.
@@ -350,8 +386,8 @@ class YamlHandler(Handler):
         else:
             yg = YamlGenerator(self)
             yaml_dict = yg._generate_yaml_dict(stringset)
-            # lang_code = self._get_language_code_from_template(template)
-            # # yaml_dict = yg._wrap_yaml_dict(yaml_dict, lang_code)
+            if self.language:
+                yaml_dict = self._wrap_yaml_dict(yaml_dict, self.language)
             return yaml.dump(yaml_dict, width=float('inf'),
                              Dumper=TxYamlDumper, allow_unicode=True,
                              indent=self.indent).decode("utf-8")
@@ -359,7 +395,7 @@ class YamlHandler(Handler):
     def _compile_pluralized(self, string):
         """ Prepare a pluralized string to be added to the template
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def parse_pluralized_value(self, value):
         """ Creates a dictionary of the form:
@@ -367,7 +403,7 @@ class YamlHandler(Handler):
         {rule_number: rule_translation, ...}
         ```
         based on a YAML node """
-        raise NotImplemented
+        raise NotImplementedError
 
     def is_pluralized(self, val):
         """ Checks if given yml node should be handled as pluralized

@@ -26,6 +26,9 @@ key.with.dots: ddbc5d72cdd64acc258ab3446b6466ed_tr
 
 1: 9354e4f807073d6a146138fe6d81e4ef_tr
 
+empty_value: ''
+
+single_quoted_value: 710e606150bfb87b477674e886495384_tr
 value with quote: 4ea9d14bca65fb09e8b7c2c54ce8fd4e_tr
 value with start backtick: 05cecdb72a9f3d915c749bba5295901c_tr
 value with end backtick: 109530f343dfa59480e0e3aa11816cbb_tr

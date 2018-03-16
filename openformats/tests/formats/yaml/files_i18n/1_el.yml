@@ -1,0 +1,11 @@
+en:
+  normal string: el:normal string
+  pluralized_string:
+    one: el:One
+    other: el:Other
+
+  another normal string: el:normal string
+
+  empty_pluralized_string:
+    one: ""
+    other: ""

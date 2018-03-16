@@ -1,0 +1,9 @@
+en:
+  normal string: 3b6dc2dbeb067817a544fcb750847ef2_tr
+  pluralized_string:
+  ecfc311d97950fc7db9c7ed1238769bf_pl
+  another normal string: f06fc11fd8efb89fe045ce53c215d59e_tr
+
+  empty_pluralized_string:
+    one: ""
+    other: ""

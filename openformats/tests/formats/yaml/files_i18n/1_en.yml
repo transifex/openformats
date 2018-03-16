@@ -1,0 +1,10 @@
+en:
+  normal string: normal string
+  pluralized_string:
+    one: One
+    other: Other
+  another normal string: normal string
+
+  empty_pluralized_string:
+    one: ""
+    other: ""

@@ -180,19 +180,68 @@ class YamlGenerator(object):
             obj = single_quoted_unicode(obj)
         return obj
 
-    def _insert_translation_in_dict(self, parent_dict, keys, openstring,
+    def _insert_translation_in_dict(self, parent_dict, keys, styles,
                                     translation_string):
-        styles = openstring.flags.split(':')
+        """ Given a set of keys and a set of styles generate a Yaml
+        serializable dictionary with each nested element casted to the
+        right yaml representee class.
+
+        Args:
+            keys: a list procuded by the source string key splitted on `.`
+            parent_dict: OrderedDict we want to update
+            styles: A list of flags denoting the string's style in the
+                original YAML file. Valid flags are:
+                ["block", "flow", "'", "\"", ">", "|", ""]
+            translation_string: the translation string
+
+        Example:
+            ```
+            keys = ["one", "two", "[0]"]
+            flags = "block:block:block:'".split(':')
+            translation_string = "test"
+            result = OrderedDict()
+
+            _insert_translation_in_dict(result, keys, flags,
+                                        translation_string)
+            # produced result
+            OrderedDict([
+                (u'one', OrderedDict([
+                    (u'two', BlockList([
+                        single_quoted_unicode(u'test')
+                    ]))
+                ]))
+            ])
+
+            # re-calling _insert_translation_in_dict with second set of keys
+            # the `result` as `parent_dict` whould update the same dictionary
+            keys = ["one", "two", "[1]"]
+            flags = "block:block:block:\"".split(':')
+            translation_string = "test 2"
+
+            _insert_translation_in_dict(result, keys, flags,
+                                        translation_string)
+            # produced result
+            OrderedDict([
+                (u'one', OrderedDict([
+                    (u'two', BlockList([
+                        single_quoted_unicode(u'test')
+                        double_quoted_unicode(u'test 2')
+                    ]))
+                ]))
+            ])
+
+            # and yaml.dump whould produce the following
+            yaml.dump(result, Dumper=TxYamlDumper, allow_unicode=True)
+            one:
+              two:
+                - 'test'
+                - "test 2"
+            ```
+        """
         yaml_dict = parent_dict
         entry = translation_string
         if len(keys) == 1:
-            key = keys[0]
-            # Check whether the key should be turned into an int value.
-            if key.startswith('<') and key.endswith('>'):
-                try:
-                    key = int(key[1:-1])
-                except ValueError:
-                    pass
+            key = self._parse_int_key(keys[0])
             yaml_dict[key] = self._get_styled_string(entry, styles[-1])
             return
 
@@ -201,23 +250,12 @@ class YamlGenerator(object):
             next_key = keys[i+1]
             is_list, next_is_list = False, False
 
-            # Check whether the key should be turned into an int value.
-            if key.startswith('<') and key.endswith('>'):
-                try:
-                    key = int(key[1:-1])
-                except ValueError:
-                    pass
-            try:
-                next_key = int(next_key[1:-1])
-                next_is_list = True
-            except ValueError:
-                pass
-            try:
-                key = int(key[1:-1])
+            key = self._parse_int_key(key)
+            key, is_list = self._parse_list_index_key(key)
+            next_key, next_is_list = self._parse_list_index_key(next_key)
+
+            if is_list:
                 index = key
-                is_list = True
-            except ValueError:
-                pass
 
             if not is_list:
                 if key in yaml_dict:
@@ -239,9 +277,15 @@ class YamlGenerator(object):
                     yaml_dict = yaml_dict[index]
                 else:
                     if next_is_list:
-                        yaml_dict.append(BlockList())
+                        if styles[i+1] == 'block':
+                            yaml_dict.append(BlockList())
+                        elif styles[i+1] == 'flow':
+                            yaml_dict.append(FlowList())
                     else:
-                        yaml_dict.append(OrderedDict())
+                        if styles[i] == 'flow':
+                            yaml_dict.append(FlowStyleOrderedDict())
+                        if styles[i] == 'block':
+                            yaml_dict.append(BlockStyleOrderedDict())
                     yaml_dict = yaml_dict[index]
             if is_last:
                 if next_is_list:
@@ -250,6 +294,37 @@ class YamlGenerator(object):
                 else:
                     yaml_dict[next_key] = self._get_styled_string(entry,
                                                                   styles[-1])
+
+    def _parse_int_key(self, key):
+        """
+        Check whether the key should be turned into an int value.
+
+        Returns:
+            The key cast to an integer if needed
+        """
+        if key.startswith('<') and key.endswith('>'):
+            try:
+                key = int(key[1:-1])
+            except ValueError:
+                pass
+        return key
+
+    def _parse_list_index_key(self, key):
+        """
+        Check whether the key is in fact the index of a list.
+
+        Returns:
+            key: The key cast to an integer if needed
+            is_list: A Boolean indicating if key is indeed a list index
+        """
+        is_list = False
+        if key.startswith('[') and key.endswith(']'):
+            try:
+                key = int(key[1:-1])
+                is_list = True
+            except ValueError:
+                pass
+        return (key, is_list)
 
     def _generate_yaml_dict(self, stringset):
         """
@@ -264,19 +339,20 @@ class YamlGenerator(object):
         yaml_dict = OrderedDict()
         for se in stringset:
             keys = se.key.split('.')
-            keys = map(self.handler.escape_dots, keys)
+            flags = se.flags.split(':')
+            keys = map(self.handler.unescape_dots, keys)
             if se.pluralized:
                 plural_rules = self.handler.get_plural_rules()
                 for rule in plural_rules:
                     if rule != plural_rules[0]:
                         keys.pop()
-                    keys.append(self.get_rule_string(rule))
+                    keys.append(self.handler.get_rule_string(rule))
                     self._insert_translation_in_dict(
-                        yaml_dict, keys, se, se.string.get(rule)
+                        yaml_dict, keys, flags, se.string.get(rule)
                     )
             else:
                 self._insert_translation_in_dict(
-                    yaml_dict, keys, se, se.string
+                    yaml_dict, keys, flags, se.string
                 )
         return yaml_dict
 

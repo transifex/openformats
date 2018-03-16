@@ -35,6 +35,9 @@ key.with.dots: dot value
 
 1: integer key
 
+empty_value: ''
+
+single_quoted_value: 'single quoted value'
 value with quote: "'value"
 value with start backtick: "`value"
 value with end backtick: "value`"
