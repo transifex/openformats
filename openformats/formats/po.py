@@ -111,7 +111,6 @@ class PoHandler(Handler):
             'flags': ', '.join(entry.flags),
             'occurrences': occurrences if occurrences else None,
             'developer_comment': entry_comments,
-            'context': entry.msgctxt if entry.msgctxt else ""
         }
 
         string = self._get_string(entry, pluralized)
@@ -270,7 +269,8 @@ class PoHandler(Handler):
         next_string = next(stringset, None)
 
         po = polib.pofile(template)
-        for entry in list(po):
+        indexes_to_remove = []
+        for i, entry in enumerate(po):
             if next_string is not None:
                 is_plural = True if entry.msgid_plural.strip() else False
                 if is_plural:
@@ -280,7 +280,8 @@ class PoHandler(Handler):
                 if compiled:
                     next_string = next(stringset, None)
                     continue
-            po.remove(entry)
+            indexes_to_remove.append(i)
+        self._smart_remove(po, indexes_to_remove)
         return unicode(po)
 
     def _compile_entry(self, entry, next_string):
@@ -308,6 +309,10 @@ class PoHandler(Handler):
             entry.msgstr_plural = next_string.string
             return True
         return False
+
+    def _smart_remove(self, po, indexes_to_remove):
+        for i in reversed(indexes_to_remove):
+            del po[i]
 
     @staticmethod
     def _format_occurrences(occurrences):
