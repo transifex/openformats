@@ -228,6 +228,35 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
                 }))
         )
 
+    def test_duplicated_text_is_not_confused(self):
+        string1 = self._create_openstring(False)
+        source = strip_leading_spaces(u"""
+            msgctxt ""
+            msgid "{s1_key}"
+            msgstr "{s1_key}"
+
+            msgctxt "t2"
+            msgid "{s1_key}"
+            msgstr "{s1_key}"
+        """.format(**{
+            "s1_key": string1.key,
+        }))
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [string1])
+        self.assertEquals(
+            compiled,
+            strip_leading_spaces(u"""# \nmsgid ""
+                msgstr ""
+
+                msgctxt ""
+                msgid "{s1_key}"
+                msgstr "{s1_str}"
+            """.format(**{
+                "s1_key": string1.key,
+                "s1_str": string1.string
+            }))
+        )
+
     def test_fuzzy_flag_removes_entry_but_keeps_strings(self):
         string1 = self._create_openstring(False)
         string2 = self._create_openstring(False, extra_context={'fuzzy': True})
