@@ -1,5 +1,3 @@
-Related to [TX-XXXX: Paste ticket's title here](https://transifex.atlassian.net/browse/TX-XXXX)
-
 Checklist (for the reviewer)
 ----------------------------
 
