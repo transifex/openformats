@@ -30,7 +30,11 @@ class PoHandler(Handler):
         stringset = []
         self.is_source = is_source
         self.order_generator = itertools.count()
-        po = polib.pofile(content)
+        try:
+            po = polib.pofile(content)
+        except Exception, e:
+            raise ParseError("Error while validating PO file syntax: {}".
+                             format(e.message))
         self.only_values = False
         self.only_keys = False
         self.new_po = copy.copy(po)
