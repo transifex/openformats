@@ -1,12 +1,12 @@
 import unittest
 import itertools
 
-from openformats.strings import OpenString
+from openformats.exceptions import ParseError
 from openformats.formats.po import PoHandler
+from openformats.strings import OpenString
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.tests.utils.strings import (
-    strip_leading_spaces, generate_random_string
-)
+from openformats.tests.utils.strings import (strip_leading_spaces,
+                                             generate_random_string)
 
 
 class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
@@ -462,3 +462,8 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             u"Incomplete plural forms found on the entry with msgid `p1` "
             u"and msgid_plural `p2`."
         )
+
+    def test_invalid_po_raised_as_parseerror(self):
+        source = "blyargh"
+        with self.assertRaises(ParseError):
+            self.handler.parse(source)
