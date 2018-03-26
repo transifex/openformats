@@ -8,19 +8,19 @@ in a dictionary for generating YAML content
 from collections import OrderedDict
 
 
-class folded_unicode(unicode):
+class folded_unicode(unicode):  # noqa: N801
     pass
 
 
-class literal_unicode(unicode):
+class literal_unicode(unicode):  # noqa: N801
     pass
 
 
-class double_quoted_unicode(unicode):
+class double_quoted_unicode(unicode):  # noqa: N801
     pass
 
 
-class single_quoted_unicode(unicode):
+class single_quoted_unicode(unicode):  # noqa: N801
     pass
 
 

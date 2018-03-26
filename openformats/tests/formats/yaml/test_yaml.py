@@ -26,7 +26,7 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
         self.assertEquals(remade_orig_content, self.data["1_en_exported"])
 
-    def test_compile_with_template(self):
+    def test_compile_without_template(self):
         """Test that import-export is the same as the original file."""
         self.handler.should_use_template = False
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)

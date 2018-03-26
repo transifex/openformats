@@ -12,6 +12,7 @@ class I18nYamlTestCase(CommonFormatTestMixin, unittest.TestCase):
     def setUp(self):
         self.handler = self.HANDLER_CLASS()
         self.handler.set_plural_rules([1, 5])
+        self.handler.set_lang_code('en')
         self.read_files()
         self.tmpl, self.strset = self.handler.parse(self.data["1_en"])
 
@@ -32,7 +33,6 @@ class I18nYamlTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_compile_without_template(self):
         """Test that import-export is the same as the original file."""
-        self.handler.set_lang_code('en')
         self.handler.should_use_template = False
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
         self.assertEquals(remade_orig_content,

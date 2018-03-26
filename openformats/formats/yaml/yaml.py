@@ -29,13 +29,89 @@ class YamlHandler(Handler):
     # `extra_indent = 1`
     extra_indent = 0
 
-    # When compiling for a mode that needs needs to completely remove
+    # When compiling for a mode that needs to completely remove
     # an entry from the compiled file we cannot use the template for
-    # compilation but we need to custruct the yaml file from scratch
-    # only we the subset of encluded entries
+    # compilation but we need to construct the YAML file from scratch
+    # only with the subset of included entries.
     should_use_template = True
 
-    language = None
+    language_code = None
+
+    def parse(self, content, **kwargs):
+        """ Parses the given YAML content to create stringset and template
+
+        Steps are:
+            1. Load yaml content using our custom loader TxYamlLoader that
+               in addition to the value for each key notes the `start` and
+               `end` index of each node in the file and some metadata.
+            2. Flattens the output of the loader to be a list of the form:
+               ```
+               [{
+                   'key': 'string_key1',
+                   'value': 'string1',
+                   'end': <end_index_of_node>,
+                   'start': <start_index_value>,
+                   'style': '|, >, ...'
+                },
+                ...
+               ]
+               ```
+            3. Iterates over the flattened list and for each entry creates an
+               OpenString object, appends it to stringset and replace its value
+               with the template_replacement in the template.
+            4. Returns the (template, stringset) tuple.
+        """
+        template = ""
+        context = ""
+        stringset = []
+        yaml_data = self._load_yaml(content, loader=TxYamlLoader)
+        yaml_data = self._get_yaml_data_to_parse(yaml_data)
+        parsed_data = self._parse_yaml_data(yaml_data, '', [], context)
+        parsed_data.sort()
+
+        end = 0
+        order = 0
+        for node in parsed_data:
+            start = node.get('start')
+            end_ = node.get('end')
+            key = node.get('key')
+            value = node.get('value')
+            style = node.get('style')
+            if not value:
+                continue
+            if isinstance(value, dict) and not all(value.values()):
+                continue
+            string_object = OpenString(
+                key, value, context=context, flags=style, order=order,
+            )
+            stringset.append(string_object)
+            order += 1
+            template += (content[end:start] +
+                         string_object.template_replacement)
+            comment = self._find_comment(content, end, start)
+            string_object.developer_comment = comment
+            end = end_
+
+        template += content[end:]
+        return template, stringset
+
+    def compile(self, template, stringset, **kwargs):
+        """
+        Dump YAML content for a resource translation taking
+        into account the mode used for compilation.
+
+        Args:
+            template: Template content for the resource.
+            stringset: The resource's stringset.
+
+        Returns:
+            A unicode, dumped YAML content.
+        """
+        self.indent = self._get_indent(template)
+        if self.should_use_template:
+            return self._compile_from_template(template, stringset)
+        else:
+            return self._compile_without_template(stringset)
 
     def _load_yaml(self, content, loader):
         """
@@ -53,8 +129,10 @@ class YamlHandler(Handler):
             return yaml.load(content, Loader=loader)
         except yaml.scanner.ScannerError as e:
             raise ParseError(unicode(e))
+        except Exception as e:
+            raise ParseError(unicode(e))
 
-    def _parse_leaf_node(self, yaml_data, parent_key, style=[],
+    def _parse_leaf_node(self, node, parent_key, style=[],
                          pluralized=False):
         """Parse a leaf node in yaml_dict.
         Args:
@@ -67,22 +145,36 @@ class YamlHandler(Handler):
         Returns:
             A dictionary representing the parsed leaf node
         """
-        val = yaml_data[0]
-        value = self.parse_pluralized_value(val) if pluralized else val
-        start = yaml_data[1]
-        end = self.find_pluralized_end_pos(val) if pluralized else yaml_data[2]
-        style.append(yaml_data[3] or '')
+        style.append(node.style or '')
         return {
-            'start': start,
-            'end': end,
+            'start': node.start,
+            'end': node.end,
             'key': parent_key,
-            'value': value,
+            'value': node.value,
             'style': ':'.join(style or []),
             'pluralized': pluralized,
         }
 
-    def find_pluralized_end_pos(self, value):
-        return max([entry[2] for entry in value.values()])
+    def _parse_pluralized_leaf_node(self, yaml_data, parent_key, style=[],
+                                    pluralized=False):
+        """Parse a leaf node in yaml_dict.
+        Args:
+            yaml_data: A tuple of the form (plurals_dict, start, end, style)
+                      that describes a pluralized node
+                      `plurals_dict` example:
+                          {
+                              "one": (string, start, end, style),
+                              "other": (string, start, end, style)
+                          }
+            parent_key: A string of keys concatenated by '.' to
+                        reach this node
+            style: A list of YAML node styles from root node to
+                   immediate parent node of the current YAML node.
+
+        Returns:
+            A dictionary representing the parsed leaf node
+        """
+        raise NotImplementedError
 
     def _get_key_for_node(self, key, parent_key):
         """
@@ -109,14 +201,24 @@ class YamlHandler(Handler):
             parent_key += '.' + key
         return parent_key
 
-    def parse_yaml_data(self, yaml_data, parent_key, parsed_data,
-                        context="", parent_style=[]):
+    def _parse_yaml_data(self, yaml_data, parent_key, parsed_data,
+                         context="", parent_style=None):
         """
         Parse data returned by YAML loader
+
+        yaml_data can be either a dict like:
+            {"key1": node1, "key2": node2, ...}
+        or a list like:
+            [node1, node2, ...]
+
+        Node objects above are instances of the Node namedtuple with valid
+        keys ['value', 'start', 'end', 'style']. node.value can be either
+        another `yaml_data` object or a string.
+
         Args:
             yaml_data: The output of yaml.loads()
             parent_key: A string of keys concatenated by '.' to
-                reach this node,
+                        reach this node,
             parsed_data: A list, containing the already parsed data
             context: A string
             parent_style: A list of YAML node styles for each parent node.
@@ -125,50 +227,52 @@ class YamlHandler(Handler):
             A list of dictionaries, where each dictionary maps a node
             key to its value
         """
+        parent_style = parent_style or []
+
         if isinstance(yaml_data, dict):
-            for key, val in yaml_data.items():
+            for key, node in yaml_data.items():
                 node_key = self._get_key_for_node(key, parent_key)
                 style = copy.copy(parent_style)
-                if isinstance(val[0], dict):
-                    if self.is_pluralized(val[0]):
+                if isinstance(node.value, dict):
+                    if self.is_pluralized(node.value):
                         parsed_data.append(
-                            self._parse_leaf_node(
-                                val, node_key,
+                            self._parse_pluralized_leaf_node(
+                                node, node_key,
                                 style=copy.copy(parent_style or []),
                                 pluralized=True
                             )
                         )
                     else:
-                        style.append(val[3] or '')
-                        parsed_data = self.parse_yaml_data(
-                            val[0], node_key, parsed_data, context,
+                        style.append(node.style or '')
+                        parsed_data = self._parse_yaml_data(
+                            node.value, node_key, parsed_data, context,
                             parent_style=copy.copy(style or []))
-                elif isinstance(val[0], list):
-                    style.append(val[3] or '')
-                    parsed_data = self.parse_yaml_data(
-                        val[0], node_key, parsed_data, context,
+                elif isinstance(node.value, list):
+                    style.append(node.style or '')
+                    parsed_data = self._parse_yaml_data(
+                        node.value, node_key, parsed_data, context,
                         parent_style=copy.copy(style or []))
                 else:
                     parsed_data.append(
                         self._parse_leaf_node(
-                            val, node_key, style=copy.copy(parent_style or [])
+                            node, node_key, style=copy.copy(parent_style or [])
                         )
                     )
         elif (isinstance(yaml_data, list)):
-            # If list add each dict element as a entry
+            # If list add each dict element as an entry
             # using the position (index) of it as parent key using
             # brackets around it. I.e.: 'foo.[0].bar'.
-            for i, e in enumerate(yaml_data):
+            for i, node in enumerate(yaml_data):
                 node_key = self._get_key_for_node('[%s]' % (i), parent_key)
-                if isinstance(e[0], (dict, list)):
-                    parent_style.append(e[3] or '')
-                    parsed_data = self.parse_yaml_data(
-                        e[0], node_key, parsed_data, context,
+                if isinstance(node.value, (dict, list)):
+                    parent_style.append(node.style or '')
+                    parsed_data = self._parse_yaml_data(
+                        node.value, node_key, parsed_data, context,
                         parent_style=copy.copy(parent_style or []))
                 else:
                     parsed_data.append(
                         self._parse_leaf_node(
-                            e, node_key, style=copy.copy(parent_style or [])
+                            node, node_key, style=copy.copy(parent_style or [])
                         )
                     )
 
@@ -199,78 +303,20 @@ class YamlHandler(Handler):
         else:
             return ''
 
-    def get_yaml_data_to_parse(self, yaml_data):
+    def _get_yaml_data_to_parse(self, yaml_data):
         """ Returns the part of the yaml_data that actually need to be parsed
 
-        In some cases only a part of the YAML structure needs to be
-        processed for strings to be extracted. e.g. when the root key is the
-        language code we need to exclude this from the rest of the processing.
-        In the generic case the whole structure will be processed.
+        In some cases only a part of the YAML structure needs to be processed
+        for strings to be extracted. e.g. when the root key is the language
+        code we need to exclude this from the rest of the processing.
+
+        Subclasses can override the default behavior, by returning a subset
+        of the whole structure.
         """
         return yaml_data
 
-    def parse(self, content, **kwargs):
-        """ Parses the given YAML content to create stringset and template
-
-        Steps are:
-            1. Load yaml content using our custom loader TxYamlLoader that
-               in addition to the value for each key notes the `start` and
-               `end` index of each node in the file and some metadata.
-            2. Flattens the output of the loader to be a list of the form:
-               ```
-               [{
-                   'key': 'string_key1',
-                   'value': 'string1',
-                   'end': <end_index_of_node>,
-                   'start': <start_index_value>,
-                   'style': '|, >, ...'
-                },
-                ...
-               ]
-               ```
-            3. Iterates over the flattened list and for each entry creates an
-               OpenString object, appends it to stringset and replace its value
-               with the template_replacement in the template.
-            4. Returns the (template, stringset) tuple.
-        """
-        template = ""
-        context = ""
-        stringset = []
-        yaml_data = self._load_yaml(content, loader=TxYamlLoader)
-        yaml_data = self.get_yaml_data_to_parse(yaml_data)
-        parsed_data = self.parse_yaml_data(yaml_data, '', [],
-                                           context)
-        parsed_data.sort()
-
-        end = 0
-        order = 0
-        for node in parsed_data:
-            start = node.get('start')
-            end_ = node.get('end')
-            key = node.get('key')
-            value = node.get('value')
-            style = node.get('style')
-            comment = ''
-            if not value:
-                continue
-            if isinstance(value, dict) and not all(value.values()):
-                continue
-            string_object = OpenString(
-                key, value, context=context, flags=style, order=order,
-            )
-            stringset.append(string_object)
-            order += 1
-            template += (content[end:start] +
-                         string_object.template_replacement)
-            comment = self._find_comment(content, end, start)
-            string_object.developer_comment = comment
-            end = end_
-
-        template += content[end:]
-        return template, stringset
-
     def _write_styled_literal(self, string):
-        """ Produce a properly formatted yaml string
+        """ Produce a properly formatted YAML string
 
         Properly format translation string based on string's style
         on the original source file using yaml.emitter.Emitter class.
@@ -288,30 +334,28 @@ class YamlHandler(Handler):
         emitter = Emitter(stream, allow_unicode=True)
         indent = self.indent * (len(string.key.split('.')) + self.extra_indent)
         emitter.indent = indent
+        # set best_width to `float(inf)` so that long strings are not broken
+        # into multiple lines
         emitter.best_width = float('inf')
 
         style = string.flags.split(':')[-1]
 
         if style == '"':
             emitter.write_double_quoted(string.string)
-            translation = emitter.stream.getvalue()
         elif style == '\'':
             emitter.write_single_quoted(string.string)
-            translation = emitter.stream.getvalue()
         elif style == '':
             emitter.write_plain(string.string)
-            translation = emitter.stream.getvalue()
         elif style == '|':
             emitter.write_literal(string.string)
-            translation = emitter.stream.getvalue()
         elif style == '>':
             emitter.write_folded(string.string)
-            translation = emitter.stream.getvalue()
 
+        translation = emitter.stream.getvalue() or string.string
         emitter.stream.close()
         return translation
 
-    def _apply_translations(self, template, stringset, **kwargs):
+    def _compile_from_template(self, template, stringset, **kwargs):
         """ Compiles translation file from template
 
         Iterates over the stringset and for each strings replaces
@@ -325,7 +369,7 @@ class YamlHandler(Handler):
 
         for string in stringset:
             if string.pluralized:
-                trans = self._compile_pluralized(string).decode('utf-8')
+                trans = self._compile_pluralized(string)
             else:
                 trans = self._write_styled_literal(string)
             hash_position = template.index(string.template_replacement)
@@ -337,6 +381,15 @@ class YamlHandler(Handler):
         compiled = transcriber.get_destination()
 
         return compiled
+
+    def _compile_without_template(self, stringset):
+        yg = YamlGenerator(self)
+        yaml_dict = yg.generate_yaml_dict(stringset)
+        if self.language_code:
+            yaml_dict = self._wrap_yaml_dict(yaml_dict, self.language_code)
+        return yaml.dump(yaml_dict, width=float('inf'),
+                         Dumper=TxYamlDumper, allow_unicode=True,
+                         indent=self.indent).decode("utf-8")
 
     @staticmethod
     def unescape_dots(k):
@@ -351,12 +404,13 @@ class YamlHandler(Handler):
 
     def _get_indent(self, template):
         """
-        Get indent used in the saved template.
+        Use a regular expression to figure out how many spaces are used
+        for indentation in the original file.
 
         Args:
-            template: A string, content of saved template
+            template: The saved template
         Returns:
-            An integer representing indent
+            The number of spaces.
         """
         # match all whilespace characters after first `:` (end of first
         # key). Stops on first non whitespace character.
@@ -367,30 +421,6 @@ class YamlHandler(Handler):
         indent = indent.splitlines()[-1]
         indent = indent.replace('\t', ' ' * 4)
         return len(indent)
-
-    def compile(self, template, stringset, **kwargs):
-        """
-        Dump YAML content for a resource translation taking
-        into account the mode used for compilation.
-
-        Args:
-            template: Template content for the resource.
-            stringset: The resource's stringset.
-
-        Returns:
-            A unicode, dumped YAML content.
-        """
-        self.indent = self._get_indent(template)
-        if self.should_use_template:
-            return self._apply_translations(template, stringset)
-        else:
-            yg = YamlGenerator(self)
-            yaml_dict = yg._generate_yaml_dict(stringset)
-            if self.language:
-                yaml_dict = self._wrap_yaml_dict(yaml_dict, self.language)
-            return yaml.dump(yaml_dict, width=float('inf'),
-                             Dumper=TxYamlDumper, allow_unicode=True,
-                             indent=self.indent).decode("utf-8")
 
     def _compile_pluralized(self, string):
         """ Prepare a pluralized string to be added to the template
@@ -406,7 +436,7 @@ class YamlHandler(Handler):
         raise NotImplementedError
 
     def is_pluralized(self, val):
-        """ Checks if given yml node should be handled as pluralized
+        """ Checks if given YAML node should be handled as pluralized
 
         This method by default returns False because no entry in a
         generic YML file should be handled as pluralized.

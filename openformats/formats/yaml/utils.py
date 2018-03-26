@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import yaml
 import re
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 from yaml.constructor import ConstructorError
 
@@ -41,6 +41,9 @@ yaml.add_representer(FlowStyleOrderedDict,
                      flow_style_ordered_dict_representer)
 
 
+Node = namedtuple("Node", ['value', 'start', 'end', 'style'])
+
+
 class TxYamlLoader(yaml.SafeLoader):
     """
     Custom YAML Loader for Tx
@@ -48,44 +51,38 @@ class TxYamlLoader(yaml.SafeLoader):
     def __init__(self, *args, **kwargs):
         super(TxYamlLoader, self).__init__(*args, **kwargs)
         self.stream = args[0]
-        self.post_block_comment_pattern = re.compile(
-            r'(?:#.*\r?\n\s*)+$')
-
-    def _calculate_block_end_pos(self, start, end):
-        """
-        This recalculates the end position of a block seq
-        in self.stream. This is done to take into account
-        comments between a block sequence or mapping node
-        and the next node.
-
-        Args:
-            start: An integer, start position of block sequence
-                   in self.stream
-            end: An integer, end position of block sequence in
-                self.stream.
-
-        Returns:
-            An integer for the new end position.
-        """
-        content = self.stream[start:end]
-        m = self.post_block_comment_pattern.search(content)
-        if m:
-            end = start + m.start()
-        return end
+        self.post_block_comment_pattern = re.compile(r'(?:#.*\r?\n\s*)+$')
 
     def construct_mapping(self, node, deep=True):
+        """
+        Override `yaml.SafeLoader.construct_mapping` to return for each item
+        of the mapping a tuple of the form `(key, (value, start, end, style))`
+        instead of the default which is `(key, value)`.
+        """
         if not isinstance(node, yaml.MappingNode):
             raise ParseError(
-                "Expected a mapping node, but found %s" % node.id,
+                "Expected a mapping node, but found {}".format(node.id),
             )
         pairs = []
         for key_node, value_node in node.value:
+            # don't process binary values
+            if value_node.tag == 'tag:yaml.org,2002:binary':
+                continue
             try:
                 key = self.construct_object(key_node, deep=deep)
                 value = self.construct_object(value_node, deep=deep)
-            except ConstructorError, e:
-                print("During parsing YAML file: %s" % unicode(e))
+            except ConstructorError as e:
+                print("During parsing YAML file: {}".format(unicode(e)))
                 continue
+
+            # raise ConstructorError in case of invalid key
+            try:
+                hash(key)
+            except TypeError as e:
+                print("Error while constructing a mapping, found unacceptable"
+                      " key (%s)".format(unicode(e)))
+                continue
+
             if not(isinstance(value, unicode) or isinstance(value, str) or
                     isinstance(value, list) or isinstance(value, dict)):
                 continue
@@ -113,22 +110,30 @@ class TxYamlLoader(yaml.SafeLoader):
             elif isinstance(value, str) or isinstance(value, unicode):
                 style = value_node.style
 
-            value = (value, start, end, style)
+            value = Node(value, start, end, style)
             pairs.append((key, value))
         return pairs
 
     def construct_sequence(self, node, deep=True):
+        """
+        Override `yaml.SafeLoader.construct_sequence` to return for each
+        element of the sequence `(value, start, end, style)` instead of the
+        default which is `value`.
+        """
         if not isinstance(node, yaml.SequenceNode):
             raise ParseError(
-                "Expected a mapping node, but found %s" % node.id,
+                "Expected a mapping node, but found {}".format(node.id)
             )
         values = []
 
         for value_node in node.value:
+            # don't process binary values
+            if value_node.tag == 'tag:yaml.org,2002:binary':
+                continue
             try:
                 value = self.construct_object(value_node, deep=deep)
-            except ConstructorError, e:
-                print("During parsing YAML file: %s" % unicode(e))
+            except ConstructorError as e:
+                print("During parsing YAML file: {}".format(unicode(e)))
                 continue
             if not(isinstance(value, unicode) or isinstance(value, str) or
                     isinstance(value, list) or isinstance(value, dict)):
@@ -140,20 +145,80 @@ class TxYamlLoader(yaml.SafeLoader):
                     style = 'flow'
                 else:
                     style = 'block'
-                values.append((value, start, end, style))
+                values.append(Node(value, start, end, style))
             else:
                 style = value_node.style
-                values.append((value, start, end, style))
+                values.append(Node(value, start, end, style))
         return values
+
+    def _calculate_block_end_pos(self, start, end):
+        """
+        This recalculates the end position of a block seq
+        in self.stream. This is done to take into account
+        comments between a block sequence or mapping node
+        and the next node.
+
+        Args:
+            start: An integer, start position of block sequence
+                   in self.stream
+            end: An integer, end position of block sequence in
+                self.stream.
+
+        Returns:
+            An integer for the new end position.
+        """
+        content = self.stream[start:end]
+        m = self.post_block_comment_pattern.search(content)
+        if m:
+            end = start + m.start()
+        return end
 
 
 class YamlGenerator(object):
     """
-    Generate YAML content for a resource translation
+    Generate YAML content for a resource translation.
+
+    Use keys and styles of each string in the stringset to recreate
+    the original structure of the YAML file.
+        - keys refer to `string.key.split('.')`
+        - styles refer to `string.flags.split(':')`
+
+    Used when we want to compile the translation file without using the
+    resource template.
     """
 
     def __init__(self, handler):
         self.handler = handler
+
+    def generate_yaml_dict(self, stringset):
+        """
+        Generate a dictionary to be serialized to YAML.
+
+        Args:
+            stringset: The OpenString stringset of the resource
+
+        Returns:
+            An YAML serializable OrderedDict instance.
+        """
+        yaml_dict = OrderedDict()
+        for se in stringset:
+            keys = se.key.split('.')
+            flags = se.flags.split(':')
+            keys = map(self.handler.unescape_dots, keys)
+            if se.pluralized:
+                plural_rules = self.handler.get_plural_rules()
+                for rule in plural_rules:
+                    if rule != plural_rules[0]:
+                        keys.pop()
+                    keys.append(self.handler.get_rule_string(rule))
+                    self._insert_translation_in_dict(
+                        yaml_dict, keys, flags, se.string.get(rule)
+                    )
+            else:
+                self._insert_translation_in_dict(
+                    yaml_dict, keys, flags, se.string
+                )
+        return yaml_dict
 
     def _get_styled_string(self, translation_string, style):
         """
@@ -182,12 +247,12 @@ class YamlGenerator(object):
 
     def _insert_translation_in_dict(self, parent_dict, keys, styles,
                                     translation_string):
-        """ Given a set of keys and a set of styles generate a Yaml
-        serializable dictionary with each nested element casted to the
-        right yaml representee class.
+        """ Given a set of keys and a set of styles generate a YAML
+        serializable dictionary with each nested element cast to the
+        right YAML representee class.
 
         Args:
-            keys: a list procuded by the source string key splitted on `.`
+            keys: a list produced by the source string key split on `.`
             parent_dict: OrderedDict we want to update
             styles: A list of flags denoting the string's style in the
                 original YAML file. Valid flags are:
@@ -213,7 +278,7 @@ class YamlGenerator(object):
             ])
 
             # re-calling _insert_translation_in_dict with second set of keys
-            # the `result` as `parent_dict` whould update the same dictionary
+            # the `result` as `parent_dict` would update the same dictionary
             keys = ["one", "two", "[1]"]
             flags = "block:block:block:\"".split(':')
             translation_string = "test 2"
@@ -248,7 +313,6 @@ class YamlGenerator(object):
         for i, key in enumerate(keys[:-1]):
             is_last = i == (len(keys) - 2)
             next_key = keys[i+1]
-            is_list, next_is_list = False, False
 
             key = self._parse_int_key(key)
             key, is_list = self._parse_list_index_key(key)
@@ -262,30 +326,18 @@ class YamlGenerator(object):
                     yaml_dict = yaml_dict.get(key)
                 else:
                     if next_is_list:
-                        yaml_dict[key] = BlockList()
-                        if is_last and styles[i] == 'flow':
-                            yaml_dict[key] = FlowList()
+                        yaml_dict[key] = self._create_list_node(styles[i])
                     else:
-                        yaml_dict[key] = OrderedDict()
-                        if is_last and styles[i] == 'flow':
-                            yaml_dict[key] = FlowStyleOrderedDict()
-                        if is_last and styles[i] == 'block':
-                            yaml_dict[key] = BlockStyleOrderedDict()
+                        yaml_dict[key] = self._create_dict_node(styles[i])
                     yaml_dict = yaml_dict[key]
             else:
                 if index < len(yaml_dict):
                     yaml_dict = yaml_dict[index]
                 else:
                     if next_is_list:
-                        if styles[i+1] == 'block':
-                            yaml_dict.append(BlockList())
-                        elif styles[i+1] == 'flow':
-                            yaml_dict.append(FlowList())
+                        yaml_dict.append(self._create_list_node(styles[i]))
                     else:
-                        if styles[i] == 'flow':
-                            yaml_dict.append(FlowStyleOrderedDict())
-                        if styles[i] == 'block':
-                            yaml_dict.append(BlockStyleOrderedDict())
+                        yaml_dict.append(self._create_dict_node(styles[i]))
                     yaml_dict = yaml_dict[index]
             if is_last:
                 if next_is_list:
@@ -294,6 +346,20 @@ class YamlGenerator(object):
                 else:
                     yaml_dict[next_key] = self._get_styled_string(entry,
                                                                   styles[-1])
+
+    def _create_list_node(self, style):
+        if style == 'block':
+            return BlockList()
+        elif style == 'flow':
+            return FlowList()
+
+    def _create_dict_node(self, style=None):
+        if style == 'block':
+            return BlockStyleOrderedDict()
+        elif style == 'flow':
+            return FlowStyleOrderedDict()
+
+        return OrderedDict()
 
     def _parse_int_key(self, key):
         """
@@ -325,36 +391,6 @@ class YamlGenerator(object):
             except ValueError:
                 pass
         return (key, is_list)
-
-    def _generate_yaml_dict(self, stringset):
-        """
-        Generate a dictionary to be serialized to YAML.
-
-        Args:
-            stringset: The OpenString stringset of the resource
-
-        Returns:
-            An YAML serializable OrderedDict instance.
-        """
-        yaml_dict = OrderedDict()
-        for se in stringset:
-            keys = se.key.split('.')
-            flags = se.flags.split(':')
-            keys = map(self.handler.unescape_dots, keys)
-            if se.pluralized:
-                plural_rules = self.handler.get_plural_rules()
-                for rule in plural_rules:
-                    if rule != plural_rules[0]:
-                        keys.pop()
-                    keys.append(self.handler.get_rule_string(rule))
-                    self._insert_translation_in_dict(
-                        yaml_dict, keys, flags, se.string.get(rule)
-                    )
-            else:
-                self._insert_translation_in_dict(
-                    yaml_dict, keys, flags, se.string
-                )
-        return yaml_dict
 
 
 class TxYamlDumper(yaml.Dumper):

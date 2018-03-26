@@ -15,6 +15,8 @@ key2:
   - object_within_list: el:value
   - "el:text with a #hashtag in it"
   - el:li 5
+  - 3.5
+  - true
 
 description: >
   el:folded style text
@@ -38,3 +40,25 @@ single_quoted_value: 'el:single quoted value'
 value with quote: "el:'value"
 value with start backtick: "el:`value"
 value with end backtick: "el:value`"
+
+<weird_key>: el:value
+"[weird_key]": el:value
+
+true: el:boolean key
+
+double_list:
+  - - el:test
+
+simple_flow_list: ["el:one", 'el:two', "el:three"]
+double_flow_list: [[ el:test ]]
+
+binary_value: !!binary |
+  R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+  OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+  +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+  AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+
+# complex key syntax
+? - Manchester United
+  - Real Madrid
+: [ 2001-01-01, 2002-02-02 ]

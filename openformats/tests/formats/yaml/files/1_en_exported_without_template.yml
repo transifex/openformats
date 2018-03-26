@@ -25,3 +25,10 @@ single_quoted_value: 'single quoted value'
 value with quote: "'value"
 value with start backtick: "`value"
 value with end backtick: "value`"
+<weird_key>: value
+'[weird_key]': value
+'true': boolean key
+double_list:
+  - - test
+simple_flow_list: ["one", 'two', three]
+double_flow_list: [[test]]
