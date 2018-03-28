@@ -338,14 +338,22 @@ class YamlHandler(Handler):
         # into multiple lines
         emitter.best_width = float('inf')
 
+        analysis = emitter.analyze_scalar(string.string)
+
         style = string.flags.split(':')[-1]
 
         if style == '"':
             emitter.write_double_quoted(string.string)
         elif style == '\'':
-            emitter.write_single_quoted(string.string)
+            if analysis.allow_single_quoted:
+                emitter.write_single_quoted(string.string)
+            else:
+                emitter.write_double_quoted(string.string)
         elif style == '':
-            emitter.write_plain(string.string)
+            if analysis.allow_block_plain and analysis.allow_flow_plain:
+                emitter.write_plain(string.string)
+            else:
+                emitter.write_double_quoted(string.string)
         elif style == '|':
             emitter.write_literal(string.string)
         elif style == '>':
