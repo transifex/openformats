@@ -53,9 +53,9 @@ class I18nYamlHandler(YamlHandler):
         indent = " " * indentation_levels * self.indent
 
         yml_str = yaml.dump(plurals_dict, default_flow_style=False,
-                            allow_unicode=True)
-        plural_entry = ''.join([
-            "{indent}{line}".format(indent=indent, line=line)
+                            allow_unicode=True).decode('utf-8')
+        plural_entry = u''.join([
+            u"{indent}{line}".format(indent=indent, line=line)
             for line in yml_str.splitlines(True)
         ])
 
