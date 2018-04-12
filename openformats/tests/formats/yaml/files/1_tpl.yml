@@ -56,3 +56,10 @@ binary_value: !!binary |
 ? - Manchester United
   - Real Madrid
 : [ 2001-01-01, 2002-02-02 ]
+
+# anchors and aliases
+anchor_key: &an_anchor
+  - 8dc0ec22f35b3c7255b928e03104d714_tr
+alias_key:
+  - *an_anchor
+  - ddc3cfcedcf1686d9e3ba6b99a0d091b_tr

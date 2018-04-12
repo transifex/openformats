@@ -48,10 +48,24 @@ class TxYamlLoader(yaml.SafeLoader):
     """
     Custom YAML Loader for Tx
     """
+
     def __init__(self, *args, **kwargs):
         super(TxYamlLoader, self).__init__(*args, **kwargs)
         self.stream = args[0]
         self.post_block_comment_pattern = re.compile(r'(?:#.*\r?\n\s*)+$')
+
+    def compose_node(self, parent, index):
+        """ Override parent compose_node method to ignore aliases """
+        if self.check_event(yaml.events.AliasEvent):
+            event = self.get_event()
+            # the important thing is the value of the ScalarNode is an empty
+            # string so that it is not parsed into a string
+            # see https://github.com/yaml/pyyaml/blob/b6cbfeec35e019734263a8f4e6a3340e94fe0a4f/lib/yaml/composer.py#L64  # noqa
+            # for the original behavior
+            return yaml.nodes.ScalarNode(
+                u'tag:yaml.org,2002:str', u'', event.start_mark, event.end_mark
+            )
+        return super(TxYamlLoader, self).compose_node(parent, index)
 
     def construct_mapping(self, node, deep=True):
         """

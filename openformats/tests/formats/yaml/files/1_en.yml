@@ -65,3 +65,10 @@ binary_value: !!binary |
 ? - Manchester United
   - Real Madrid
 : [ 2001-01-01, 2002-02-02 ]
+
+# anchors and aliases
+anchor_key: &an_anchor
+  - value
+alias_key:
+  - *an_anchor
+  - "another true value"

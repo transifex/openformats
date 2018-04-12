@@ -32,3 +32,7 @@ double_list:
   - - test
 simple_flow_list: ["one", 'two', three]
 double_flow_list: [[test]]
+anchor_key:
+  - value
+alias_key:
+  - "another true value"
