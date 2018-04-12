@@ -38,6 +38,18 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
         context_dict['hash'] = openstring.template_replacement
         return context_dict, openstring
 
+    def test_compile(self):
+        """
+        Bypass this test.
+
+        Stringsdict format differs from the rest of the formats since it
+        transforms the template in some cases. Compiling a resource using the
+        source's stringset will not produce the original source file if the
+        value of any `NSStringLocalizedFormatKey` key contains translatable
+        content.
+        """
+        pass
+
     def test_string(self):
         context_dict, openstring = self._create_pluralized_string()
         source = strip_leading_spaces(u"""

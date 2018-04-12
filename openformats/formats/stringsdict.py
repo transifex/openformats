@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import itertools
+import re
 from xml.sax import saxutils
 
 from ..handlers import Handler
@@ -27,10 +28,13 @@ class StringsDictHandler(Handler):
     # Where to start parsing the file
     PARSE_START = "<dict"
 
-    # Ignored keys
+    # Ignored or special keys
     KEY_FORMAT = 'NSStringLocalizedFormatKey'
     KEY_SPEC = 'NSStringFormatSpecTypeKey'
     KEY_VALUE = 'NSStringFormatValueTypeKey'
+
+    # Regular expression for handling content with text and variables mixed
+    VALUE_CONTENT_RE = r'(?P<prefix>[^@]*)%#@(?P<variable>\w+)@(?P<suffix>.*)'
 
     # Placeholders
     PLACEHOLDER_KEY_TAG = 'tx_awesome_key_tag'
@@ -80,6 +84,43 @@ class StringsDictHandler(Handler):
     def _handle_child_pairs(self, key_tag, dict_tag):
         """Handles the <key> tag and its <dict> value tag.
 
+        Note that in order to avoid splitting strings we perform the following
+        inline-replacement:
+
+            <key>NSStringLocalizedFormatKey</key>
+            <string>Look! There %#@mouse@ there</string>
+            <key>mouse</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>is a mouse</string>
+                <key>other</key>
+                <string>are %d mice</string>
+            </dict>
+
+        Becomes:
+
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%#@mouse@</string>
+            <key>mouse</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>Look! There is a mouse there</string>
+                <key>other</key>
+                <string>Look! There are %d mice there</string>
+            </dict>
+
+        This is necessary to avoid splitting sentences in Transifex, or omit
+        parts of the translatable content. We reference this inline-replacement
+        in the comments below as [1].
+
         :param key_tag: The <key> tag to be handled.
         :param dict_tag: The <dict> tag to be handled.
         :returns: A list containing the openstrings created. If no strings were
@@ -90,34 +131,73 @@ class StringsDictHandler(Handler):
         dict_iterator = self._handle_dict(dict_tag)
 
         string_list = []
+        # A helper variable to save the prefix and suffix needed for the
+        # inline-replacement [1].
+        text_extras = None
+
         for key_child in dict_iterator:
             # The second key contains the secondary key.
             secondary_key = self._handle_key(key_child)
             value_tag = self._get_key_value(dict_iterator, key_child)
             if secondary_key == self.KEY_FORMAT:
+                matches = re.match(self.VALUE_CONTENT_RE, value_tag.content)
+                if matches is not None:
+                    # The prefix and the suffix are relative to the FIRST
+                    # variable
+                    text_extras = {
+                        "variable": matches.group("variable"),
+                        "prefix": matches.group("prefix"),
+                        "suffix": matches.group("suffix"),
+                    }
                 # If the key is the one of the stringsdict defaults skip it
                 continue
 
             openstring = self._handle_strings(
                 value_tag,
                 main_key,
-                secondary_key
+                secondary_key,
+                text_extras,
             )
             if openstring is not None:
                 # If an openstring was created append it to the list
                 string_list.append(openstring)
         return string_list
 
-    def _handle_strings(self, dict_tag, main_key, secondary_key):
+    def _handle_strings(self, dict_tag, main_key, secondary_key, extras):
         """Handles the <dict> tag that contains the strings.
 
         :param dict_tag: The <dict> tag containing the strings.
         :param main_key: The main key. Used as the openstring's name.
         :param secondary_key: The secondary key. Used as the openstring's
                                 context.
+        :param extras: A dictionary containing the `variable`, `prefix` and
+                       `suffix` keys if we need to perform replacement [1],
+                       `None` otherwise. This parameter is the same for each
+                       call under the same main key.
         """
         dict_iterator = self._handle_dict(dict_tag)
-        self.transcriber.copy_until(dict_tag.position)
+
+        # If inline-replacement [1] is required, the first step is to remove
+        # the prefix and the suffix from the original string.
+        if extras is not None:
+            # This isolates the part of the source file between the main key
+            # and the plural rules, so we only replace the value of the
+            # NSStringLocalizedFormatKey value
+            text = self.transcriber.source[
+                self.transcriber.ptr:dict_tag.position
+            ]
+            text = text.replace('<string>{}'.format(extras['prefix']),
+                                '<string>', 1)
+            text = text.replace('{}</string>'.format(extras['suffix']),
+                                '</string>', 1)
+            self.transcriber.add(text)
+            self.transcriber.skip_until(dict_tag.position)
+        else:
+            self.transcriber.copy_until(dict_tag.position)
+
+        # Save the line in which the plural rule starts to associate it with
+        # the openstring object. This is used later for generating helpful
+        # error messages
         line_number = self.transcriber.line_number
         if dict_tag.text is not None:
             self.transcriber.copy_until(
@@ -129,13 +209,25 @@ class StringsDictHandler(Handler):
             key_content = self._handle_key(key_tag)
             value_tag = self._get_key_value(dict_iterator, key_tag)
 
+            # Skip key-value pairs that don't include any translatable content
             if key_content in [self.KEY_SPEC, self.KEY_VALUE]:
                 self.transcriber.copy_until(value_tag.tail_position)
                 continue
 
             # Get rule number from the key content
             rule_number = self._validate_plural(key_content, key_tag)
-            strings_dict[rule_number] = value_tag.content
+            # If inline-replacement [1] is needed, and we now process the FIRST
+            # variable, we apply the prefix and the suffix to each of the
+            # plural rules
+            if extras is not None and extras["variable"] == secondary_key:
+                content = "{prefix}{content}{suffix}".format(
+                    prefix=extras["prefix"],
+                    content=value_tag.content,
+                    suffix=extras["suffix"],
+                )
+            else:
+                content = value_tag.content
+            strings_dict[rule_number] = content
 
             # If empty <string> tag keep it. It is either a placeholder which
             # should be kept or it is missing plurals and we will raise a
@@ -425,4 +517,4 @@ class StringsDictHandler(Handler):
 
     @staticmethod
     def unescape(string):
-            return saxutils.unescape(string)
+        return saxutils.unescape(string)

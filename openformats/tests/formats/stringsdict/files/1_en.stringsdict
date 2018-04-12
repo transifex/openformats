@@ -45,5 +45,48 @@
                 <string>Other tests exist.</string>
             </dict>
         </dict>
+        <key>TEST INLINE REPLACEMENT</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>There %#@test@ in the %#@room@ here</string>
+            <key>test</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>is a mouse</string>
+                <key>other</key>
+                <string>are %d mice</string>
+            </dict>
+            <key>room</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>a room</string>
+                <key>other</key>
+                <string>%d rooms</string>
+            </dict>
+        </dict>
+        <key>LAST</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%#@test@</string>
+            <key>test</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <key>one</key>
+                <string>One mouse</string>
+                <key>other</key>
+                <string>%d mice</string>
+            </dict>
+        </dict>
     </dict>
 </plist>
