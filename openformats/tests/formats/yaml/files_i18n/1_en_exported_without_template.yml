@@ -1,0 +1,44 @@
+en:
+  normal string: normal string
+  pluralized_string:
+    one: One ȧɠǿ
+    other: Other ȧɠǿ
+  another normal string: normal string
+  title: About writing and formatting on GitHub
+  intro: into text
+  key1:
+    - list_key:
+        - li within li
+        - li within li 2
+    - li 2
+  key2:
+    - object_within_list: value
+    - "text with a #hashtag in it"
+    - li 5
+  description: >
+    folded style text
+  custom_vars:
+    var1: "text: some value"
+    var2: |
+      literal
+      style with "quotes"
+      text
+  nested_key_outer:
+    nested_key_inner: nested_value
+  key.with.dots: dot value
+  1: integer key
+  single_quoted_value: 'single quoted value'
+  value with quote: "'value"
+  value with start backtick: "`value"
+  value with end backtick: "value`"
+  <weird_key>: value
+  '[weird_key]': value
+  'true': boolean key
+  double_list:
+    - - test
+  simple_flow_list: ["one", 'two', three]
+  double_flow_list: [[test]]
+  anchor_key:
+    - value
+  alias_key:
+    - "another true value"

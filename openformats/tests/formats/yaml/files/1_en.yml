@@ -1,0 +1,74 @@
+---
+title: About writing and formatting on GitHub
+intro: into text
+numeric_var: 12.5
+
+# one comment
+
+key1:
+  - list_key:
+    - li within li
+      # second comment
+    - li within li 2
+  - li 2
+key2:
+  - object_within_list: value
+  - "text with a #hashtag in it"
+  - li 5
+  - 3.5
+  - true
+
+description: >
+  folded
+  style
+  text
+custom_vars:
+  var1: "text: some value"
+  var2: |
+    literal
+    style with "quotes"
+    text
+
+nested_key_outer:
+  nested_key_inner:
+    nested_value
+
+key.with.dots: dot value
+
+1: integer key
+
+empty_value: ''
+
+single_quoted_value: 'single quoted value'
+value with quote: "'value"
+value with start backtick: "`value"
+value with end backtick: "value`"
+
+<weird_key>: value
+"[weird_key]": value
+
+true: boolean key
+
+double_list:
+  - - test
+
+simple_flow_list: ["one", 'two', three]
+double_flow_list: [[ test ]]
+
+binary_value: !!binary |
+  R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+  OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+  +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+  AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+
+# complex key syntax
+? - Manchester United
+  - Real Madrid
+: [ 2001-01-01, 2002-02-02 ]
+
+# anchors and aliases
+anchor_key: &an_anchor
+  - value
+alias_key:
+  - *an_anchor
+  - "another true value"

@@ -1,0 +1,82 @@
+en:
+  normal string: "el:normal string"
+  pluralized_string:
+    one: el:One ȧɠǿ
+    other: el:Other ȧɠǿ
+
+  another normal string: "el:normal string"
+
+  empty_pluralized_string:
+    one: ""
+    other: ""
+
+  title: "el:About writing and formatting on GitHub"
+  intro: "el:into text"
+  numeric_var: 12.5
+
+  # one comment
+
+  key1:
+    - list_key:
+      - "el:li within li"
+        # second comment
+      - "el:li within li 2"
+    - "el:li 2"
+  key2:
+    - object_within_list: "el:value"
+    - "el:text with a #hashtag in it"
+    - "el:li 5"
+    - 3.5
+    - true
+
+  description: >
+    el:folded style text
+  custom_vars:
+    var1: "el:text: some value"
+    var2: |
+      el:literal
+      style with "quotes"
+      text
+  nested_key_outer:
+    nested_key_inner:
+      "el:nested_value"
+
+  key.with.dots: "el:dot value"
+
+  1: "el:integer key"
+
+  empty_value: ''
+
+  single_quoted_value: 'el:single quoted value'
+  value with quote: "el:'value"
+  value with start backtick: "el:`value"
+  value with end backtick: "el:value`"
+
+  <weird_key>: "el:value"
+  "[weird_key]": "el:value"
+
+  true: "el:boolean key"
+
+  double_list:
+    - - "el:test"
+
+  simple_flow_list: ["el:one", 'el:two', "el:three"]
+  double_flow_list: [[ "el:test" ]]
+
+  binary_value: !!binary |
+    R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+    OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+    +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+    AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+
+  # complex key syntax
+  ? - Manchester United
+    - Real Madrid
+  : [ 2001-01-01, 2002-02-02 ]
+
+  # anchors and aliases
+  anchor_key: &an_anchor
+    - "el:value"
+  alias_key:
+    - *an_anchor
+    - "el:another true value"

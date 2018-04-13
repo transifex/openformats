@@ -28,11 +28,15 @@ class HandlerMixin(object):
     def _get_handlers(self):
         handlers = {}
         format_files = [
-            filename.split(".")[0]
+            filename
             for filename in os.listdir(os.path.join("openformats", "formats"))
-            if filename.endswith(".py") and filename != "__init__.py"
+            if (filename.endswith(".py") and filename != "__init__.py" or
+                os.path.isdir(os.path.join("openformats", "formats", filename))
+            )
         ]
         for filename in format_files:
+            if filename.endswith('.py'):
+                filename = filename.split(".")[0]
             module = import_module("openformats.formats.{}".format(filename))
             for name, each in inspect.getmembers(module):
                 if (inspect.isclass(each) and issubclass(each, Handler) and

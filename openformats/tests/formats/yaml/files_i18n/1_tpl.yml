@@ -1,0 +1,74 @@
+en:
+  normal string: 3b6dc2dbeb067817a544fcb750847ef2_tr
+  pluralized_string:
+  ecfc311d97950fc7db9c7ed1238769bf_pl
+  another normal string: f06fc11fd8efb89fe045ce53c215d59e_tr
+
+  empty_pluralized_string:
+    one: ""
+    other: ""
+
+  title: 6391362253bdac99fff7bf50ff014be3_tr
+  intro: e8c07422d0167fee3ecf8f3375ea5739_tr
+  numeric_var: 12.5
+
+  # one comment
+
+  key1:
+    - list_key:
+      - ac56af108b4b69b867c09f8542a51cb2_tr
+        # second comment
+      - d2d20cce249c5d7e8ca96b9e30a3349c_tr
+    - 17e2086737d2192e6665ea2c0f0b1e9a_tr
+  key2:
+    - object_within_list: 1a397fe7999e432441bfce7a1f4fb1f3_tr
+    - aa8c6113a4236d576f96ba9b0bd4dfa4_tr
+    - 76d7c5ccc4301f10b39115b2c1a9ca47_tr
+    - 3.5
+    - true
+
+  description: fdba4efe4ab9d38afee4054a7fa06e29_tr  custom_vars:
+    var1: 8b9f5508bd423a15a188813d60e52946_tr
+    var2: 7169ba1087c5204f12ab8b7c066884a2_tr  nested_key_outer:
+    nested_key_inner:
+      94b99ee5f1d082d7df28c4b48aa99ff8_tr
+
+  key.with.dots: ddbc5d72cdd64acc258ab3446b6466ed_tr
+
+  1: 9354e4f807073d6a146138fe6d81e4ef_tr
+
+  empty_value: ''
+
+  single_quoted_value: 710e606150bfb87b477674e886495384_tr
+  value with quote: 4ea9d14bca65fb09e8b7c2c54ce8fd4e_tr
+  value with start backtick: 05cecdb72a9f3d915c749bba5295901c_tr
+  value with end backtick: 109530f343dfa59480e0e3aa11816cbb_tr
+
+  <weird_key>: 02e8cfaf248aa25e0664be1dddfa5b65_tr
+  "[weird_key]": c12d8df4b08d0ff07eb311ed29e660f4_tr
+
+  true: 908f519fabea6e6ad3f99d4899185a61_tr
+
+  double_list:
+    - - 006d8de981d80ed57fa20420e4907aa3_tr
+
+  simple_flow_list: [b6379afadb376e6d4b78e489417b5289_tr, e3a178abc462683f3bf527f7c2bdaeaa_tr, 68bc9de575a69a2a8ddeec8a1842d078_tr]
+  double_flow_list: [[ 5b881f08c3f024c9f277ffec9a22f713_tr ]]
+
+  binary_value: !!binary |
+    R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+    OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+    +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+    AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+
+  # complex key syntax
+  ? - Manchester United
+    - Real Madrid
+  : [ 2001-01-01, 2002-02-02 ]
+
+  # anchors and aliases
+  anchor_key: &an_anchor
+    - 8dc0ec22f35b3c7255b928e03104d714_tr
+  alias_key:
+    - *an_anchor
+    - ddc3cfcedcf1686d9e3ba6b99a0d091b_tr
