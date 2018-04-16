@@ -39,5 +39,42 @@
                 <tx_awesome_string_tag>ec8a7a8b22906062781b0aacccacfba3_pl</tx_awesome_string_tag>
             </dict>
         </dict>
+        <key>TEST INLINE REPLACEMENT</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%#@test@</string>
+            <key>test</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <tx_awesome_key_tag></tx_awesome_key_tag>
+                <tx_awesome_string_tag>f2173da507415303a5346c293fa086bf_pl</tx_awesome_string_tag>
+            </dict>
+            <key>room</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <tx_awesome_key_tag></tx_awesome_key_tag>
+                <tx_awesome_string_tag>5941243ff132731d2655e82adf787f14_pl</tx_awesome_string_tag>
+            </dict>
+        </dict>
+        <key>LAST</key>
+        <dict>
+            <key>NSStringLocalizedFormatKey</key>
+            <string>%#@test@</string>
+            <key>test</key>
+            <dict>
+                <key>NSStringFormatSpecTypeKey</key>
+                <string>NSStringPluralRuleType</string>
+                <key>NSStringFormatValueTypeKey</key>
+                <string>d</string>
+                <tx_awesome_key_tag></tx_awesome_key_tag>
+                <tx_awesome_string_tag>383613b398803eb778f9abac0e8808f0_pl</tx_awesome_string_tag>
+            </dict>
+        </dict>
     </dict>
 </plist>
