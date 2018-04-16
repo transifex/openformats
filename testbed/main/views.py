@@ -76,7 +76,7 @@ class ApiView(HandlerMixin, View):
         elif payload['action'] == "compile":
             return_value = self._compile(payload)
         return HttpResponse(json.dumps(return_value),
-                            mimetype="application/json")
+                            content_type="application/json")
 
     def _choose_handler(self, payload):
         handler_name = payload['handler']
