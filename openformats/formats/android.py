@@ -464,6 +464,8 @@ class AndroidHandler(Handler):
                 break
 
         if has_match:
+            # Make sure you include the <string-array> tag
+            self.transcriber.copy_until(item_itterator[0].start)
             # Compile found item nodes. Remove the rest.
             for item_tag in item_itterator:
                 self._compile_string(item_tag)

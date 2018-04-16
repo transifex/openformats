@@ -479,6 +479,45 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self._test_parse_error('<resources><string>hello</string></resources>',
                                u"Missing the `name` attribute on line 1")
 
+    def test_missing_first_item_in_array_list(self):
+        source = """
+            <resources>
+              <string-array name="settings_report_a_problem_problem_types">
+                  <item>@string/space</item>
+                  <item>Installation</item>
+                  <item>Bluetooth Connection</item>
+                  <item>Technical Troubleshooting</item>
+                  <item>How to use Navdy</item>
+                  <item>Ordering \u002F Shipping \u002F Payments</item>
+                  <item>Other</item>
+                  <item>Feedback \u0026 Suggestions</item>
+                  <item>Partnership Opportunities</item>
+                  <item>Send Logs</item>
+              </string-array>
+            </resources>
+        """
+        expected = """
+            <resources>
+              <string-array name="settings_report_a_problem_problem_types">
+                  <item>Installation</item>
+                  <item>Bluetooth Connection</item>
+                  <item>Technical Troubleshooting</item>
+                  <item>How to use Navdy</item>
+                  <item>Ordering \u002F Shipping \u002F Payments</item>
+                  <item>Other</item>
+                  <item>Feedback \u0026 Suggestions</item>
+                  <item>Partnership Opportunities</item>
+                  <item>Send Logs</item>
+              </string-array>
+            </resources>
+        """
+        template, stringset = self.handler.parse(source)
+        stringset.pop(0)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEqual(
+            compiled, expected
+        )
+
     def test_compile_removes_missing_strings(self):
         source = strip_leading_spaces('''
             <resources>
