@@ -10,6 +10,19 @@ en:
     one: ""
     other: ""
 
+  pluralized_string_with_extra_keys:
+    one: el:One
+    other: el:Other
+
+  non_pluralized_string_with_extra_keys:
+    extra_key: "el:random value"
+    one: "el:One"
+    other: "el:Other"
+  plural_key_with_nested_nodes:
+    one:
+      nested_key: "el:One"
+    other: "el:Other"
+
   title: "el:About writing and formatting on GitHub"
   intro: "el:into text"
   numeric_var: 12.5

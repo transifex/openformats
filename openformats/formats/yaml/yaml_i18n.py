@@ -29,12 +29,34 @@ class I18nYamlHandler(YamlHandler):
     def get_plural_rules(self):
         return self._lang_rules
 
-    def is_pluralized(self, val):
+    def is_pluralized(self, node):
         rule_names = [self.get_rule_string(r) for r in self._lang_rules]
-        if not isinstance(val, dict):
+        if not isinstance(node, dict):
             return False
 
-        return sorted(val.keys()) == sorted(rule_names)
+        node_keys = node.keys()
+        # if one of the plural rules is missing from the node keys then this is
+        # not a pluralized node
+        for rule in rule_names:
+            if rule not in node_keys:
+                return False
+
+        # if there are extra keys make sure that they are plural rules
+        extra_keys = set(node_keys) - set(rule_names)
+        for key in extra_keys:
+            if key not in self._RULES_ATOI.keys():
+                return False
+
+        # if any one of the values of the node contains sub nodes then this is
+        # not a pluralized node. E.g.
+        # test:
+        #   one:
+        #     nested_key: value
+        #   other: other_value
+        if any([isinstance(n.value, (dict, list)) for n in node.values()]):
+            return False
+
+        return True
 
     def _get_yaml_data_to_parse(self, yaml_data):
         keys = yaml_data.keys()
@@ -105,7 +127,7 @@ class I18nYamlHandler(YamlHandler):
         """ Parses input value into an OpenString pluralized value
 
         Args:
-            value: a dictionary of the form
+            node: a dictionary of the form
               {
                   "one": Node('string1', start, end, style),
                   "other": Node('string2', start, end, style)
@@ -117,7 +139,9 @@ class I18nYamlHandler(YamlHandler):
                   5: 'string2',
               }
         """
+        rule_names = [self.get_rule_string(r) for r in self._lang_rules]
         return {
             self.get_rule_number(key):  entry.value
             for key, entry in node.iteritems()
+            if key in rule_names
         }
