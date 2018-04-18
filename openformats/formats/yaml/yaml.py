@@ -4,6 +4,7 @@ import re
 import copy
 from StringIO import StringIO
 from yaml.emitter import Emitter
+from yaml.constructor import SafeConstructor
 
 from openformats.handlers import Handler
 from openformats.strings import OpenString
@@ -64,6 +65,8 @@ class YamlHandler(Handler):
         template = ""
         context = ""
         stringset = []
+        SafeConstructor.add_constructor(None,
+                                        SafeConstructor.construct_yaml_str)
         yaml_data = self._load_yaml(content, loader=TxYamlLoader)
         yaml_data = self._get_yaml_data_to_parse(yaml_data)
         parsed_data = self._parse_yaml_data(yaml_data, '', [], context)
@@ -86,8 +89,11 @@ class YamlHandler(Handler):
             )
             stringset.append(string_object)
             order += 1
-            template += (content[end:start] +
-                         string_object.template_replacement)
+            template = "{template}{prefix}{txhash}".format(
+                template=template,
+                prefix=content[end:start],
+                txhash=string_object.template_replacement,
+            )
             comment = self._find_comment(content, end, start)
             string_object.developer_comment = comment
             end = end_
