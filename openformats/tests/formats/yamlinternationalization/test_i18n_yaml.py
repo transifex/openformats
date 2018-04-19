@@ -8,7 +8,7 @@ from openformats.formats.yaml import I18nYamlHandler
 class I18nYamlTestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = I18nYamlHandler
     TESTFILE_BASE = "openformats/tests/formats/" \
-                    "yaml (internationalization)/files"
+                    "yamlinternationalization/files"
 
     def setUp(self):
         self.handler = self.HANDLER_CLASS()

@@ -81,7 +81,7 @@ class ApiView(HandlerMixin, View):
     def _choose_handler(self, payload):
         handler_name = payload['handler']
         handler_class = self.handlers[handler_name]
-        handler_name_lower = handler_name.lower()
+        handler_name_lower = filter(unicode.isalnum, handler_name).lower()
         sample_filepath = os.path.join(
             "openformats", "tests", "formats", handler_name_lower, "files",
             "1_en.{}".format(handler_class.extension)
