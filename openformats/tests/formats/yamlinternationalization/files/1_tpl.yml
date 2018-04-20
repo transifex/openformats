@@ -8,6 +8,17 @@ en:
     one: ""
     other: ""
 
+  pluralized_string_with_extra_keys:
+  dc063e48dfced0cb854d640b2bdca4f0_pl
+  non_pluralized_string_with_extra_keys:
+    extra_key: 3974770f06e9d24d79d07d48888bd85d_tr
+    one: 9977ff15b22f66a1493f3bed54e16d5b_tr
+    other: 8e71b7edd01d7d8b8d713799438dcb06_tr
+  plural_key_with_nested_nodes:
+    one:
+      nested_key: c82d2d83df32177a21068ba650454af9_tr
+    other: 910d07668f9dac883d140bb595532b09_tr
+
   title: 6391362253bdac99fff7bf50ff014be3_tr
   intro: e8c07422d0167fee3ecf8f3375ea5739_tr
   numeric_var: 12.5
