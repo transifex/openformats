@@ -186,10 +186,10 @@ class StringsDictHandler(Handler):
             text = self.transcriber.source[
                 self.transcriber.ptr:dict_tag.position
             ]
-            text = text.replace('<string>{}'.format(extras['prefix']),
-                                '<string>', 1)
-            text = text.replace('{}</string>'.format(extras['suffix']),
-                                '</string>', 1)
+            text = text.replace(u'<string>{}'.format(extras['prefix']),
+                                u'<string>', 1)
+            text = text.replace(u'{}</string>'.format(extras['suffix']),
+                                u'</string>', 1)
             self.transcriber.add(text)
             self.transcriber.skip_until(dict_tag.position)
         else:
@@ -220,7 +220,7 @@ class StringsDictHandler(Handler):
             # variable, we apply the prefix and the suffix to each of the
             # plural rules
             if extras is not None and extras["variable"] == secondary_key:
-                content = "{prefix}{content}{suffix}".format(
+                content = u"{prefix}{content}{suffix}".format(
                     prefix=extras["prefix"],
                     content=value_tag.content,
                     suffix=extras["suffix"],
