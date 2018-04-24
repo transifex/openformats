@@ -75,7 +75,7 @@
         <key>LAST</key>
         <dict>
             <key>NSStringLocalizedFormatKey</key>
-            <string>%#@test@</string>
+            <string>%#@test@ •</string>
             <key>test</key>
             <dict>
                 <key>NSStringFormatSpecTypeKey</key>
@@ -83,9 +83,9 @@
                 <key>NSStringFormatValueTypeKey</key>
                 <string>d</string>
                 <key>one</key>
-                <string>One mouse</string>
+                <string>• One mouse</string>
                 <key>other</key>
-                <string>%d mice</string>
+                <string>• %d mice</string>
             </dict>
         </dict>
     </dict>
