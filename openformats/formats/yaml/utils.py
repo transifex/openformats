@@ -94,7 +94,7 @@ class TxYamlLoader(yaml.SafeLoader):
                 hash(key)
             except TypeError as e:
                 print("Error while constructing a mapping, found unacceptable"
-                      " key (%s)".format(unicode(e)))
+                      " key ({})".format(unicode(e)))
                 continue
 
             if not(isinstance(value, unicode) or isinstance(value, str) or

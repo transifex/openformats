@@ -279,7 +279,7 @@ class YamlHandler(Handler):
                     )
 
     def _find_comment(self, content, start, end):
-        """ Finds comment lines that preceed a part of the YAML structure """
+        """ Finds comment lines that precede a part of the YAML structure """
         lines = [
             line.strip()
             for line in content[start:end].split('\n')
