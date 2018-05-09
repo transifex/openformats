@@ -232,30 +232,32 @@ class YamlHandler(Handler):
         if isinstance(yaml_data, dict):
             for key, node in yaml_data.items():
                 node_key = self._get_key_for_node(key, parent_key)
-                style = copy.copy(parent_style)
+                # Copy style for each node to avoid getting affected from the
+                # previous loops
+                node_style = copy.copy(parent_style)
                 if isinstance(node.value, dict):
                     if self.is_pluralized(node.value):
                         parsed_data.append(
                             self._parse_pluralized_leaf_node(
                                 node, node_key,
-                                style=copy.copy(parent_style or []),
+                                style=node_style,
                                 pluralized=True
                             )
                         )
                     else:
-                        style.append(node.style or '')
+                        node_style.append(node.style or '')
                         parsed_data = self._parse_yaml_data(
                             node.value, node_key, parsed_data, context,
-                            parent_style=copy.copy(style or []))
+                            parent_style=node_style)
                 elif isinstance(node.value, list):
-                    style.append(node.style or '')
+                    node_style.append(node.style or '')
                     parsed_data = self._parse_yaml_data(
                         node.value, node_key, parsed_data, context,
-                        parent_style=copy.copy(style or []))
+                        parent_style=node_style)
                 else:
                     parsed_data.append(
                         self._parse_leaf_node(
-                            node, node_key, style=copy.copy(parent_style or [])
+                            node, node_key, style=node_style
                         )
                     )
         elif (isinstance(yaml_data, list)):
@@ -264,15 +266,18 @@ class YamlHandler(Handler):
             # brackets around it. I.e.: 'foo.[0].bar'.
             for i, node in enumerate(yaml_data):
                 node_key = self._get_key_for_node('[%s]' % (i), parent_key)
+                # Copy style for each node to avoid getting affected from the
+                # previous loops
+                node_style = copy.copy(parent_style)
                 if isinstance(node.value, (dict, list)):
-                    parent_style.append(node.style or '')
+                    node_style.append(node.style or '')
                     parsed_data = self._parse_yaml_data(
                         node.value, node_key, parsed_data, context,
-                        parent_style=copy.copy(parent_style or []))
+                        parent_style=node_style)
                 else:
                     parsed_data.append(
                         self._parse_leaf_node(
-                            node, node_key, style=copy.copy(parent_style or [])
+                            node, node_key, style=node_style
                         )
                     )
 
