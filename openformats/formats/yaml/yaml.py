@@ -66,12 +66,14 @@ class YamlHandler(Handler):
         stringset = []
         yaml_data = self._load_yaml(content, loader=TxYamlLoader)
         yaml_data = self._get_yaml_data_to_parse(yaml_data)
-        parsed_data = self._parse_yaml_data(yaml_data, '', [], context)
-        parsed_data.sort()
+        # Helper to store the processed data while parsing the file
+        self._parsed_data = []
+        self._parse_yaml_data(yaml_data, '', context)
+        self._parsed_data.sort()
 
         end = 0
         order = 0
-        for node in parsed_data:
+        for node in self._parsed_data:
             start = node.get('start')
             end_ = node.get('end')
             key = node.get('key')
@@ -201,8 +203,8 @@ class YamlHandler(Handler):
             parent_key += '.' + key
         return parent_key
 
-    def _parse_yaml_data(self, yaml_data, parent_key, parsed_data,
-                         context="", parent_style=None):
+    def _parse_yaml_data(self, yaml_data, parent_key, context="",
+                         parent_style=None):
         """
         Parse data returned by YAML loader
 
@@ -219,7 +221,6 @@ class YamlHandler(Handler):
             yaml_data: The output of yaml.loads()
             parent_key: A string of keys concatenated by '.' to
                         reach this node,
-            parsed_data: A list, containing the already parsed data
             context: A string
             parent_style: A list of YAML node styles for each parent node.
 
@@ -235,27 +236,24 @@ class YamlHandler(Handler):
                 # Copy style for each node to avoid getting affected from the
                 # previous loops
                 node_style = copy.copy(parent_style)
-                if isinstance(node.value, dict):
-                    if self.is_pluralized(node.value):
-                        parsed_data.append(
-                            self._parse_pluralized_leaf_node(
-                                node, node_key,
-                                style=node_style,
-                                pluralized=True
-                            )
+                # Case of dictionary that represents a plural rule
+                if (isinstance(node.value, dict) and
+                   self.is_pluralized(node.value)):
+                    self._parsed_data.append(
+                        self._parse_pluralized_leaf_node(
+                            node, node_key,
+                            style=node_style,
+                            pluralized=True
                         )
-                    else:
-                        node_style.append(node.style or '')
-                        parsed_data = self._parse_yaml_data(
-                            node.value, node_key, parsed_data, context,
-                            parent_style=node_style)
-                elif isinstance(node.value, list):
+                    )
+                # Handle dictionaries and lists
+                elif isinstance(node.value, (dict, list)):
                     node_style.append(node.style or '')
-                    parsed_data = self._parse_yaml_data(
-                        node.value, node_key, parsed_data, context,
-                        parent_style=node_style)
+                    self._parse_yaml_data(node.value, node_key, context,
+                                          parent_style=node_style)
+                # Otherwise handle the node as a leaf
                 else:
-                    parsed_data.append(
+                    self._parsed_data.append(
                         self._parse_leaf_node(
                             node, node_key, style=node_style
                         )
@@ -271,17 +269,14 @@ class YamlHandler(Handler):
                 node_style = copy.copy(parent_style)
                 if isinstance(node.value, (dict, list)):
                     node_style.append(node.style or '')
-                    parsed_data = self._parse_yaml_data(
-                        node.value, node_key, parsed_data, context,
-                        parent_style=node_style)
+                    self._parse_yaml_data(node.value, node_key, context,
+                                          parent_style=node_style)
                 else:
-                    parsed_data.append(
+                    self._parsed_data.append(
                         self._parse_leaf_node(
                             node, node_key, style=node_style
                         )
                     )
-
-        return parsed_data
 
     def _find_comment(self, content, start, end):
         """ Finds comment lines that preceed a part of the YAML structure """
