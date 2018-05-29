@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+import json
+import re
 
 from openformats.exceptions import ParseError
 from openformats.formats.yaml import YamlHandler
@@ -19,6 +21,8 @@ class I18nYamlHandler(YamlHandler):
 
     _lang_rules = []
     extra_indent = 1
+
+    COLON_REPLACEMENT = '<COLON>'
 
     def set_lang_code(self, language_code):
         self.language_code = language_code
@@ -66,19 +70,71 @@ class I18nYamlHandler(YamlHandler):
         root_key = keys[0]
         return yaml_data[root_key][0]
 
+    def _get_plural_styles(self, string):
+        """
+        Extract a dictionary containing the style of each plural rule.
+
+        The flag field of the SourceEntity contain the YAML style of the plural
+        rule serialized. Ancestor's styles are divided with colons. The
+        plural's style dictionary is serialized and has its colons escaped.
+
+        :param str string: The string that contains the serialized styles of
+            the SourceEntity
+        :return: A dictionary with containing the plural rules names as keys
+            and their styles as values. If the styles can't be retrieved, an
+            empty dictionary is returned
+
+        Example:
+            `block::literal:{'one'<COLON>'\'', 'other'<COLON>'"'}`
+            will return:
+            {'one': '\'', 'other': '"'}
+        """
+        plural_styles = getattr(string, 'flags', '').split(':')
+        if len(plural_styles):
+            try:
+                return json.loads(
+                    plural_styles[-1].replace(self.COLON_REPLACEMENT, ':')
+                )
+            except ValueError:
+                # If we can't parse the plural styles for some reason, we just
+                # return an empty dictionary
+                pass
+        return {}
+
     def _compile_pluralized(self, string):
-        plurals_dict = {
-            self.get_rule_string(rule): translation
-            for rule, translation in string.string.items()
-        }
+        # Retrieve the styles of the plural rules that are stored in the
+        # string's flag
+        plural_styles_json = self._get_plural_styles(string)
+
+        plurals = []
+        for rule, translation in string.string.items():
+            # If a translation contains a rule that does not exist in the
+            # source language, then we inherit the style from the singular
+            # version
+            default_rule = self.get_rule_number('other')
+            default_style = plural_styles_json.get(str(default_rule), '')
+            print(default_style)
+            plural_style = plural_styles_json.get(str(rule), default_style)
+            # Dump a Python dictionary that contains a single plural rule as a
+            # single YAML rule and preserve the string's style
+            plural = yaml.safe_dump(
+                {self.get_rule_string(rule): translation},
+                default_flow_style=False,
+                default_style=plural_style,
+                allow_unicode=True
+            ).decode('utf-8')
+            # The safe_dump method places quotes around the keys too, which are
+            # unnecessary. Remove them using the regular expression below.
+            plural = re.sub('^{style}(\w+){style}:'.format(style=plural_style),
+                            '\g<1>:', plural)
+            plurals.append(plural)
+
         indentation_levels = len(string.key.split('.')) + self.extra_indent
         indent = " " * indentation_levels * self.indent
 
-        yml_str = yaml.dump(plurals_dict, default_flow_style=False,
-                            allow_unicode=True).decode('utf-8')
         plural_entry = u''.join([
             u"{indent}{line}".format(indent=indent, line=line)
-            for line in yml_str.splitlines(True)
+            for line in plurals
         ])
 
         # hash replacement in template is already indented in the template
@@ -104,9 +160,13 @@ class I18nYamlHandler(YamlHandler):
         Returns:
             A dictionary representing the parsed leaf node
         """
-        value = self._parse_pluralized_value(node.value)
+        value, styles = self._parse_pluralized_value(node.value)
         end = self._find_pluralized_end_pos(node.value)
         style.append(node.style or '')
+        # Append the plural styles dictionary to the string's style using a
+        # replacement for the colon character because it is used to separate
+        # the styles
+        style.append(json.dumps(styles).replace(":", self.COLON_REPLACEMENT))
         return {
             'start': node.start,
             'end': end,
@@ -140,8 +200,14 @@ class I18nYamlHandler(YamlHandler):
               }
         """
         rule_names = [self.get_rule_string(r) for r in self._lang_rules]
-        return {
-            self.get_rule_number(key):  entry.value
+        value = {
+            self.get_rule_number(key): entry.value
             for key, entry in node.iteritems()
             if key in rule_names
         }
+        styles = {
+            self.get_rule_number(key): entry.style or ''
+            for key, entry in node.iteritems()
+            if key in rule_names
+        }
+        return value, styles

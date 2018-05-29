@@ -9,6 +9,11 @@ en:
     one: ""
     other: ""
 
+  # A correct plural rule
+  pluralized_string_with_quotes:
+    one: 'this is a test'
+    other: "this is a double quote test"
+
   pluralized_string_with_extra_keys:
     zero: Zero
     one: One
