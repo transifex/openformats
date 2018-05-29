@@ -8,6 +8,10 @@ en:
     one: ""
     other: ""
 
+  # A correct plural rule
+  pluralized_string_with_quotes:
+  e77d50fd048c3005883b3a99fd36fab3_pl
+
   pluralized_string_with_extra_keys:
   dc063e48dfced0cb854d640b2bdca4f0_pl
   non_pluralized_string_with_extra_keys:

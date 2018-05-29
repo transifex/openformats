@@ -10,6 +10,12 @@ en:
     one: ""
     other: ""
 
+  # A correct plural rule
+  pluralized_string_with_quotes:
+    one: 'el:this is a test'
+    other: "el:this is a double quote test"
+
+
   pluralized_string_with_extra_keys:
     one: el:One
     other: el:Other
