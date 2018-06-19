@@ -113,7 +113,6 @@ class I18nYamlHandler(YamlHandler):
             # version
             default_rule = self.get_rule_number('other')
             default_style = plural_styles_json.get(str(default_rule), '')
-            print(default_style)
             plural_style = plural_styles_json.get(str(rule), default_style)
             # Dump a Python dictionary that contains a single plural rule as a
             # single YAML rule and preserve the string's style
@@ -121,7 +120,8 @@ class I18nYamlHandler(YamlHandler):
                 {self.get_rule_string(rule): translation},
                 default_flow_style=False,
                 default_style=plural_style,
-                allow_unicode=True
+                allow_unicode=True,
+                width=float('inf'),
             ).decode('utf-8')
             # The safe_dump method places quotes around the keys too, which are
             # unnecessary. Remove them using the regular expression below.
