@@ -420,8 +420,8 @@ class YamlHandler(Handler):
         Returns:
             The number of spaces.
         """
-        # match all whilespace characters after first `:` (end of first
-        # key). Stops on first non whitespace character.
+        # Match all whitespace characters after first `:` (end of first  key).
+        # Stops on first non whitespace character.
         indent_pattern = re.compile(':\r?\n(?P<indent>[ \t\n]+)')
         m = indent_pattern.search(template)
         indent = m.groups('indent')[0] if m else ' ' * 2

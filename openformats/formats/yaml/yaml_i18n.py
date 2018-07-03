@@ -124,22 +124,51 @@ class I18nYamlHandler(YamlHandler):
                 width=float('inf'),
             ).decode('utf-8')
             # The safe_dump method places quotes around the keys too, which are
-            # unnecessary. Remove them using the regular expression below.
-            plural = re.sub('^{style}(\w+){style}:'.format(style=plural_style),
-                            '\g<1>:', plural)
+            # unnecessary. Remove them using the regular expression below. By
+            # default, the safe_dump method wraps the keys in double quotes
+            key_wrap = plural_style if plural_style == "'" else '"'
+            try:
+                plural = re.sub(
+                    '^{style}(\w+){style}:'.format(style=key_wrap),
+                    '\g<1>:',
+                    plural
+                )
+            except re.error:
+                pass
+            # The safe_dump method appends a dash in the folded and literal
+            # styles. We need to remove it for consistency between the compiled
+            # file and the original one
+            if plural_style in ['|', '>']:
+                plural = plural.replace('|-', '|').replace('>-', '>')
             plurals.append(plural)
 
+        # Calculate the indentation we need to prepend to each line of the
+        # plural rules
         indentation_levels = len(string.key.split('.')) + self.extra_indent
         indent = " " * indentation_levels * self.indent
+        plural_entry = self._indent_plurals(plurals, indent)
 
-        plural_entry = u''.join([
-            u"{indent}{line}".format(indent=indent, line=line)
-            for line in plurals
-        ])
-
-        # hash replacement in template is already indented in the template
+        # Hash replacement in template is already indented in the template
         # so for the first line we need to keep on one level of indentation
         return plural_entry[(len(indent)-self.indent):]
+
+    def _indent_plurals(self, plurals, indentation):
+        """Apply the correct indentation to a set of plural rules."""
+        # First apply the indentation to the literal values that start in a new
+        # line. We need to search for newline characters followed by a number
+        # of spaces.
+        try:
+            plurals = [
+                re.sub('\n(\s+)', '\n{}\g<1>'.format(indentation), line)
+                for line in plurals
+            ]
+        except re.error:
+            pass
+        # Apply the indentation to the beginning of each plural rule
+        return u''.join([
+            u"{indentation}{line}".format(indentation=indentation, line=line)
+            for line in plurals
+        ])
 
     def _parse_pluralized_leaf_node(self, node, parent_key, style=[],
                                     pluralized=False):
