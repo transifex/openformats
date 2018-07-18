@@ -117,7 +117,10 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         curr_pos = 0
         for string in block.md_stringset:
             string = string_handler(string, md_template)
-            if string and string in template[curr_pos:]:
+            # Ignore any string that does not appear in the template,
+            # We do this to avoid parsing strings that are not properly
+            # handled by the Markdown library, such as ```code``` blocks
+            if string and string in md_template[curr_pos:]:
                 string_object = OpenString(str(order), string, order=order)
                 order += 1
                 stringset.append(string_object)

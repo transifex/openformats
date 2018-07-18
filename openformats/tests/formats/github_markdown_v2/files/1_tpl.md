@@ -93,72 +93,76 @@ c78e069659a818bab095c6c8976bf3ae_tr
 
 ## 0dcd35bbb040482717ba0d8763cf24f0_tr
 
-4d22974b0d27df9918a8b922d921587c_tr
-
-5eb74b106793ebcd6eeee358aa4d25ac_tr
-
-72e17437d94b8aaaa7ca9ff670fb2c42_tr
-
-4f95c94d8503a15557174036f4f7947a_tr
+4d22974b0d27df9918a8b922d921587c_tr | 5eb74b106793ebcd6eeee358aa4d25ac_tr
+------------ | -------------
+72e17437d94b8aaaa7ca9ff670fb2c42_tr | 4f95c94d8503a15557174036f4f7947a_tr
+6cb8da4ccdafbed92fd1c4b5888091f9_tr | 0b912bd88f2f0678a52616328ed01a63_tr
 
 
-# 6cb8da4ccdafbed92fd1c4b5888091f9_tr
-- 0b912bd88f2f0678a52616328ed01a63_tr
-- f093e61658553bbd86214bffe9a663a8_tr
+## f093e61658553bbd86214bffe9a663a8_tr
+
 d8a4fb88944aeb2b305e4e94e9d18283_tr
 
+78e10a5ea41eae9ea05dc265a5c8cd66_tr
 
-## 78e10a5ea41eae9ea05dc265a5c8cd66_tr
 
-- d6c6d7c6ae13b3b656339b51dbeb85ff_tr
+# d6c6d7c6ae13b3b656339b51dbeb85ff_tr
 - 9441c042cb0b839e13ed95f55de0ee5c_tr
 - a4ad6fda3cab93ac6479a0c30dd96b0c_tr
-- 257f3f448e7ac5f2fe13b374496309f6_tr
+257f3f448e7ac5f2fe13b374496309f6_tr
 
 
 ## 38d12337337477ece3edbf687c60f45b_tr
 
-39a9c02a305227b4f9c62bc3d839500c_tr | 00ccddea80e2b57095f5c536410069b5_tr
------------- | -------------
-f592797318508cb692be49a04b5fe0a3_tr | 1958a4139b0dc6d506cfe08e1553199d_tr
-8228238dcd753647ede755c671c9988b_tr | fd90f0cdc5f649dd84d4e21ff33b5774_tr
+- 39a9c02a305227b4f9c62bc3d839500c_tr
+- 00ccddea80e2b57095f5c536410069b5_tr
+- f592797318508cb692be49a04b5fe0a3_tr
+- 1958a4139b0dc6d506cfe08e1553199d_tr
 
 
-## a69644fd392aad985de61e166dc8e8fd_tr
+## 8228238dcd753647ede755c671c9988b_tr
 
-ed226cb95f3b637703501d9f4ddd3d68_tr
+fd90f0cdc5f649dd84d4e21ff33b5774_tr
 
 
-# 18546b56cfde1b046b0372d31f6e7293_tr
+# a69644fd392aad985de61e166dc8e8fd_tr
 
-## f240c90767be4aac25128f5fd8cd5716_tr
+## ed226cb95f3b637703501d9f4ddd3d68_tr
 
-66c3fee70e0ec54cbbba4c8912c8b1dc_tr
+18546b56cfde1b046b0372d31f6e7293_tr
 
 {% if version <= '2.6' %}
 
-### 1b125d3881f320a3e0ebc9f35e8707c5_tr
+### f240c90767be4aac25128f5fd8cd5716_tr
 
-aa5072eebea6f4364b4444a8a0f0f868_tr
+66c3fee70e0ec54cbbba4c8912c8b1dc_tr
 
 {% endif %}
 
 
-## f98c3b2040ea74375cdaa2759f0b86f7_tr
+## 1b125d3881f320a3e0ebc9f35e8707c5_tr
 
-### 33aa6de370798fadf155bbc16f7540c7_tr
+### aa5072eebea6f4364b4444a8a0f0f868_tr
 
-- "[709c93c4918ef02a126bec2a7044dca2_tr](/articles/basic-writing-and-formatting-syntax)"
-- [e4429365fc4b359487f20dc8957bdc97_tr](/articles/working-with-advanced-formatting)
+- "[f98c3b2040ea74375cdaa2759f0b86f7_tr](/articles/basic-writing-and-formatting-syntax)"
+- [33aa6de370798fadf155bbc16f7540c7_tr](/articles/working-with-advanced-formatting)
+
+### 709c93c4918ef02a126bec2a7044dca2_tr
+
+e4429365fc4b359487f20dc8957bdc97_tr
 
 ### a55e54225390bca0cdaa0c1d0a8d07d4_tr
 
 d175d8a8a13209341e4a0e3066113b3b_tr
 
-### 537e77e8b2aa7aac6607c173439d164e_tr
-
-42de416048295492aa089c64b44a4f61_tr
-
 [1]: http://example.com/
-[c20f2c418bdcd3361f55a9da99810fe1_tr]: http://example.com/
-"[c8e2e649deb2b744127c5fef84f14f46_tr]: http://example.com/"
+[537e77e8b2aa7aac6607c173439d164e_tr]: http://example.com/
+"[42de416048295492aa089c64b44a4f61_tr]: http://example.com/"
+
+
+# c20f2c418bdcd3361f55a9da99810fe1_tr
+c8e2e649deb2b744127c5fef84f14f46_tr
+
+47fd1ed4c5a1115c35a6ab8342f0c145_tr
+
+211ce627f55aff0238a6a4775e9d087a_tr
