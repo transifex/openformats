@@ -99,19 +99,17 @@ I think you should use an `<addr>` element here instead.
 
 # GitHub Flavored Markdown
 
+## Tables
+
+First Header | Second Header
+------------ | -------------
+Content from cell 1 | Content from cell 2
+Content in the first column | Content in the second column
+
+
 ## Syntax highlighting
 
-Here's an example of how you can use syntax highlighting with GitHub Flavored Markdown:
-
-```javascript
-function fancyAlert(arg) {
-  if(arg) {
-    $.facebox({div:'#foo'})
-  }
-}
-```
-
-You can also simply indent your code by four spaces:
+You can simply indent your code by four spaces:
 
     function fancyAlert(arg) {
       if(arg) {
@@ -137,14 +135,6 @@ You can also simply indent your code by four spaces:
 - [x] list syntax required (any unordered or ordered list supported)
 - [x] this is a complete item
 - [ ] this is an incomplete item
-
-
-## Tables
-
-First Header | Second Header
------------- | -------------
-Content from cell 1 | Content from cell 2
-Content in the first column | Content in the second column
 
 
 ## Strikethrough
@@ -186,3 +176,17 @@ This is as reference [link][1].
 [1]: http://example.com/
 [Reference]: http://example.com/
 "[Reference]: http://example.com/"
+
+
+# Special section
+WARNING! The example shown here seems to break all tests on content that is below the javascript code block, because of the "el:" part that is added before the code block notation. Please keep this at the end of the file.  
+
+Here's an example of how you can use syntax highlighting with GitHub Flavored Markdown:
+
+```javascript
+function fancyAlert(arg) {
+  if(arg) {
+    $.facebox({div:'#foo'})
+  }
+}
+```
