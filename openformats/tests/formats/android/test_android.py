@@ -791,6 +791,26 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             # "a'b" => \"\a\"\b\"
             ([u'"', u'a', u"'", u'b', u'"'],
              [u'\\', u'"', u'a', u'\\', u"'", u'b', u'\\', u'"']),
+            # Simple
+            (u'<x y="z">hello</x>', u'<x y=\\"z\\">hello</x>'),
+            (u'<a b="c">"hello"</a>', u'<a b="c">\\"hello\\"</a>'),
+            # Combined
+            (u'<a b="c">hello</a><x y="z">hello</x>',
+             u'<a b="c">hello</a><x y=\\"z\\">hello</x>'),
+            # Nested
+            (u'<a b="c"><x y="z">hello</x></a>',
+             u'<a b="c"><x y=\\"z\\">hello</x></a>'),
+            (u'<x y="z"><a b="c">hello</a></x>',
+             u'<x y=\\"z\\"><a b="c">hello</a></x>'),
+            # Heads and tails
+            (u'this <x y="z">is escaped</x>, this <a b="c">isnt</a>, ok?',
+             u'this <x y=\\"z\\">is escaped</x>, this <a b="c">isnt</a>, ok?'),
+            # Not proper XML
+            (u'"0 < "1', u'\\"0 < \\"1'),
+            (u'<a>"b"</c>', u'<a>\\"b\\"</c>'),
+            # Single tags
+            (u'<a b="c" />', u'<a b="c" />'),
+            (u'<x y="z" />', u'<x y=\\"z\\" />'),
         )
         for rich, raw in cases:
             self.assertEquals(AndroidHandler.escape(bytes_to_string(rich)),
