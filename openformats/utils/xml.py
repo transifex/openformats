@@ -1,6 +1,94 @@
 import re
 from itertools import count
 
+from ..transcribers import Transcriber
+
+
+def escape(string, inline_tags, escape_text):
+    """ Escape xml strings without escaping special tags.
+
+    For example: Android format need to generally escape double quote chars,
+    except if they belong to an inline tag which must be skipped.
+
+    :param str string: string to be escaped
+    :param list inline_tags: inline tags that need special handling, for
+        example 'a' represents <a></a> tag
+    :param lambda escape_text: lambda function to escape text
+    :return: escaped string
+    :rtype: unicode
+    """
+
+    # Lets temporarily make this into an xml tag
+    wrapped_text = u"<x>{}</x>".format(string)  # btw, `<x>` is allowed
+    transcriber = Transcriber(wrapped_text)
+    # Re-assign source because of newlines
+    wrapped_text = transcriber.source
+    try:
+        root = NewDumbXml(wrapped_text)
+        _escape_tag(root, transcriber, inline_tags, escape_text)
+    except DumbXmlSyntaxError:
+        # If opening-closing tags do not match within text, revert to the
+        # old behaviour
+        return escape_text(string)
+    # Discard the temporary outer `<x>` tags
+    return transcriber.get_destination()[3:-4]
+
+def _escape_tag(root, transcriber, inline_tags, escape_text):
+    if root.text is None:
+        # This is a single tag, eg <br />
+        if root.tag in inline_tags:
+            transcriber.copy_until(root.tail_position)
+        else:
+            transcriber.add(escape_text(
+                transcriber.source[root.position:root.tail_position]
+            ))
+            transcriber.skip_until(root.tail_position)
+
+    else:
+        # Opening tag
+        if root.tag in inline_tags:
+            # root: <out> first <in> middle </in> last </out> tail
+            # ptr:       ^
+            transcriber.copy_until(root.text_position)
+        else:
+            # Lets escape the opening tag
+            transcriber.add(escape_text(
+                transcriber.source[root.position:root.text_position]
+            ))
+            # root: <out> first <in> middle </in> last </out> tail
+            # ptr:       ^
+            transcriber.skip_until(root.text_position)
+
+        # Content
+        transcriber.add(escape_text(root.text))
+        # root: <out> first <in> middle </in> last </out> tail
+        # ptr:              ^
+        transcriber.skip(len(root.text))
+
+        # Inner tags
+        for child in root:
+            _escape_tag(child, transcriber, inline_tags, escape_text)
+
+        # Closing tag
+        if root.tag in inline_tags:
+            # root: <out> first <in> middle </in> last </out> tail
+            # ptr:                                           ^
+            transcriber.copy_until(root.tail_position)
+        else:
+            # Lets escape the closing tag
+            transcriber.add(escape_text(
+                transcriber.source[root.content_end:root.tail_position]
+            ))
+            # root: <out> first <in> middle </in> last </out> tail
+            # ptr:                                           ^
+            transcriber.skip_until(root.tail_position)
+
+    # Tail
+    transcriber.add(escape_text(root.tail))
+    # root: <out> first <in> middle </in> last </out> tail
+    # ptr:                                                ^
+    transcriber.skip_until(root.end)
+
 
 class DumbXml(object):
     """

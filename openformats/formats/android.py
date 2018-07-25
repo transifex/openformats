@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 import re
 import itertools
+from hashlib import md5
 
 from ..handlers import Handler
 from ..strings import OpenString
 from ..exceptions import RuleError
-from ..utils.xml import NewDumbXml as DumbXml
+from ..utils.xml import escape as xml_escape, NewDumbXml as DumbXml
 from ..transcribers import Transcriber
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
@@ -566,13 +567,30 @@ class AndroidHandler(Handler):
     # According to:
     # http://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling  # noqa
 
+    INLINE_TAGS = ("xliff\:g", "a")
+
     @staticmethod
     def escape(string):
-        return string.\
-            replace(DumbXml.DOUBLE_QUOTES,
-                    u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES])).\
-            replace(DumbXml.SINGLE_QUOTE,
-                    u''.join([DumbXml.BACKSLASH, DumbXml.SINGLE_QUOTE]))
+        """ Escape text for use in Android files.
+
+        Respect tags that are allowed in  strings. Examples:
+          "hello" world      => \\"hello\\" world
+          <a b="c">hello</a> => <a b="c">hello</a>
+          <x y="z">hello</x> => <x y=\\"z\\">hello</x>
+
+        :param str string: string to be escaped
+        :return: escaped string
+        :rtype: unicode
+        """
+
+        def _escape_text(string):
+            return string.\
+                replace(DumbXml.DOUBLE_QUOTES,
+                        u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES])).\
+                replace(DumbXml.SINGLE_QUOTE,
+                        u''.join([DumbXml.BACKSLASH, DumbXml.SINGLE_QUOTE]))
+
+        return xml_escape(string, AndroidHandler.INLINE_TAGS, _escape_text)
 
     @staticmethod
     def unescape(string):
