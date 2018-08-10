@@ -32,11 +32,8 @@ class JsonHandler(Handler):
     PLURAL_KEYS_STR = ' '.join(Handler._RULES_ATOI.keys())
 
     def parse(self, content, **kwargs):
-        # Do a first pass using the `json` module to ensure content is valid
-        try:
-            json.loads(content)
-        except ValueError as e:
-            raise ParseError(e.message)
+        # Validate that content is JSON
+        self.validate_content(content)
 
         self.transcriber = Transcriber(content)
         source = self.transcriber.source
@@ -83,8 +80,8 @@ class JsonHandler(Handler):
                         openstring = self._get_regular_string(
                             key, value, value_position
                         )
-
-                    self.stringset.append(openstring)
+                    if openstring:
+                        self.stringset.append(openstring)
 
                 elif isinstance(value, DumbJson):
                     self._extract(value, key)
@@ -108,8 +105,8 @@ class JsonHandler(Handler):
                         openstring = self._get_regular_string(
                             key, item, item_position
                         )
-
-                    self.stringset.append(openstring)
+                    if openstring:
+                        self.stringset.append(openstring)
 
                 elif isinstance(item, DumbJson):
                     self._extract(item, key)
@@ -448,8 +445,8 @@ class JsonHandler(Handler):
                     value, value_position, string, is_real_stringset
                 )
 
-            # Anything else: just remove the current section
             else:
+                # Anything else: just remove the current section
                 self._copy_until_and_remove_section(
                     value_position + len(value) + 1
                 )
@@ -540,6 +537,17 @@ class JsonHandler(Handler):
         self.transcriber.copy_until(pos)
         self.transcriber.mark_section_end()
         self.transcriber.remove_section()
+
+    def validate_content(self, content):
+        """Validate that a given string is valid JSON format.
+
+        :param str content: the content to parse
+        :raise ParseError: if the content is not valid JSON format
+        """
+        try:
+            json.loads(content)
+        except ValueError as e:
+            raise ParseError(e.message)
 
     @classmethod
     def serialize_pluralized_string(cls, pluralized_string, delimiter=' '):
@@ -722,3 +730,86 @@ class JsonHandler(Handler):
             else:
                 yield symbol
                 ptr += 1
+
+
+class ChromeI18nHandler(JsonHandler):
+    """Responsible for CHROME files, based on the JsonHandler."""
+
+    name = "CHROME"
+    STRING_KEY = "message"
+
+    def compile(self, template, stringset, **kwargs):
+        """Compile a template back to a stringset.
+
+        :param str template: the template string
+        :param stringset: generator that holds a list of OpenString objects
+        :return: the compiled template
+        :rtype: str
+        """
+        stringset = list(stringset)
+        return self._replace_translations(
+            template, stringset, is_real_stringset=True
+        )
+
+    def _get_regular_string(self, key, value, value_position):
+        """
+        Return a new OpenString based on the given key and value
+        and update the transcriber accordingly.
+
+        :param key: the string key
+        :param value: the translation string
+        :return: an OpenString or None
+        """
+        # We should only parse keys with a specific value ("message"). All
+        # others should be added in the template
+        # Key's format is parent_name.key_name (ex. test.message,
+        # test.description etc)
+        if not key.endswith(self.STRING_KEY):
+            return None
+        # Check if the given key has a description field
+        description = self._get_description(key)
+        # Create an OpenString object with the description as the developer
+        # comment
+        openstring = OpenString(
+            key, value, order=next(self._order), developer_comment=description
+        )
+        self.transcriber.copy_until(value_position)
+        self.transcriber.add(openstring.template_replacement)
+        self.transcriber.skip(len(value))
+
+        return openstring
+
+    def _get_description(self, key):
+        """Return the 'description' child for a given key
+
+        :param str key: the key to search against
+        :return: the description string
+        :rtype: str
+        """
+        key_split = key.split('.')
+        try:
+            return self.json_dict[key_split[0]]['description']
+        except KeyError:
+            return ''
+
+    def _copy_until_and_remove_section(self, pos):
+        """
+        Copy characters to the transcriber until the given position,
+        then end the current section.
+        """
+        self.transcriber.copy_until(pos)
+        self.transcriber.mark_section_end()
+        # Unlike the JSON format, do not remove the remaining section of the
+        # template
+
+    def validate_content(self, content):
+        """Validate that a given string is valid Chromei18n file.
+
+        :param str content: the content to parse
+        :raise ParseError: if the content is not valid JSON format
+        """
+        try:
+            # Save the JSON dict for later use
+            self.json_dict = json.loads(content)
+        except ValueError as e:
+            raise ParseError(e.message)
