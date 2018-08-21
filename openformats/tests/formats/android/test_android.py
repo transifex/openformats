@@ -811,6 +811,13 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             # Single tags
             (u'<a b="c" />', u'<a b="c" />'),
             (u'<x y="z" />', u'<x y=\\"z\\" />'),
+            # xliff:g tag
+            (u'<xliff:g y="z">hello</xliff:g>',
+             u'<xliff:g y="z">hello</xliff:g>'),
+            # annotation tag
+            (u'<annotation y="z">hello</annotation>',
+             u'<annotation y="z">hello</annotation>'),
+
         )
         for rich, raw in cases:
             self.assertEquals(AndroidHandler.escape(bytes_to_string(rich)),

@@ -567,7 +567,7 @@ class AndroidHandler(Handler):
     # According to:
     # http://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling  # noqa
 
-    INLINE_TAGS = ("xliff\:g", "a")
+    INLINE_TAGS = ("xliff:g", "a", "annotation")
 
     @staticmethod
     def escape(string):
