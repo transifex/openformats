@@ -27,7 +27,6 @@ setup(
     url="https://github.com/transifex/openformats",
     install_requires=install_requires,
     tests_require=tests_require,
-    dependency_links=tests_require,
     test_suite="openformats.tests.run_tests.run_all",
     packages=find_packages(
         where='.',
