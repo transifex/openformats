@@ -1,0 +1,16 @@
+{
+  "unlock": {
+    "message": "el:Unlock",
+    "description": "Unlock"
+  },
+  "credentials_in_db": {
+    "message": "el:$AMOUNT$ credentials in the database",
+    "description": "Amount of the credentials in the database",
+    "placeholders": {
+      "amount": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  }
+}

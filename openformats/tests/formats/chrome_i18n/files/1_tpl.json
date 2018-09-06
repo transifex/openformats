@@ -1,0 +1,16 @@
+{
+  "unlock": {
+    "message": "efe942fd8b60d71af881e92dcd8af4d1_tr",
+    "description": "Unlock"
+  },
+  "credentials_in_db": {
+    "message": "4d379ccf510e5e48c4bbd25239048475_tr",
+    "description": "Amount of the credentials in the database",
+    "placeholders": {
+      "amount": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  }
+}
