@@ -20,7 +20,7 @@ tests_require = [
 
 setup(
     name="openformats",
-    version='0.0.33',
+    version='0.0.39',
     description="The Transifex Open Formats library",
     author="Transifex",
     author_email="support@transifex.com",
