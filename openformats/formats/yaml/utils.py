@@ -67,6 +67,19 @@ class TxYamlLoader(yaml.SafeLoader):
             )
         return super(TxYamlLoader, self).compose_node(parent, index)
 
+    def _is_custom_tag(self, tag):
+        """
+        Check whether a value is tagged with a custom type.
+
+        Support custom tags, like: `foo: !bar test` Do not match `!!`, since it
+        indicates the built-in types. Match tags in the `!tag1!tag2!tag3` form.
+        """
+        # XXX: The  PyYAML library fails to handle multiple tags, like
+        # !tag1!tag2. There seems to be no workaround at the moment.
+        # XXX: We can't preserve the information whether the built-in `!!str`
+        # tag was used for a string
+        return re.match(r'^[\![a-zA-Z_]*]*$', tag, re.IGNORECASE)
+
     def construct_mapping(self, node, deep=True):
         """
         Override `yaml.SafeLoader.construct_mapping` to return for each item
@@ -101,6 +114,9 @@ class TxYamlLoader(yaml.SafeLoader):
                     isinstance(value, list) or isinstance(value, dict)):
                 continue
             start = value_node.start_mark.index
+            if self._is_custom_tag(value_node.tag):
+                # + 1 stands for the whitespace
+                start += len(value_node.tag) + 1
             end = value_node.end_mark.index
             style = ''
 
