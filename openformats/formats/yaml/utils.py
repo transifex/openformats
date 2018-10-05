@@ -8,9 +8,10 @@ from yaml.constructor import ConstructorError
 
 from openformats.exceptions import ParseError
 
+from .constants import YAML_STRING_ID, YAML_BINARY_ID
 from .yaml_representee_classes import (BlockList, FlowList, literal_unicode,
                                        folded_unicode, double_quoted_unicode,
-                                       single_quoted_unicode,
+                                       single_quoted_unicode, plain_unicode,
                                        BlockStyleOrderedDict,
                                        FlowStyleOrderedDict)
 from .yaml_representers import (unicode_representer,
@@ -25,6 +26,7 @@ from .yaml_representers import (unicode_representer,
 
 
 yaml.add_representer(unicode, unicode_representer)
+yaml.add_representer(plain_unicode, unicode_representer)
 yaml.add_representer(str, unicode_representer)
 yaml.add_representer(folded_unicode, folded_unicode_representer)
 yaml.add_representer(literal_unicode, literal_unicode_representer)
@@ -41,7 +43,7 @@ yaml.add_representer(FlowStyleOrderedDict,
                      flow_style_ordered_dict_representer)
 
 
-Node = namedtuple("Node", ['value', 'start', 'end', 'style'])
+Node = namedtuple("Node", ['value', 'start', 'end', 'style', 'tag'])
 
 
 class TxYamlLoader(yaml.SafeLoader):
@@ -63,15 +65,30 @@ class TxYamlLoader(yaml.SafeLoader):
             # see https://github.com/yaml/pyyaml/blob/b6cbfeec35e019734263a8f4e6a3340e94fe0a4f/lib/yaml/composer.py#L64  # noqa
             # for the original behavior
             return yaml.nodes.ScalarNode(
-                u'tag:yaml.org,2002:str', u'', event.start_mark, event.end_mark
+                YAML_STRING_ID, u'', event.start_mark, event.end_mark
             )
         return super(TxYamlLoader, self).compose_node(parent, index)
+
+    def _is_custom_tag(self, tag):
+        """
+        Check whether a value is tagged with a custom type.
+
+        Detect custom tags, like:
+            `foo: !bar test`
+            `foo: !xml "<bar>Bar</bar>"`
+        Built-in types, indicated by a `!!` prefix, will not be matched. We
+        can't preserve the information whether a built-in tag like `!!str` was
+        used for a value since the PyYAML library will tag such entries with
+        the built-in identifier. For example `tag:yaml.org,2002:str`, not
+        `!!str`.
+        """
+        return re.match(r'^[\![a-zA-Z_]*]*$', tag, re.IGNORECASE)
 
     def construct_mapping(self, node, deep=True):
         """
         Override `yaml.SafeLoader.construct_mapping` to return for each item
-        of the mapping a tuple of the form `(key, (value, start, end, style))`
-        instead of the default which is `(key, value)`.
+        of the mapping a tuple of the form `(key, (value, start, end, style,
+        tag))` instead of the default which is `(key, value)`.
         """
         if not isinstance(node, yaml.MappingNode):
             raise ParseError(
@@ -80,7 +97,7 @@ class TxYamlLoader(yaml.SafeLoader):
         pairs = []
         for key_node, value_node in node.value:
             # don't process binary values
-            if value_node.tag == 'tag:yaml.org,2002:binary':
+            if value_node.tag == YAML_BINARY_ID:
                 continue
             try:
                 key = self.construct_object(key_node, deep=deep)
@@ -124,15 +141,22 @@ class TxYamlLoader(yaml.SafeLoader):
             elif isinstance(value, str) or isinstance(value, unicode):
                 style = value_node.style
 
-            value = Node(value, start, end, style)
+            # Setup the node's tag
+            tag = None
+            if (
+                hasattr(value_node, 'tag')
+                and self._is_custom_tag(value_node.tag)
+            ):
+                tag = unicode(value_node.tag)
+
+            value = Node(value, start, end, style, tag)
             pairs.append((key, value))
         return pairs
 
     def construct_sequence(self, node, deep=True):
         """
-        Override `yaml.SafeLoader.construct_sequence` to return for each
-        element of the sequence `(value, start, end, style)` instead of the
-        default which is `value`.
+        Override `yaml.SafeLoader.construct_sequence` to return a `Node` tuple
+        instead of the default which is `value`.
         """
         if not isinstance(node, yaml.SequenceNode):
             raise ParseError(
@@ -142,7 +166,7 @@ class TxYamlLoader(yaml.SafeLoader):
 
         for value_node in node.value:
             # don't process binary values
-            if value_node.tag == 'tag:yaml.org,2002:binary':
+            if value_node.tag == YAML_BINARY_ID:
                 continue
             try:
                 value = self.construct_object(value_node, deep=deep)
@@ -159,10 +183,10 @@ class TxYamlLoader(yaml.SafeLoader):
                     style = 'flow'
                 else:
                     style = 'block'
-                values.append(Node(value, start, end, style))
+                values.append(Node(value, start, end, style, None))
             else:
                 style = value_node.style
-                values.append(Node(value, start, end, style))
+                values.append(Node(value, start, end, style, None))
         return values
 
     def _calculate_block_end_pos(self, start, end):
@@ -226,15 +250,15 @@ class YamlGenerator(object):
                         keys.pop()
                     keys.append(self.handler.get_rule_string(rule))
                     self._insert_translation_in_dict(
-                        yaml_dict, keys, flags, se.string.get(rule)
+                        yaml_dict, keys, flags, se.string.get(rule), tag=None,
                     )
             else:
                 self._insert_translation_in_dict(
-                    yaml_dict, keys, flags, se.string
+                    yaml_dict, keys, flags, se.string, tag=se.context,
                 )
         return yaml_dict
 
-    def _get_styled_string(self, translation_string, style):
+    def _get_styled_string(self, translation_string, style, tag=None):
         """
         Wrap a translation string so that it can be serialized
         to YAML with proper style.
@@ -250,17 +274,19 @@ class YamlGenerator(object):
         """
         obj = translation_string
         if style == '|':
-            obj = literal_unicode(obj)
+            obj = literal_unicode(obj, tag=tag)
         elif style == '>':
-            obj = folded_unicode(obj)
+            obj = folded_unicode(obj, tag=tag)
         elif style == '"':
-            obj = double_quoted_unicode(obj)
+            obj = double_quoted_unicode(obj, tag=tag)
         elif style == "'":
-            obj = single_quoted_unicode(obj)
+            obj = single_quoted_unicode(obj, tag=tag)
+        elif tag:
+            obj = plain_unicode(obj, tag=tag)
         return obj
 
     def _insert_translation_in_dict(self, parent_dict, keys, styles,
-                                    translation_string):
+                                    translation_string, tag=None):
         """ Given a set of keys and a set of styles generate a YAML
         serializable dictionary with each nested element cast to the
         right YAML representee class.
@@ -309,7 +335,7 @@ class YamlGenerator(object):
                 ]))
             ])
 
-            # and yaml.dump whould produce the following
+            # and yaml.dump would produce the following
             yaml.dump(result, Dumper=TxYamlDumper, allow_unicode=True)
             one:
               two:
@@ -321,7 +347,8 @@ class YamlGenerator(object):
         entry = translation_string
         if len(keys) == 1:
             key = self._parse_int_key(keys[0])
-            yaml_dict[key] = self._get_styled_string(entry, styles[-1])
+            yaml_dict[key] = self._get_styled_string(entry, styles[-1],
+                                                     tag=tag)
             return
 
         for i, key in enumerate(keys[:-1]):

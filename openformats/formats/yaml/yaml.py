@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 import copy
 from StringIO import StringIO
+from yaml.constructor import SafeConstructor
 from yaml.emitter import Emitter
 
 from openformats.handlers import Handler
@@ -62,13 +63,19 @@ class YamlHandler(Handler):
             4. Returns the (template, stringset) tuple.
         """
         template = ""
-        context = ""
         stringset = []
+        # The first argument of the add_constructor method is the tag you want
+        # to handle. If you provide None as an argument, all the unknown tags
+        # will be handled by the constructor specified in the second argument.
+        # We need this in order parse all unknown custom-tagged values as
+        # strings.
+        SafeConstructor.add_constructor(None,
+                                        SafeConstructor.construct_yaml_str)
         yaml_data = self._load_yaml(content, loader=TxYamlLoader)
         yaml_data = self._get_yaml_data_to_parse(yaml_data)
         # Helper to store the processed data while parsing the file
         self._parsed_data = []
-        self._parse_yaml_data(yaml_data, '', context)
+        self._parse_yaml_data(yaml_data, '', '')
         self._parsed_data.sort()
 
         end = 0
@@ -77,6 +84,7 @@ class YamlHandler(Handler):
             start = node.get('start')
             end_ = node.get('end')
             key = node.get('key')
+            tag = node.get('tag', '')
             value = node.get('value')
             style = node.get('style')
             if not value:
@@ -84,7 +92,7 @@ class YamlHandler(Handler):
             if isinstance(value, dict) and not all(value.values()):
                 continue
             string_object = OpenString(
-                key, value, context=context, flags=style, order=order,
+                key, value, context=tag, flags=style, order=order,
             )
             stringset.append(string_object)
             order += 1
@@ -122,7 +130,7 @@ class YamlHandler(Handler):
 
         Args:
             content: A string, YAML content
-            loader: Yaml Loader class or None
+            loader: YAML Loader class or None
 
         Returns:
             A dictionary
@@ -138,7 +146,7 @@ class YamlHandler(Handler):
                          pluralized=False):
         """Parse a leaf node in yaml_dict.
         Args:
-            yaml_data: A tuple of the form (string, start, end, style)
+            node: A tuple of the form (string, start, end, style, tag)
             parent_key: A string of keys concatenated by '.' to
                 reach this node
             style: A list of YAML node styles from root node to
@@ -153,6 +161,7 @@ class YamlHandler(Handler):
             'end': node.end,
             'key': parent_key,
             'value': node.value,
+            'tag': node.tag,
             'style': ':'.join(style or []),
             'pluralized': pluralized,
         }
@@ -161,12 +170,12 @@ class YamlHandler(Handler):
                                     pluralized=False):
         """Parse a leaf node in yaml_dict.
         Args:
-            yaml_data: A tuple of the form (plurals_dict, start, end, style)
-                      that describes a pluralized node
-                      `plurals_dict` example:
+            yaml_data: A tuple of the form
+                      (plurals_dict, start, end, style, tag) that describes a
+                      pluralized node `plurals_dict` example:
                           {
-                              "one": (string, start, end, style),
-                              "other": (string, start, end, style)
+                              "one": (string, start, end, style, tag),
+                              "other": (string, start, end, style, tag)
                           }
             parent_key: A string of keys concatenated by '.' to
                         reach this node
@@ -377,12 +386,18 @@ class YamlHandler(Handler):
 
         for string in stringset:
             if string.pluralized:
-                trans = self._compile_pluralized(string)
+                translation = self._compile_pluralized(string)
             else:
-                trans = self._write_styled_literal(string)
+                translation = self._write_styled_literal(string)
             hash_position = template.index(string.template_replacement)
             transcriber.copy_until(hash_position)
-            transcriber.add(trans)
+            # The context contains custom tags. If it exists, we must prepend
+            # it and apply a space afterwards so it doesn't get merged with the
+            # string
+            if string.context:
+                transcriber.add(string.context)
+                transcriber.add(' ')
+            transcriber.add(translation)
             transcriber.skip(len(string.template_replacement))
 
         transcriber.copy_until(len(template))
