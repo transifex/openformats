@@ -174,12 +174,12 @@ class I18nYamlHandler(YamlHandler):
                                     pluralized=False):
         """Parse a leaf node in yaml_dict.
         Args:
-            yaml_data: A tuple of the form (plurals_dict, start, end, style)
+            node: A tuple of the form (plurals_dict, start, end, style, tag)
                       that describes a pluralized node
                       `plurals_dict` example:
                           {
-                              "one": (string, start, end, style),
-                              "other": (string, start, end, style)
+                              "one": (string, start, end, style, tag),
+                              "other": (string, start, end, style, tag)
                           }
             parent_key: A string of keys concatenated by '.' to
                         reach this node
@@ -201,6 +201,7 @@ class I18nYamlHandler(YamlHandler):
             'end': end,
             'key': parent_key,
             'value': value,
+            'tag': None,
             'style': ':'.join(style or []),
             'pluralized': pluralized,
         }
@@ -218,8 +219,8 @@ class I18nYamlHandler(YamlHandler):
         Args:
             node: a dictionary of the form
               {
-                  "one": Node('string1', start, end, style),
-                  "other": Node('string2', start, end, style)
+                  "one": Node('string1', start, end, style, tag),
+                  "other": Node('string2', start, end, style, tag)
               }
         Returns:
             a dictionary of the form:

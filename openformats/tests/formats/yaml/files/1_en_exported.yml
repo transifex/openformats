@@ -69,3 +69,10 @@ anchor_key: &an_anchor
 alias_key:
   - *an_anchor
   - "another true value"
+
+# Custom tags
+foo:  !test bar # Should treat as string and ignore leading spaces
+bar: !xml "foo <xml>bar</xml>" # Also a string
+hello: World # Translatable
+number: !!int 123 # Should ignore
+bin: !!binary aGVsbG8= # Should ignore

@@ -36,3 +36,6 @@ anchor_key:
   - value
 alias_key:
   - "another true value"
+foo: !test 'bar'
+bar: !xml "foo <xml>bar</xml>"
+hello: World

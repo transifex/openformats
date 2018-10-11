@@ -63,3 +63,10 @@ anchor_key: &an_anchor
 alias_key:
   - *an_anchor
   - ddc3cfcedcf1686d9e3ba6b99a0d091b_tr
+
+# Custom tags
+foo:  3e4000f6f4cd8bb27db6fb82e1b50bb4_tr # Should treat as string and ignore leading spaces
+bar: 75ce597a505a4faf6369b66b885926c8_tr # Also a string
+hello: b0ed9cf22c0a5186d1c5b483a910dd33_tr # Translatable
+number: !!int 123 # Should ignore
+bin: !!binary aGVsbG8= # Should ignore
