@@ -62,7 +62,7 @@ class YamlHandler(Handler):
                with the template_replacement in the template.
             4. Returns the (template, stringset) tuple.
         """
-        template = ""
+        template = []
         stringset = []
         # The first argument of the add_constructor method is the tag you want
         # to handle. If you provide None as an argument, all the unknown tags
@@ -96,13 +96,14 @@ class YamlHandler(Handler):
             )
             stringset.append(string_object)
             order += 1
-            template += (content[end:start] +
-                         string_object.template_replacement)
+            template.append("{}{}".format(content[end:start],
+                                          string_object.template_replacement))
             comment = self._find_comment(content, end, start)
             string_object.developer_comment = comment
             end = end_
 
-        template += content[end:]
+        template.append(content[end:])
+        template = ''.join(template)
         return template, stringset
 
     def compile(self, template, stringset, **kwargs):
