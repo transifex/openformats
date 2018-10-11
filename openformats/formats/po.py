@@ -32,7 +32,7 @@ class PoHandler(Handler):
         self.order_generator = itertools.count()
         try:
             po = polib.pofile(content)
-        except Exception, e:
+        except Exception as e:
             raise ParseError("Error while validating PO file syntax: {}".
                              format(e.message))
         self.only_values = False
@@ -76,7 +76,7 @@ class PoHandler(Handler):
         """Retrieves the string and it's information from the entry.
 
         :param entry: The po's file entry containing the string.
-        :returns: A 3-tuple with the key indentifying the entry, the entry's
+        :returns: A 3-tuple with the key identifying the entry, the entry's
                     string and a dictionary containing the strings data.
         :raises: ParseError if a non pluralized entry contains pluralized
                     string or if a pluralized entry contains a non pluralized
@@ -121,15 +121,15 @@ class PoHandler(Handler):
         return entry_key, string, openstring_kwargs
 
     def _get_keys(self, entry):
-        """Retrieves the keys indentifying the entry.
-        Before returning the keys it escapes them to avoid hash colisions.
+        """Retrieves the keys identifying the entry.
+        Before returning the keys it escapes them to avoid hash collisions.
 
         :param entry: The entry to retrieve the keys from.
         :returns: A 2-tuple containing the key and the plural key.
                     For non pluralized entries the plural key is an empty
                     string.
         """
-        # Get format keys to avoid colisions
+        # Get format keys to avoid collisions
         key = entry.msgid.replace(
             '\\', '\\\\'
         ).replace(':', '\\:')
@@ -142,7 +142,7 @@ class PoHandler(Handler):
 
     def _validate_unique_key_and_context(self, key, pluralized, entry,
                                          context=None):
-        """Validate that a key, context compination is unique across the file.
+        """Validate that a key, context combination is unique across the file.
         """
         if (key, context) in self.unique_keys:
             if not pluralized:
@@ -178,8 +178,9 @@ class PoHandler(Handler):
         :param entry: The entry to retrieve the string from.
         :param pluralized: If True expect a pluralized string.
         :returns: The string of the entry.
-        :raises: ParseError if incosistency is found on the file. To be more
-                    verbose: Either all msgstr attributes are fille or none is.
+        :raises: ParseError if inconsistency is found on the file. To be more
+                    verbose: Either all msgstr attributes are filled or none
+                    is.
         """
         if pluralized:
             string = {
@@ -222,7 +223,7 @@ class PoHandler(Handler):
 
         :returns: True is the string is empty else False.
         :raises: ParseError if the string is pluralized and not all the plurals
-                    are filles (at least one is).
+                    are filled (at least one is).
         """
         if not string:
             return True
@@ -247,12 +248,12 @@ class PoHandler(Handler):
         return False
 
     def _create_openstring(self, entry, entry_key, string, openstring_kwargs):
-        """Cretes and openstring.
+        """Creates an openstring.
         Will also place a hash at the msgstr attribute of the entry for the
         template.
 
         :param entry: The entry the openstring is created from.
-        :param entry_key: The key indentifying the entry.
+        :param entry_key: The key identifying the entry.
         :param string: The string the entry contains.
         :param openstring_kwargs: Extra information about the string.
         :returns: The openstring.
