@@ -130,6 +130,18 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
             self.handler.parse_pluralized_value('')
 
     def test_parse_invalid_yaml(self):
-        invalid_content = "foo: bar\nwrong intentation"
+        invalid_content = "foo: bar\nwrong indentation"
         with self.assertRaises(ParseError):
             self.handler.parse(invalid_content)
+
+    def test_openstring_attributes(self):
+        content = "foo: bar\ntest: !tag 'content'"
+        template, strings = self.handler.parse(content)
+
+        test_string = strings[0]
+        self.assertEqual(test_string.context, '')
+        self.assertEqual(test_string.flags, '')
+
+        content_string = strings[1]
+        self.assertEqual(content_string.context, '!tag')
+        self.assertEqual(content_string.flags, "'")
