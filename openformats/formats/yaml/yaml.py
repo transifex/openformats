@@ -84,7 +84,7 @@ class YamlHandler(Handler):
             start = node.get('start')
             end_ = node.get('end')
             key = node.get('key')
-            tag = node.get('tag', '')
+            tag = node.get('tag')
             value = node.get('value')
             style = node.get('style')
             if not value:
@@ -92,7 +92,7 @@ class YamlHandler(Handler):
             if isinstance(value, dict) and not all(value.values()):
                 continue
             string_object = OpenString(
-                key, value, context=tag, flags=style, order=order,
+                key, value, context=tag or '', flags=style, order=order,
             )
             stringset.append(string_object)
             order += 1
