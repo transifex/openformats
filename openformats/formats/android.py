@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import re
 import itertools
-from hashlib import md5
 
 from ..handlers import Handler
 from ..strings import OpenString
@@ -58,13 +57,13 @@ class AndroidHandler(Handler):
         self.order_counter = itertools.count()
 
         source = self.transcriber.source
-        # Skip xml info declaration
+        # Skip XML info declaration
         resources_tag_position = source.index(self.PARSE_START)
 
         parsed = DumbXml(source, resources_tag_position)
         XMLUtils.validate_no_text_characters(self.transcriber, parsed)
         XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
-        children_itterator = parsed.find_children(
+        children_iterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
             self.STRING_PLURAL,
@@ -72,7 +71,7 @@ class AndroidHandler(Handler):
         )
         stringset = []
         self.existing_hashes = {}
-        for child in children_itterator:
+        for child in children_iterator:
             strings = self._handle_child(child)
             if strings is not None:
                 stringset.extend(strings)
@@ -150,9 +149,9 @@ class AndroidHandler(Handler):
         """
 
         string_rules_text = {}
-        item_itterator = child.find_children()
-        # Itterate through the children with the item tag.
-        for item_tag in item_itterator:
+        item_iterator = child.find_children()
+        # Iterate through the children with the item tag.
+        for item_tag in item_iterator:
             if item_tag.tag != DumbXml.COMMENT:
                 rule_number = self._validate_plural_item(item_tag)
                 string_rules_text[rule_number] = item_tag.content
@@ -191,10 +190,10 @@ class AndroidHandler(Handler):
                     else None.
         """
         strings = []
-        item_itterator = child.find_children(self.STRING_ITEM)
+        item_iterator = child.find_children(self.STRING_ITEM)
         name, product = self._get_child_attributes(child)
-        # Itterate through the children with the item tag.
-        for index, item_tag in enumerate(item_itterator):
+        # Iterate through the children with the item tag.
+        for index, item_tag in enumerate(item_iterator):
             XMLUtils.validate_no_tail_characters(self.transcriber, item_tag)
             child_name = u"{}[{}]".format(name, index)
             string = self._create_string(
@@ -381,7 +380,7 @@ class AndroidHandler(Handler):
         first_tag_position = parsed.text_position + len(parsed.text)
         self.transcriber.copy_until(first_tag_position)
 
-        children_itterator = parsed.find_children(
+        children_iterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
             self.STRING_PLURAL
@@ -390,7 +389,7 @@ class AndroidHandler(Handler):
         self.is_source = is_source
         self.stringset = iter(stringset)
         self.next_string = self._get_next_string()
-        for child in children_itterator:
+        for child in children_iterator:
             self._compile_child(child)
 
         self.transcriber.copy_until(len(source))
@@ -450,28 +449,28 @@ class AndroidHandler(Handler):
         :NOTE: If the `string-array` was empty to begin with it will leave it
                 as it is.
         """
-        item_itterator = list(child.find_children(self.STRING_ITEM))
+        item_iterator = list(child.find_children(self.STRING_ITEM))
 
         # If placeholder (has no children) skip
-        if len(item_itterator) == 0:
+        if len(item_iterator) == 0:
             self.transcriber.copy_until(child.end)
             return
 
         # Check if any string matches array items
         has_match = False
-        for item_tag in item_itterator:
+        for item_tag in item_iterator:
             if self._should_compile(item_tag):
                 has_match = True
                 break
 
         if has_match:
             # Make sure you include the <string-array> tag
-            self.transcriber.copy_until(item_itterator[0].start)
+            self.transcriber.copy_until(item_iterator[0].start)
             # Compile found item nodes. Remove the rest.
-            for item_tag in item_itterator:
+            for item_tag in item_iterator:
                 self._compile_string(item_tag)
             self.transcriber.remove_section()
-            self.transcriber.add(item_itterator[-1].tail)
+            self.transcriber.add(item_iterator[-1].tail)
             self.transcriber.copy_until(child.end)
         else:
             # Remove the `string-array` tag

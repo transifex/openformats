@@ -33,6 +33,7 @@ def escape(string, inline_tags, escape_text):
     # Discard the temporary outer `<x>` tags
     return transcriber.get_destination()[3:-4]
 
+
 def _escape_tag(root, transcriber, inline_tags, escape_text):
     if root.text is None:
         # This is a single tag, eg <br />
