@@ -583,6 +583,11 @@ class AndroidHandler(Handler):
         """
 
         def _escape_text(string):
+            # If the string starts with an at-sign that doesn't identify
+            # another string, then we need to escape it using a leading
+            # backslash
+            if string.startswith(u'@') and not string.startswith(u'@string/'):
+                string = string.replace(u'@', u'\@', 1)
             return string.\
                 replace(DumbXml.DOUBLE_QUOTES,
                         u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES])).\
@@ -593,6 +598,10 @@ class AndroidHandler(Handler):
 
     @staticmethod
     def unescape(string):
+        # If the string starts with an escaped at-sign, do not display the
+        # backslash
+        if string.startswith(u'\@'):
+            string = string[1:]
         if len(string) and string[0] == string[-1] == DumbXml.DOUBLE_QUOTES:
             return string[1:-1].\
                 replace(u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES]),
