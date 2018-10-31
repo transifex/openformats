@@ -817,7 +817,13 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             # annotation tag
             (u'<annotation y="z">hello</annotation>',
              u'<annotation y="z">hello</annotation>'),
-
+            # At-sign cases
+            (u'@', '\@'),
+            (u'@something', u'\@something'),
+            (u'"@enclosed"', u'\\"@enclosed\\"'),
+            (u'no need @', u'no need @'),
+            # Identifiers should remain intact
+            (u'@string/one', u'@string/one'),
         )
         for rich, raw in cases:
             self.assertEquals(AndroidHandler.escape(bytes_to_string(rich)),
@@ -856,6 +862,12 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             ([u'a', u"'", u'b', u'\\', u'c'], [u'a', u"'", u'b', u'\\', u'c']),
             # a\\"b => a\"b
             ([u'a', u'\\', u'\\', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+            # At-sign cases
+            (u'\@', '@'),
+            (u'\@something', u'@something'),
+            (u'\\"@enclosed\\"', u'"@enclosed"'),
+            (u'no need @', u'no need @'),
+            (u'@string/one', u'@string/one'),
         )
         for raw, rich in cases:
             self.assertEquals(AndroidHandler.unescape(bytes_to_string(raw)),
