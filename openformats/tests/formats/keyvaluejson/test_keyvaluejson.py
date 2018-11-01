@@ -471,6 +471,18 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, stringset)
         self.assertEquals(compiled, source)
 
+    def test_non_supported_icu_argument(self):
+        # Non-supported ICU arguments (everything other than `plural`)
+        # should make a string be treated as non-pluralized
+
+        string = '{"k": "{ gender_of_host, select, female {{host} appeared} male {{host} appeared} }"}'  # noqa
+        _, stringset = self.handler.parse(string)
+
+        self.assertEqual(
+            stringset[0].string,
+            '{ gender_of_host, select, female {{host} appeared} male {{host} appeared} }'
+        )
+
     def test_nesting_with_plurals(self):
         expected_translations = {0: 'Empty', 5: '{count} files'}
 
