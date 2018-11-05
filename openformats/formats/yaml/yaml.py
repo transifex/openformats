@@ -96,14 +96,14 @@ class YamlHandler(Handler):
             )
             stringset.append(string_object)
             order += 1
-            template.append("{}{}".format(content[end:start],
-                                          string_object.template_replacement))
+            template.append(u"{}{}".format(content[end:start],
+                                           string_object.template_replacement))
             comment = self._find_comment(content, end, start)
             string_object.developer_comment = comment
             end = end_
 
         template.append(content[end:])
-        template = ''.join(template)
+        template = u''.join(template)
         return template, stringset
 
     def compile(self, template, stringset, **kwargs):
