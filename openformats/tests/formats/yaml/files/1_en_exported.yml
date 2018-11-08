@@ -76,3 +76,7 @@ bar: !xml "foo <xml>bar</xml>" # Also a string
 hello: World # Translatable
 number: !!int 123 # Should ignore
 bin: !!binary aGVsbG8= # Should ignore
+
+# Test with non-ASCII keys
+#σχόλιο
+σχόλιο: κείμενο
