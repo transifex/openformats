@@ -564,9 +564,11 @@ class AndroidHandler(Handler):
 
     # Escaping / Unescaping
     # According to:
-    # http://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling  # noqa
-
-    INLINE_TAGS = ("xliff:g", "a", "annotation")
+    # https://developer.android.com/guide/topics/resources/string-resource#FormattingAndStyling
+    # https://developer.android.com/guide/topics/resources/string-resource#StylingWithHTML
+    INLINE_TAGS = ("xliff:g", "a", "annotation", "b", "em", "i", "cite", "dfn",
+                   "big", "small", "font", "tt", "s", "strike", "del", "u",
+                   "sup", "sub", "ul", "li", "br", "div", "span", "p")
 
     @staticmethod
     def escape(string):
