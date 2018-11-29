@@ -6,6 +6,30 @@ from openformats.handlers import Handler
 from openformats.exceptions import ParseError
 
 
+NUMERIC_RULES = ['=0', '=1', '=2']
+SUPPORTED_PLURAL_RULES = Handler._RULES_ATOI.keys() + NUMERIC_RULES
+RULE_MAPPING = {
+    '=0': 'zero',
+    '=1': 'one',
+    '=2': 'two',
+}
+
+
+def normalize_plural_rule(rule_str):
+    """Returns the equivalent rule name as 'one', 'two', etc.
+
+    ICU supports plurality rules in the form of =N (e.g. =2).
+    This method converts any such string to its equivalent "word" form.
+    >>> normalize_plural_rule('=0') == 'zero'
+    >>> normalize_plural_rule('zero') == 'zero'
+
+    :param str rule_str: the name of the plural rule, e.g. '=1' or 'zero'
+    :return: the word form of the plural rule
+    :rtype: str
+    """
+    return RULE_MAPPING.get(rule_str, rule_str)
+
+
 class ICUString(object):
     """Represents a string that follows the ICU format."""
 
@@ -13,13 +37,14 @@ class ICUString(object):
         """Constructor.
 
         :param str key: the ID of the string
-        :param list string_info: a list of tuples that contains all plural strings
-            together with their plurality rule string, formatted as:
+        :param list string_info: a list of tuples that contains all
+            plural strings together with their plurality rule string,
+            formatted as:
             [(plurality_str, string_with_braces), ...], e.g.
             [
               ('zero', 'No tables'),
               ('one', '{cnt} table'),
-              ('other': '{cnt} tables')
+              ('other', '{cnt} tables')
             ]
         :param bool pluralized: True if the string is pluralized,
             False otherwise
@@ -27,7 +52,6 @@ class ICUString(object):
         self.key = key
         self.string_info = string_info
         self.pluralized = pluralized
-        self.value_position = None
         self.current_position = None
         self.string_to_replace = None
 
@@ -36,7 +60,7 @@ class ICUString(object):
         """A dictionary that contains all plural strings, grouped
         by their integer plural rule.
 
-        Plural strings do not include the enclosing braces ({}).
+        Plural strings do not include the enclosing outer braces ({}).
 
         Formatted as `{ plural_rule: string_without_braces, ...}`,
         e.g. {0: 'No tables', 1: '{cnt} table', 5: '{cnt} tables'}
@@ -44,34 +68,73 @@ class ICUString(object):
         :rtype: dict
         """
         return {
-            Handler.get_rule_number(plurality_str): content[1:-1]
+            Handler.get_rule_number(
+                normalize_plural_rule(plurality_str)
+            ): content[1:-1]
             for plurality_str, content in self.string_info
         }
 
     def __repr__(self):
-        return 'ICUString key={}, string_to_replace={}, pluralized={}, ' \
-               'string_info={}, value_position={}, current_position={}'.format(
-                self.key,
-                self.string_to_replace,
-                self.pluralized,
-                repr(self.string_info),
-                self.value_position,
-                self.current_position,
-                )
+        format_str = 'ICUString key={}, string_to_replace={}, pluralized={}, ' \
+            'string_info={}, current_position={}'
+
+        return format_str.format(
+            self.key,
+            self.string_to_replace,
+            self.pluralized,
+            repr(self.string_info),
+            self.current_position,
+        )
 
 
-class ICUHelper(object):
-    """Knows how to parse and compile strings that follow the ICU standard.
+class ICUParser(object):
+    """Knows how to parse strings that follow the ICU standard.
 
-    Only a small subset of the standard is currently supported,
-    namely plurals.
+    Currently only plurals are supported.
+
+    Examples:
+    >>> parser = ICUParser()
+    >>> icu_str = parser.parse('key', '{cnt, plural, one {table} other {tables}}')
+    >>> # returns an ICUString object
+
+    >>> parser = ICUParser()
+    >>> icu_str = parser.parse('key', '{cnt, select, one {table} other {tables}}')
+    >>> # returns None
+
+    >>> parser = ICUParser()
+    >>> icu_str = parser.parse('key', '{cnt, plural, =1 {table} other {tables}}')
+    >>> # returns an ICUString object
+
+    >>> parser = ICUParser(allow_numeric_plural_values=False)
+    >>> icu_str = parser.parse('key', '{cnt, plural, =1 {table} other {tables}}')
+    >>> # returns None
+
+    >>> parser = ICUParser()
+    >>> icu_str = parser.parse('key', '{cnt, plural, foo {table} other {tables}}')
+    >>> # raises ParseError
     """
 
     PLURAL_ARG = 'plural'
-    PLURAL_KEYS_STR = ' '.join(Handler._RULES_ATOI.keys())
 
-    @classmethod
-    def parse(cls, key, value, value_position):
+    def __init__(self, allow_numeric_plural_values=True):
+        """Constructor.
+
+        If you are planning to use the ICU parser for a file format
+        that supports the `=N` plural syntax, you need to set
+        `allow_numeric_plural_values=True` (or leave it as is).
+        Otherwise, if you are planning to use the ICU parser
+        for a file format that handles strings with the `=N` syntax
+        as non-pluralized, you should use `allow_numeric_plural_values=False`
+        instead.
+
+        :param bool allow_numeric_plural_values: if True or missing,
+            the `=N` syntax will yield a valid pluralized ICUString,
+            otherwise if there is such a syntax, and this parameter
+            is False, a ParseError will be raised on parse()
+        """
+        self.allow_numeric_plural_values = allow_numeric_plural_values
+
+    def parse(self, key, value):
         """
         Parse a string that follows a subset of the the ICU message format
         and return an ICUString object.
@@ -93,6 +156,8 @@ class ICUHelper(object):
         :return: an ICUString object with all parsed information or None if
             the string is not in the supported ICU format
         :rtype: ICUString
+        :raise ParseError: if the given string looks a lot like
+            an ICU plural string but has an invalid structure
         """
         matches = re.match(
             ur'\s*{\s*([A-Za-z-_\d]+)\s*,\s*([A-Za-z_]+)\s*,\s*(.*)}\s*',
@@ -103,43 +168,14 @@ class ICUHelper(object):
 
         keyword, argument, serialized_strings = matches.groups()
 
-        if argument == cls.PLURAL_ARG:
-            return cls._parse_pluralized_string(
-                key, keyword, value, value_position,
-                serialized_strings
+        if argument == ICUParser.PLURAL_ARG:
+            return self._parse_pluralized_string(
+                key, keyword, value, serialized_strings,
             )
 
         return None
 
-    @classmethod
-    def serialize_pluralized_string(cls, pluralized_string, delimiter=' '):
-        """
-        Serialize the given pluralized_string into a suitable format
-        for adding it to the document in the compilation phase.
-
-        This essentially concatenates the plural rule strings and translations
-        for each rule into one string.
-
-        For example:
-        ' ' delimiter => 'one { {cnt} chip. } other { {cnt} chips. }'
-        '\n' delimiter => 'one { {cnt} chip. }\nother { {cnt} chips. }'
-
-        :param pluralized_string: an OpenString that is pluralized
-        :param delimiter: a string to use for separating entries
-        :return: a string
-        """
-        plural_list = [
-            u'{} {{{}}}'.format(
-                Handler.get_rule_string(rule),
-                translation
-            )
-            for rule, translation in pluralized_string.string.iteritems()
-        ]
-        return delimiter.join(plural_list)
-
-    @classmethod
-    def _parse_pluralized_string(cls, key, keyword, value, value_position,
-                                 serialized_strings):
+    def _parse_pluralized_string(self, key, keyword, value, serialized_strings):
         """
         Parse `serialized_strings` in order to find and return all included
         pluralized strings.
@@ -153,21 +189,27 @@ class ICUHelper(object):
             e.g. 'one { I ate {cnt} apple. } other { I ate {cnt} apples. }'
         :return: A pluralized ICUString instance or None
         """
-        # The official plurals format supports defining an integer instead
-        # of the name of the plural rule, using a syntax like "=1" or "=2"
-        # We do not support this at the moment, but we want to have these
-        # strings be handled as non pluralized.
-        equality_item = (
-            pyparsing.Literal('=') + pyparsing.Word(pyparsing.alphanums) +
-            pyparsing.nestedExpr('{', '}')
-        )
-        equality_matches = pyparsing.originalTextFor(equality_item)\
-            .searchString(serialized_strings)
+        if not self.allow_numeric_plural_values:
+            # The official ICU standard supports the numeric (`=N`)
+            # syntax notation. Instead of providing the name of the plural
+            # rule, you can define an integer rule instead, e.g. "=1" or "=2".
+            # The JSON parser does not currently support this syntax,
+            # and instead handles these strings as non-pluralized.
+            # The `allow_numeric_plural_values` variable exists
+            # for backwards compatibility: if it's True, and the string is
+            # following the =N syntax, we need to stop parsing this string
+            # as pluralized and return None.
+            equality_item = (
+                pyparsing.oneOf(NUMERIC_RULES) +
+                pyparsing.nestedExpr('{', '}', ignoreExpr=pyparsing.Literal("'"))
+            )
+            equality_matches = pyparsing.originalTextFor(equality_item)\
+                .searchString(serialized_strings)
 
-        # If any match is found using this syntax, do not parse this
-        # as pluralized
-        if len(equality_matches) > 0:
-            return None
+            # If any match is found using this syntax, do not parse this
+            # as pluralized
+            if len(equality_matches) > 0:
+                return None
 
         # Each item should be like '<proper_plurality_rule_str> {<content>}'
         # Nested braces ({}) inside <content> are allowed.
@@ -181,24 +223,8 @@ class ICUHelper(object):
         # pyparsing bug. Any other character that could be a potential
         # separator doesn't seem cause any problem.
         valid_plural_item = (
-            pyparsing.oneOf(cls.PLURAL_KEYS_STR) +
+            pyparsing.oneOf(SUPPORTED_PLURAL_RULES) +
             pyparsing.nestedExpr('{', '}', ignoreExpr=pyparsing.Literal("'"))
-        )
-
-        # We need to make sure that the plural rules are valid.
-        # Therefore, we also match any <alphanumeric> {<content>} string
-        # and see if there are differences compared to the valid results
-        # we got above.
-        any_plural_item = (
-            pyparsing.Word(pyparsing.alphanums) +
-            pyparsing.nestedExpr('{', '}', ignoreExpr=pyparsing.Literal("'"))
-        )
-
-        all_matches = pyparsing.originalTextFor(any_plural_item).searchString(
-            serialized_strings
-        )
-        cls._validate_plural_content_format(
-            key, value, serialized_strings, all_matches
         )
 
         # Create a list of serialized plural items, e.g.:
@@ -206,16 +232,33 @@ class ICUHelper(object):
         valid_matches = pyparsing.originalTextFor(valid_plural_item)\
             .searchString(serialized_strings)
 
+        # We need to make sure that the plural rules are valid.
+        # Therefore, we also match any <alphanumeric> {<content>} string
+        # and see if there are differences compared to the valid results
+        # we got above.
+        any_plural_item = (
+            pyparsing.Word('=' + pyparsing.alphanums) +
+            pyparsing.nestedExpr('{', '}', ignoreExpr=pyparsing.Literal("'"))
+        )
+
+        all_matches = pyparsing.originalTextFor(any_plural_item).searchString(
+            serialized_strings
+        )
+
+        self._validate_plural_content_format(
+            key, serialized_strings, all_matches,
+        )
+
         # Make sure the plurality rules are valid
         # If not, an error will be raised
         if len(valid_matches) != len(all_matches):
-            cls._handle_invalid_plural_format(
+            self._handle_invalid_plural_format(
                 serialized_strings, any_plural_item, key, value
             )
 
         # Create a list of tuples [(plurality_str, content_with_braces)]
         all_strings_list = [
-            cls._parse_plural_content(match[0])
+            self._parse_plural_content(match[0])
             for match in valid_matches
         ]
 
@@ -229,8 +272,8 @@ class ICUHelper(object):
         # We'll keep everything up to the comma that follows the 'plural'
         # argument.
         current_pos = value.index(keyword) + len(keyword)
-        current_pos = value.index(cls.PLURAL_ARG, current_pos)\
-            + len(cls.PLURAL_ARG)
+        current_pos = value.index(ICUParser.PLURAL_ARG, current_pos)\
+            + len(ICUParser.PLURAL_ARG)
         current_pos = value.index(',', current_pos) + len(',')
 
         # We want to preserve the original document as much as possible,
@@ -242,20 +285,16 @@ class ICUHelper(object):
         second_last_closing_brace = value.rfind('}', 0, value.rfind('}')) + 1
         string_to_replace = value[current_pos:second_last_closing_brace]
 
-        icu_string.value_position = value_position
         icu_string.current_position = current_pos
         icu_string.string_to_replace = string_to_replace
 
         return icu_string
 
-    @classmethod
-    def _validate_plural_content_format(cls, key, value, serialized_strings,
-                                        all_matches):
+    def _validate_plural_content_format(self, key, serialized_strings, all_matches):
         """
         Make sure the serialized content is properly formatted
         as one or more pluralized strings.
         :param key: the string key
-        :param value: the whole value of the string, e.g.
             { item_count, plural, zero {...} one {...} other {...}}
         :param serialized_strings: the part of the value that holds the
             string information only, e.g.
@@ -280,16 +319,18 @@ class ICUHelper(object):
         if len(remaining_str) > 0:
             raise ParseError(
                 'Invalid format of pluralized entry '
-                'with key: "{}", serialized translations: "{}". '
-                'Could not parse the string at or near the following chunk: "{}". '
+                'with key: "{key}", serialized translations: "{trans_str}". '
+                'Could not parse the string at or near '
+                'the following chunk: "{chunk}". '
                 'It contains either invalid braces ("{{", "}}") '
                 'or invalid characters.'.format(
-                    key, serialized_strings, remaining_str
+                    key=key,
+                    trans_str=serialized_strings,
+                    chunk=remaining_str,
                 )
             )
 
-    @classmethod
-    def _handle_invalid_plural_format(cls, serialized_strings,
+    def _handle_invalid_plural_format(self, serialized_strings,
                                       any_plural_item, key, value):
         """
         Raise a descriptive ParseError exception when the serialized
@@ -309,7 +350,7 @@ class ICUHelper(object):
             if rule not in Handler._RULES_ATOI.keys()
         ]
         raise ParseError(
-            'Invalid plural rule(s): {} in pluralized entry '
+            'Invalid plural rule(s): "{}" in pluralized entry '
             'with key: {}, value: "{}". '
             'Allowed values are: {}'.format(
                 ', '.join(invalid_rules),
@@ -318,8 +359,8 @@ class ICUHelper(object):
             )
         )
 
-    @classmethod
-    def _parse_plural_content(cls, string):
+    @staticmethod
+    def _parse_plural_content(string):
         # Find the content inside the brackets
         opening_brace_index = string.index('{')
         content = string[opening_brace_index:]
@@ -328,3 +369,32 @@ class ICUHelper(object):
         plurality = string[:opening_brace_index].strip()
 
         return plurality, content
+
+
+class ICUCompiler(object):
+
+    def serialize_string(self, pluralized_string, delimiter=' '):
+        """Serialize the given pluralized_string into a suitable format
+        for adding it to the document in the compilation phase.
+
+        This essentially concatenates the plural rule strings and translations
+        for each rule into one string.
+
+        For example:
+        ' ' delimiter => 'one { {cnt} chip. } other { {cnt} chips. }'
+        '\n' delimiter => 'one { {cnt} chip. }\nother { {cnt} chips. }'
+
+        :param pluralized_string: an OpenString that is pluralized
+        :param delimiter: a string to use for separating entries
+        :return: a string with all plural rules and their
+            corresponding strings
+        :rtype: str
+        """
+        plural_list = [
+            u'{} {{{}}}'.format(
+                Handler.get_rule_string(rule),
+                translation
+            )
+            for rule, translation in pluralized_string.string.iteritems()
+        ]
+        return delimiter.join(plural_list)
