@@ -1,10 +1,7 @@
-from random import randint
 from unittest import TestCase
 
 from openformats.exceptions import RuleError
 from openformats.handlers import Handler
-
-from openformats.tests.utils import generate_random_string
 
 
 class HandlerTestCase(TestCase):
@@ -15,26 +12,28 @@ class HandlerTestCase(TestCase):
         self.handler = None
 
     def test_get_rule_number_returns(self):
-        random_string = generate_random_string()
-        random_integer = randint(1, 50)
-
-        self.handler.__class__._RULES_ATOI = {
-            random_string: random_integer
+        rules = {
+            'zero': 0,
+            'one': 1,
+            'two': 2,
+            'few': 3,
+            'many': 4,
+            'other': 5
         }
-        self.assertEqual(
-            self.handler.get_rule_number(random_string), random_integer
-        )
+        for rule_str, rule in rules.iteritems():
+            self.assertEqual(self.handler.get_rule_number(rule_str), rule)
 
     def test_get_rule_string_returns(self):
-        random_string = generate_random_string()
-        random_integer = randint(1, 50)
-
-        self.handler.__class__._RULES_ITOA = {
-            random_integer: random_string
+        rules = {
+            0: 'zero',
+            1: 'one',
+            2: 'two',
+            3: 'few',
+            4: 'many',
+            5: 'other',
         }
-        self.assertEqual(
-            self.handler.get_rule_string(random_integer), random_string
-        )
+        for rule, rule_str in rules.iteritems():
+            self.assertEqual(self.handler.get_rule_string(rule), rule_str)
 
     def test_get_rule_string_returns_error(self):
         self.assertRaises(RuleError, self.handler.get_rule_string, 50)
