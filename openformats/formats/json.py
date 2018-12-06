@@ -11,7 +11,7 @@ from ..handlers import Handler
 from ..strings import OpenString
 from ..transcribers import Transcriber
 from ..utils.json import DumbJson
-from ..utils.icu import ICUHelper
+from ..utils.icu import ICUCompiler, ICUParser
 
 
 class JsonHandler(Handler):
@@ -110,18 +110,20 @@ class JsonHandler(Handler):
         :param value: the translation string
         :return: an OpenString or None
         """
-        # First attempt to parse this as a special node, e.g. a pluralized string.
+        # First attempt to parse this as a special node,
+        # e.g. a pluralized string.
         # If it cannot be parsed that way (returns None), parse it like
         # a regular string.
-        icu_string = ICUHelper.parse(key, value, value_position)
+        parser = ICUParser(allow_numeric_plural_values=False)
+        icu_string = parser.parse(key, value)
         if icu_string:
-            return self._create_pluralized_string(icu_string)
+            return self._create_pluralized_string(icu_string, value_position)
 
         return self._create_regular_string(
             key, value, value_position
         )
 
-    def _create_pluralized_string(self, icu_string):
+    def _create_pluralized_string(self, icu_string, value_position):
         """Create a pluralized string based on the given information.
 
         Also updates the transcriber accordingly.
@@ -137,11 +139,10 @@ class JsonHandler(Handler):
             order=next(self._order),
         )
 
-        value_pos = icu_string.value_position
         current_pos = icu_string.current_position
         string_to_replace = icu_string.string_to_replace
 
-        self.transcriber.copy_until(value_pos + current_pos)
+        self.transcriber.copy_until(value_position + current_pos)
         self.transcriber.add(openstring.template_replacement)
         self.transcriber.skip(len(string_to_replace))
 
@@ -299,7 +300,7 @@ class JsonHandler(Handler):
         replacement_pos = value.find(templ_replacement)
 
         if is_real_stringset:
-            replacement = ICUHelper.serialize_pluralized_string(string, delimiter=' ')
+            replacement = ICUCompiler().serialize_string(string, delimiter=' ')
         else:
             replacement = templ_replacement
 

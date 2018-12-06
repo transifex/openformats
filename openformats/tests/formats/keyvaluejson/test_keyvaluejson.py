@@ -407,11 +407,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # Anything else, including their TX int equivalents are invalid.
         self._test_parse_error_message(
             '{ "total_files": "{ item_count, plural, 1 {file} 5 {{file_count} files} }" }',  # noqa
-            'Invalid plural rule(s): 1, 5 in pluralized entry with key: total_files'  # noqa
+            'Invalid plural rule(s): "1, 5" in pluralized entry with key: total_files'  # noqa
         )
         self._test_parse_error_message(
             '{ "total_files": "{ item_count, plural, once {file} mother {{file_count} files} }" }',  # noqa
-            'Invalid plural rule(s): once, mother in pluralized entry with key: total_files'  # noqa
+            'Invalid plural rule(s): "once, mother" in pluralized entry with key: total_files'  # noqa
+        )
+        self._test_parse_error_message(
+            '{ "total_files": "{ item_count, plural, =3 {file} other {{file_count} files} }" }',  # noqa
+            'Invalid plural rule(s): "=3" in pluralized entry with key: total_files'  # noqa
         )
 
     def test_irrelevant_whitespace_ignored(self):
@@ -462,7 +466,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             expected_translations
         )
 
-        # Renderind a template with escaped new lines should work. However,
+        # Rendering a template with escaped new lines should work. However,
         # these characters cannot be inside the pluralized string, because the
         # template would be very hard to create in that case (e.g. not allowed
         # in: 'zero {Empty} \n other {{count} files}'
