@@ -300,7 +300,7 @@ class JsonHandler(Handler):
         replacement_pos = value.find(templ_replacement)
 
         if is_real_stringset:
-            replacement = ICUCompiler().serialize_string(string, delimiter=' ')
+            replacement = ICUCompiler().serialize_strings(string.string, delimiter=' ')
         else:
             replacement = templ_replacement
 

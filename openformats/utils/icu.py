@@ -14,6 +14,11 @@ RULE_MAPPING = {
     '=2': 'two',
 }
 
+# Corresponds to the `=N` syntax, e.g. `=1`
+PLURAL_FORMAT_STRING = 0
+# Corresponds to the `<rule_str>` syntax, e.g. `one`
+PLURAL_FORMAT_NUMERIC = 1
+
 
 def normalize_plural_rule(rule_str):
     """Returns the equivalent rule name as 'one', 'two', etc.
@@ -71,6 +76,36 @@ class ICUString(object):
             Handler.get_rule_number(
                 normalize_plural_rule(plurality_str)
             ): content[1:-1]
+            for plurality_str, content in self.string_info
+        }
+
+    @property
+    def syntax_by_rule(self):
+        """A dictionary of the plural syntax that corresponds to each plural rule.
+
+        There are 2 available ways to format a plural string in ICU format:
+        numeric (e.g. `=1`) and string (e.g. `one`).
+
+        Depending on the plurality string that is stored per each plural rule,
+        this dictionary will contain the proper syntax for each plural rule,
+        to be used when rendering the strings in a serialized ICU format.
+
+        Example:
+        {
+          1: PLURAL_FORMAT_NUMERIC,  # =1
+          2: PLURAL_FORMAT_NUMERIC,  # =2
+          5: PLURAL_FORMAT_STRING,   # other
+        }
+
+        :rtype: dict
+        """
+        return {
+            Handler.get_rule_number(
+                normalize_plural_rule(plurality_str)
+            ): (
+                PLURAL_FORMAT_NUMERIC if plurality_str in RULE_MAPPING.keys()
+                else PLURAL_FORMAT_STRING
+            )
             for plurality_str, content in self.string_info
         }
 
@@ -372,8 +407,10 @@ class ICUParser(object):
 
 
 class ICUCompiler(object):
+    """Contains helper functions for serializing pluralized strings
+    into ICU message format."""
 
-    def serialize_string(self, pluralized_string, delimiter=' '):
+    def serialize_strings(self, hashes_by_rule, delimiter=' ', syntax_by_rule=None):
         """Serialize the given pluralized_string into a suitable format
         for adding it to the document in the compilation phase.
 
@@ -381,20 +418,122 @@ class ICUCompiler(object):
         for each rule into one string.
 
         For example:
-        ' ' delimiter => 'one { {cnt} chip. } other { {cnt} chips. }'
-        '\n' delimiter => 'one { {cnt} chip. }\nother { {cnt} chips. }'
+        delimiter = ' ' => 'one { {cnt} chip. } other { {cnt} chips. }'
+        delimiter = '\n' => 'one { {cnt} chip. }\nother { {cnt} chips. }'
 
-        :param pluralized_string: an OpenString that is pluralized
-        :param delimiter: a string to use for separating entries
+        If `syntax_by_rule` is provided, the formatting will use the
+        corresponding syntax, e.g.:
+        > syntax_by_rule = {1: PLURAL_FORMAT_NUMERIC, 5: PLURAL_FORMAT_STRING}
+        > delimiter = ' '
+        >   => '=1 {{cnt} table} other {{cnt} tables}'
+
+        :param dict hashes_by_rule: a dictionary with one hash placeholder
+            per each plural rule, e.g.
+            {
+               1: 'a2eb8a66695435a29ee61d5df781679b_pl_0',
+               5: 'a2eb8a66695435a29ee61d5df781679b_pl_1',
+            }
+        :param str delimiter: a string to use for separating entries
+        :param dict syntax_by_rule: a dictionary that associates
+            a plural format (numeric or strings) with each rule,
+            e.g. {1: PLURAL_FORMAT_NUMERIC, 5: PLURAL_FORMAT_STRING}
         :return: a string with all plural rules and their
             corresponding strings
         :rtype: str
         """
+        syntax_by_rule = syntax_by_rule or {}
         plural_list = [
-            u'{} {{{}}}'.format(
-                Handler.get_rule_string(rule),
-                translation
+            u'{rule} {{{translation}}}'.format(
+                rule=(
+                    u'={}'.format(rule)
+                    if syntax_by_rule.get(rule) == PLURAL_FORMAT_NUMERIC
+                    else Handler.get_rule_string(rule)
+                ),
+                translation=translation,
             )
-            for rule, translation in pluralized_string.string.iteritems()
+            for rule, translation in hashes_by_rule.iteritems()
         ]
         return delimiter.join(plural_list)
+
+    def serialize_placeholder_string(self, icu_string, plural_rules):
+        """Serialize the given ICUString, that should contain hash
+        placeholders, for all provided plural rules.
+
+        Returns a string that contains only the translatable part
+        of the ICU string, for all plural rules provided, i.e.
+        it does not include any other part of the string, such as the
+        initial declaration, e.g. '{count, plural, '
+
+        It only works well if the ICUString content is indeed
+        the hash placeholders of a pluralized string, because it makes
+        certain assumptions about how each plural string looks like.
+
+        It takes into account any custom syntax guidelines that exist in
+        the ICUString object. For example, if for rule 'one'
+        the guideline is to use a numeric form, '=1' will be used
+        when serializing.
+
+        In other words, what this method does is to create a serialized
+        version of placeholder hashes, following the ICU plural format,
+        for a specific set of plural rules. This works regardless
+        how many plural rules are found in `icu_string` (source language
+        string) and how many languages are found in `plural_rules`
+        (target language). The reason this works is that all placeholders
+        follow the same format, which is a hash, following by `_pl_<rule>`.
+        So, if we know one placeholder, we can generate the placeholders
+        for any rule set.
+
+        Examples:
+        > For a language with [1, 3, 4, 5] rules, and a hash that
+        > starts with 'a3b3_pl_', returns:
+        > 'one {a3b3_pl_0} few {a3b3_pl_1} many {a3b3_pl_2} other {a3b3_pl_3}'
+
+        > For a language with [1, 2, 5] rules and numeric syntax in
+        > 'one' and 'two' rules, and a hash that starts with '62cc_pl_',
+        > returns:
+        > '=1 {62cc_pl_0} =2 {62cc_pl_1} other {62cc_pl_2}'
+
+        :param ICUString icu_string: the string to serialize
+        :param list plural_rules: a list of the numeric plurality rules
+            to serialize for
+        :return: the serialize string
+        :rtype: str
+        """
+        # Get a dictionary of all hash placeholders, one per each rule
+        # of the target language
+        hashes_by_rule = ICUCompiler._create_placeholders_by_rule(
+            icu_string, plural_rules,
+        )
+
+        # Render all hashes into an ICU plural format,
+        # e.g. 'one {a2eb8a...781679b_pl_0} other {a2eb8a...781679b_pl_1}'
+        return self.serialize_strings(
+            hashes_by_rule,
+            syntax_by_rule=icu_string.syntax_by_rule,
+        )
+
+    @staticmethod
+    def _create_placeholders_by_rule(icu_string, target_plural_forms):
+        """Get a dictionary that has the hash placeholder that corresponds to
+        each plural rule of the target language.
+
+        It works by finding the prefix of the hash string that is
+        associated with the given ICUString object, and creates a dictionary
+        of all hashes, one for each rule of the target language.
+
+        :param ICUString icu_string: the string to use
+        :param list target_plural_forms: a list of the plural rule numbers
+            that the target language supports
+        :return: a dictionary with all hashes, e.g.
+            {
+               1: 'a2eb8a66695435a29ee61d5df781679b_pl_0',
+               5: 'a2eb8a66695435a29ee61d5df781679b_pl_1',
+            }
+        :rtype: dict
+        """
+        hash_str = icu_string.strings_by_rule[5]  # rule 5 always exists
+        hash_str = hash_str[:-1]  # remove last char (the plural index)
+        return {
+            rule: hash_str + str(index)
+            for index, rule in enumerate(target_plural_forms)
+        }
