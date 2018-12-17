@@ -99,6 +99,9 @@ class Transcriber(object):
 
         self.newline_count += chunk.count('\n')
 
+    def copy_to_end(self):
+        self.copy_until(len(self.source))
+
     def add(self, text):
         self.destination.append(text)
 
