@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<strings>
+    <section name="group1" tag1="something" tag2="something">
+        <string key="key1" tag1="t1" tag2="t2">
+            <base tag="tt">el:A translatable string</base>
+        </string>
+        <string key="pressed_button">
+            <base>el:The user pressed the button</base>
+            <variant tag-pre="pre" context="male" tag-post="post">el:He pressed the button</variant>
+            <variant context="female">el:She pressed the button</variant>
+        </string>
+    </section>
+    <section name="group2">
+        <string key="key2">
+            <base>el:Another translatable string</base>
+        </string>
+        <string key="key3">
+            <base></base>
+            <variant context="a"></variant>
+            <variant></variant>
+        </string>
+        <string key="key4">
+            <base>el:Some entity</base>
+        </string>
+    </section>
+    <section name="empty_group">
+        <random my-tag="yo">Anything</random>
+    </section>
+</strings>
