@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<strings>
+    <section name="group1" tag1="something" tag2="something">
+        <string key="key1" tag1="t1" tag2="t2">
+            <base tag="tt">b8535dff24f1c17468c87beef1f53ef7_tr</base>
+        </string>
+        <string key="pressed_button">
+            <base>5d93729f62679a39c7222b559dba2402_tr</base>
+            <variant tag-pre="pre" context="male" tag-post="post">25e6726d12b93463930ab96b28d10ec8_tr</variant>
+            <variant context="female">d211229b5f0c91dcecc411b35ccd0e5b_tr</variant>
+        </string>
+    </section>
+    <section name="group2">
+        <string key="key2">
+            <base>f4cf827ab746b78845a8b4613ce23c70_tr</base>
+        </string>
+        <string key="key3">
+            <base></base>
+            <variant context="a"></variant>
+            <variant></variant>
+        </string>
+        <string key="key4">
+            <base>a620c67be79a511bfb55b18945d6167e_tr</base>
+        </string>
+    </section>
+    <section name="empty_group">
+        <random my-tag="yo">Anything</random>
+    </section>
+</strings>

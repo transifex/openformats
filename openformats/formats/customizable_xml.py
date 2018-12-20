@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import itertools
 
+from openformats.exceptions import ParseError
 from ..handlers import Handler
 from ..strings import OpenString
 from ..transcribers import Transcriber
@@ -121,13 +122,15 @@ class CustomizableXMLHandler(Handler):
         :param str content: the complete string to parse
         :return: the template and the parsed stringset
         :rtype: tuple(str, list(OpenString))
+        :raise ParseError: if any of required nodes or attributes
+            are not found in `content`
         """
         order_counter = itertools.count()
         transcriber = Transcriber(content)
         source = transcriber.source
 
         # Everything starts at the root tag
-        root_tag_pos = source.index('<{}'.format(self.root_name))
+        root_tag_pos = self._get_root_node_pos(content)
         parsed = NewDumbXml(source, root_tag_pos)
         stringset = []
 
@@ -184,8 +187,9 @@ class CustomizableXMLHandler(Handler):
             {'name': <language_name>, 'code': <language_code>}
         :return: the compiled string, which contains all translations
         :rtype: str
+        :raise ParseError: if the root node is not found in `template`
         """
-        root_tag_pos = template.index('<{}'.format(self.root_name))
+        root_tag_pos = self._get_root_node_pos(template)
 
         self.transcriber = Transcriber(template[root_tag_pos:])
         source = self.transcriber.source
@@ -241,6 +245,23 @@ class CustomizableXMLHandler(Handler):
             # Copy until "</base>" or "</variant>"
             self.transcriber.copy_until(translatable_str_node.tail_position)
 
+    def _get_root_node_pos(self, string):
+        """Return the position of the root node in the given string.
+
+        :param str string: the content to search for the root node.
+        :return: the integer position
+        :rtype: int
+        :raise ParseError: if the root node is not found
+        """
+        try:
+            return string.index('<{}'.format(self.root_name))
+        except ValueError:
+            raise ParseError(
+                'Root node "<{root}>" not found'.format(
+                    root=self.root_name,
+                )
+            )
+
     def _get_key(self, string_tag, tag):
         """Return the key that corresponds to a given translatable string.
 
@@ -254,16 +275,26 @@ class CustomizableXMLHandler(Handler):
         :return: the key of the corresponding translatable string
         :rtype: str
         """
-        # Base string
-        if tag.tag == self.base_string_name:
-            return string_tag.attrib[self.string_key_name]
+        try:
+            # Base string
+            if tag.tag == self.base_string_name:
+                return string_tag.attrib[self.string_key_name]
 
-        # Variant
-        else:
-            return "{key}{separator}{variant_id}".format(
-                key=string_tag.attrib[self.string_key_name],
-                separator=COMPOSITE_KEY_SEPARATOR,
-                variant_id=tag.attrib[self.variant_string_context_name],
+            # Variant
+            else:
+                return "{key}{separator}{variant_id}".format(
+                    key=string_tag.attrib[self.string_key_name],
+                    separator=COMPOSITE_KEY_SEPARATOR,
+                    variant_id=tag.attrib[self.variant_string_context_name],
+                )
+        except KeyError:
+            raise ParseError(
+                'Missing "{key}" attribute in <{string}> node, '
+                'parent of "<{tag.tag}>{tag.content}</{tag.tag}>"'.format(
+                    key=self.string_key_name,
+                    string=self.string_name,
+                    tag=tag,
+                )
             )
 
     def _get_next_string(self):
