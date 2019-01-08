@@ -1,28 +1,19 @@
-Checklist (for the reviewer)
-----------------------------
+Problem and/or solution
+-----------------------
 
-* [ ] Problem and solution are well-explained in the PR
-* [ ] Change is covered by unit-tests
-* [ ] Code is well documented
-* [ ] Code is styled well and is following best practices
-* [ ] Performs well when applied to big organizations/resources/etc from our production database
-* [ ] Errors are handled properly
-* [ ] All (conceivable) edge-cases are handled
-* [ ] Code is instrumented to report unexpected failures or increases in the failure rate
-* [ ] Commits have been squashed so that each one has a clear purpose (and green tests)
-* [ ] Proper labels have been applied
+How to test
+-----------
 
-Problem
--------
-
-Steps to reproduce
+Reviewer checklist
 ------------------
 
-Solution
---------
+Code:
+* [ ] Change is covered by unit-tests
+* [ ] Code is well documented, well styled and is following [best practices](https://tem.transifex.com)
+* [ ] Performance issues have been taken under consideration
+* [ ] Errors and other edge-cases are handled properly
 
-Example run / Screenshots
--------------------------
-
-Performance on live data
-------------------------
+PR:
+* [ ] Problem and/or solution are well-explained
+* [ ] Commits have been squashed so that each one has a clear purpose
+* [ ] Commits have a proper commit message [according to TEM](https://tem.transifex.com/github-guide.html#working-on-a-feature)
