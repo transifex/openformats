@@ -35,6 +35,10 @@ key.with.dots: dot value
 
 1: integer key
 
+wrapping:
+  at: "@something"
+  brackets: "[Something] else"
+
 ---
 
 # Markdown stuff

@@ -32,6 +32,10 @@ key.with.dots: "el:dot value"
 
 1: "el:integer key"
 
+wrapping:
+  at: "el:@something"
+  brackets: "el:[Something] else"
+
 ---
 
 # el:Markdown stuff
