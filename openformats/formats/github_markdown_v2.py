@@ -19,22 +19,16 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
 
     BACKSLASH = u'\\'
     DOUBLE_QUOTES = u'"'
+    SINGLE_QUOTE = u"'"
     NEWLINE = u'\n'
     COLON = u':'
     ASTERISK = u'*'
     AMPERSAND = u'&'
     DASH = u'-'
     HASHTAG = u'#'
-
-    def _should_wrap_in_quotes(self, tr_string):
-        return any([
-            self.NEWLINE in tr_string[:-1],
-            self.COLON in tr_string,
-            self.HASHTAG in tr_string,
-            tr_string.lstrip().startswith(self.ASTERISK),
-            tr_string.lstrip().startswith(self.AMPERSAND),
-            tr_string.lstrip().startswith(self.DASH),
-        ])
+    AT_SIGN = u'@'  # reserved character in the YAML spec
+    BRACKET_LEFT = u'['
+    BRACKET_RIGHT = u']'
 
     def compile(self, template, stringset, **kwargs):
         # assume stringset is ordered within the template
@@ -43,25 +37,8 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
 
         for string in stringset:
             tr_string = string.string
-            try:
-                # if string's key is int this is a markdown string
-                int(string.key)
-            except ValueError:
-                if self._should_wrap_in_quotes(tr_string):
-                    # escape double quotes inside strings
-                    tr_string = string.string.replace(
-                        self.DOUBLE_QUOTES,
-                        (self.BACKSLASH + self.DOUBLE_QUOTES)
-                    )
-                    # surround string with double quotes
-                    tr_string = (self.DOUBLE_QUOTES + tr_string +
-                                 self.DOUBLE_QUOTES)
-                # this is to ensure that if the style is literal or folded
-                # http://www.yaml.org/spec/1.2/spec.html#id2795688
-                # a new line always follows the string
-                if (string.flags and string.flags[-1] in '|>' and
-                        tr_string[-1] != self.NEWLINE):
-                    tr_string = tr_string + self.NEWLINE
+            if self._is_yaml_string(string):
+                tr_string = self._transform_yaml_string(string)
 
             hash_position = template.index(string.template_replacement)
             transcriber.copy_until(hash_position)
@@ -135,3 +112,132 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
 
         template = yaml_template + seperator + md_template
         return force_newline_type(template, newline_type), stringset
+
+    def _is_yaml_string(self, string):
+        """Return True if the given open string is in YAML format, False otherwise.
+
+        :param OpenString string: the string object to check
+        :return: whether or not the string is in a YAML-formatted block
+        :rtype: bool
+        """
+        # If string's key is of type `int` (e.g. 4), it is a markdown string
+        # Strings inside YAML blocks have a string key (e.g. 'root_dict.another_dict')
+        try:
+            int(string.key)
+        except ValueError:
+            return True
+
+        return False
+
+    def _transform_yaml_string(self, openstring):
+        """Transform the given YAML-formatted string to make it valid for compilation.
+
+        :param OpenString openstring: the string object to use for the transformation
+        :return: a string that is valid for exporting
+        :rtype: str
+        """
+        should_wrap, quote_char = self._should_wrap_in_quotes(openstring.string)
+        if should_wrap:
+            string = self._wrap_in_quotes(openstring.string, quote_char)
+        else:
+            string = openstring.string
+
+        # this is to ensure that if the style is literal or folded
+        # http://www.yaml.org/spec/1.2/spec.html#id2795688
+        # a new line always follows the string
+        if (openstring.flags and openstring.flags[-1] in '|>'
+                and string[-1] != self.NEWLINE):
+            string = string + self.NEWLINE
+
+        return string
+
+    def _wrap_in_quotes(self, string, quote_char):
+        """Wrap the given string in quotes, if necessary.
+
+        :param unicode string: the string to check for wrapping
+        :param str quote_char: the character to use for wrapping,
+            one of `"` or `'`
+        :return: the new string, wrapped in quotes if needed
+        :rtype: unicode
+        :raise ValueError: if `quote_char` is not one of the valid values
+        """
+        if quote_char == u'"':
+            string = string.replace(quote_char, self.BACKSLASH + quote_char)
+        elif quote_char == u"'":
+            string = string.replace(quote_char, quote_char * 2)
+        else:
+            raise ValueError(
+                'Invalid character ({}) given for wrapping in quotes, '
+                'supported values are single quotes (\') '
+                'and double quotes (").'.format(quote_char)
+            )
+
+        # wrap string with quotes
+        return u'{}{}{}'.format(quote_char, string, quote_char)
+
+    def _should_wrap_in_quotes(self, string):
+        """Check if the given string should be wrapped in quotes.
+
+        In order to decide if wrapping is necessary, it takes into account
+        various parameters, such as what character the string starts and ends with,
+        whether or not it contains special characters, etc.
+
+        :param unicode string: the string to check
+        :return: a tuple that shows if wrapping is needed, as well as
+            the character that should be used for wrapping
+        :rtype: tuple (bool, str)
+        """
+        string = string.strip()
+
+        # If wrapped already in double quotes, don't wrap again
+        wrapped_in_double_quotes = (
+            string.startswith(self.DOUBLE_QUOTES)
+            and string.endswith(self.DOUBLE_QUOTES)
+        )
+        if wrapped_in_double_quotes:
+            return False, None
+
+        # If wrapped already in single quotes, don't wrap again
+        wrapped_in_single_quotes = (
+            string.startswith(self.SINGLE_QUOTE)
+            and string.endswith(self.SINGLE_QUOTE)
+        )
+        if wrapped_in_single_quotes:
+            return False, None
+
+        # If starts with a double quote but does not end in a double quote,
+        # wrap in single quotes
+        should_wrap = (
+            string.startswith(self.DOUBLE_QUOTES)
+            and not wrapped_in_double_quotes
+        )
+        if should_wrap:
+            return should_wrap, self.SINGLE_QUOTE
+
+        # If starts with a single quote but does not end in a single quote,
+        # wrap in double quotes
+        should_wrap = (
+            string.startswith(self.SINGLE_QUOTE)
+            and not wrapped_in_single_quotes
+        )
+        if should_wrap:
+            return should_wrap, self.DOUBLE_QUOTES
+
+        # If needs wrapping due to special characters, wrap in double quotes
+        should_wrap = any([
+            self.NEWLINE in string[:-1],
+            self.COLON in string,
+            self.HASHTAG in string,
+            string.startswith(self.ASTERISK),
+            string.startswith(self.AMPERSAND),
+            string.startswith(self.DASH),
+            string.startswith(self.AT_SIGN),
+            (
+                string.startswith(self.BRACKET_LEFT)
+                and not string.endswith(self.BRACKET_RIGHT)
+            ),
+        ])
+        if should_wrap:
+            return True, self.DOUBLE_QUOTES
+
+        return False, None
