@@ -1,0 +1,28 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: python:2.7
+        environment:
+          ALL_TESTS: 1
+    steps:
+      - checkout
+      - run:
+          name: Install Coveralls
+          command: pip install coveralls
+      - run:
+          name: Run tests
+          command: python setup.py test
+      - run:
+          name: Run coveralls
+          command: coveralls
+
+workflows:
+  version: 2
+  run_tests:
+    jobs:
+      - build
