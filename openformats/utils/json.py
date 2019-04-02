@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import json
 import re
 
+import six
+
 
 class DumbJson(object):
     """ A utility to help iterate over a JSON string. The main focuses are:
@@ -195,7 +197,7 @@ class DumbJson(object):
     def _find_next(self, symbols, start=0, require_whitespace=True):
         symbols = {s for s in symbols}
         after_backslash = False
-        for ptr in xrange(start, len(self.source)):
+        for ptr in six.moves.xrange(start, len(self.source)):
             candidate = self.source[ptr]
             if candidate == '\\':
                 after_backslash = not after_backslash
@@ -211,7 +213,7 @@ class DumbJson(object):
                 raise ValueError(
                     u"Was expecting whitespace or one of `{symbols}` on line "
                     u"{line_no}, found `{candidate}` instead".format(
-                        symbols=''.join(symbols),
+                        symbols=''.join(sorted(symbols)),
                         line_no=newline_count + 1,
                         candidate=candidate,
                     )

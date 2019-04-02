@@ -1,9 +1,10 @@
-django==1.11
-polib==1.0.3
-mistune==0.7.3
 PyYAML==3.13
+django==1.11
+mistune==0.7.3
+polib==1.0.3
 pyparsing==2.2.0
+six
 
 # InDesign
 lxml==4.1.1
-UCFlib==0.2.1
+git+git://github.com/kbairak/ucflib@py3_compatibility

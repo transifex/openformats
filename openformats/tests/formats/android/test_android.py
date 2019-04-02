@@ -35,13 +35,13 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
-        self.assertEquals(
+        self.assertEqual(
             template,
             source_python_template.format(key=random_key, string=random_hash)
         )
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_string_array(self):
         random_name = generate_random_string()
@@ -62,14 +62,13 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
-        self.assertEquals(
+        self.assertEqual(
             template,
             source_python_template.format(key=random_name, string=random_hash)
         )
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__,
-                          random_openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_plurals(self):
         random_key = generate_random_string()
@@ -93,7 +92,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
-        self.assertEquals(
+        self.assertEqual(
             template,
             strip_leading_spaces(u'''
                 <resources>
@@ -103,9 +102,9 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                 </resources>
             '''.format(key=random_key, hash_=random_hash))
         )
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_no_translatable(self):
         random_key = generate_random_string()
@@ -119,9 +118,9 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
 
-        self.assertEquals(stringset, [])
-        self.assertEquals(template, source)
-        self.assertEquals(compiled, source)
+        self.assertEqual(stringset, [])
+        self.assertEqual(template, source)
+        self.assertEqual(compiled, source)
 
     def test_order_is_kept(self):
         source = '''
@@ -138,8 +137,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             </resources>
         '''
         template, stringset = self.handler.parse(source)
-        self.assertEquals([(string.key, string.order) for string in stringset],
-                          [('a', 0), ('b[0]', 1), ('b[1]', 2), ('c', 3)])
+        self.assertEqual([(string.key, string.order) for string in stringset],
+                         [('a', 0), ('b[0]', 1), ('b[1]', 2), ('c', 3)])
 
     def test_string_inner_tags_are_collected(self):
         source = '''
@@ -149,8 +148,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         '''
         template, stringset = self.handler.parse(source)
         string = stringset[0]
-        self.assertEquals(string.key, 'a')
-        self.assertEquals(string.string, "hello <b>world</b>")
+        self.assertEqual(string.key, 'a')
+        self.assertEqual(string.string, "hello <b>world</b>")
 
     def test_string_content_is_valid_xml(self):
         source = '''
@@ -160,8 +159,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         '''
         template, stringset = self.handler.parse(source)
         string = stringset[0]
-        self.assertEquals(string.key, 'a')
-        self.assertEquals(string.string, "hello <b>world</b>")
+        self.assertEqual(string.key, 'a')
+        self.assertEqual(string.string, "hello <b>world</b>")
 
     def test_string_content_is_not_valid_xml(self):
         self._test_parse_error(
@@ -183,8 +182,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         template, stringset = self.handler.parse(source)
 
-        self.assertEquals(stringset, [])
-        self.assertEquals(template, source)
+        self.assertEqual(stringset, [])
+        self.assertEqual(template, source)
 
     def test_empty_string_array_item_ignored(self):
         random_key = generate_random_string()
@@ -198,8 +197,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         template, stringset = self.handler.parse(source)
 
-        self.assertEquals(stringset, [])
-        self.assertEquals(template, source)
+        self.assertEqual(stringset, [])
+        self.assertEqual(template, source)
 
     def test_empty_plural_raises_error(self):
         self._test_parse_error(
@@ -235,8 +234,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         '''
         template, stringset = self.handler.parse(source)
 
-        self.assertEquals(template, source)
-        self.assertEquals(stringset, [])
+        self.assertEqual(template, source)
+        self.assertEqual(stringset, [])
 
     def test_missing_translated_strings_removed(self):
         random_key = generate_random_string()
@@ -249,7 +248,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(compiled, strip_leading_spaces(u'''
+        self.assertEqual(compiled, strip_leading_spaces(u'''
             <resources>
                 </resources>
         '''))
@@ -270,7 +269,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [stringset[0]])
-        self.assertEquals(compiled, strip_leading_spaces(u'''
+        self.assertEqual(compiled, strip_leading_spaces(u'''
             <resources>
                 <string-array name="{key}">
                     <item>{string1}</item>
@@ -294,7 +293,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(compiled, strip_leading_spaces(u'''
+        self.assertEqual(compiled, strip_leading_spaces(u'''
             <resources>
                 </resources>
         '''.format(key=random_key, singular=random_singular,
@@ -313,7 +312,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(compiled, strip_leading_spaces(u'''
+        self.assertEqual(compiled, strip_leading_spaces(u'''
             <resources>
                 </resources>
         '''))
@@ -334,8 +333,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_missing_quantity_raises_error(self):
         self._test_parse_error(
@@ -442,8 +441,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         '''
         template, stringset = self.handler.parse(source)
         string = stringset[0]
-        self.assertEquals(string.key, 'a')
-        self.assertEquals(string.string, {1: 'one', 5: 'one'})
+        self.assertEqual(string.key, 'a')
+        self.assertEqual(string.string, {1: 'one', 5: 'one'})
 
     def test_name_escaping_helps_with_duplication_cornercases(self):
         source = '''s
@@ -457,8 +456,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             </resources>
         '''
         template, stringset = self.handler.parse(source)
-        self.assertEquals(stringset[0].key, "a\\[0]")
-        self.assertEquals(stringset[1].key, "a[0]")
+        self.assertEqual(stringset[0].key, "a\\[0]")
+        self.assertEqual(stringset[1].key, "a[0]")
 
         source = r'''
             <resources>
@@ -472,8 +471,8 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             </resources>
         '''
         template, stringset = self.handler.parse(source)
-        self.assertEquals(stringset[0].key, "a\\[0]")
-        self.assertEquals(stringset[1].key, "a\\\\[0]")
+        self.assertEqual(stringset[0].key, "a\\[0]")
+        self.assertEqual(stringset[1].key, "a\\\\[0]")
 
     def test_missing_name(self):
         self._test_parse_error('<resources><string>hello</string></resources>',
@@ -527,7 +526,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         ''')
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset[:1])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces('''
                 <resources>
@@ -547,7 +546,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         ''')
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset[:1])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces('''
                 <resources>
@@ -569,7 +568,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         ''')
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces('''
                 <resources>
@@ -589,7 +588,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         ''')
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces('''
                 <resources>
@@ -609,7 +608,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         ''')
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces('''
                 <resources>
@@ -632,7 +631,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         ''')
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces('''
                 <resources>
@@ -665,18 +664,18 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_single_string_skipped(self):
         source = u'<resources><string name="a" /></resources>'
         template, stringset = self.handler.parse(source)
-        self.assertEquals(source, template)
-        self.assertEquals(len(stringset), 0)
+        self.assertEqual(source, template)
+        self.assertEqual(len(stringset), 0)
         compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, source)
+        self.assertEqual(compiled, source)
 
     def test_single_string_array_skipped(self):
         source = u'<resources><string-array name="a" /></resources>'
         template, stringset = self.handler.parse(source)
-        self.assertEquals(source, template)
-        self.assertEquals(len(stringset), 0)
+        self.assertEqual(source, template)
+        self.assertEqual(len(stringset), 0)
         compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, source)
+        self.assertEqual(compiled, source)
 
     def test_single_string_array_item_skipped(self):
         random_key = generate_random_string()
@@ -698,11 +697,11 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
 
-        self.assertEquals(template, source_template.format(key=random_key,
+        self.assertEqual(template, source_template.format(key=random_key,
                                                            string=random_hash))
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_single_plural_raises(self):
         self._test_parse_error(
@@ -723,7 +722,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         # Try for source
         compiled = self.handler.compile(template, [string], is_source=True)
-        self.assertEquals(compiled, """
+        self.assertEqual(compiled, """
             <resources>
                 <string name="untranslatable"
                         translatable="false">Untranslatable</string>
@@ -733,7 +732,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         # Try for translation
         compiled = self.handler.compile(template, [string], is_source=False)
-        self.assertEquals(compiled, """
+        self.assertEqual(compiled, """
             <resources>
                 <string name="{key}">{string}</string>
             </resources>
@@ -758,14 +757,14 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, [random_openstring],
                                         language_info={'code': "fr"})
 
-        self.assertEquals(
+        self.assertEqual(
             template,
             source_python_template.format(language_code="en", key=random_key,
                                           string=random_hash)
         )
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled,
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled,
                           source_python_template.format(language_code="fr",
                                                         key=random_key,
                                                         string=random_string))
@@ -826,7 +825,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             (u'@string/one', u'@string/one'),
         )
         for rich, raw in cases:
-            self.assertEquals(AndroidHandler.escape(bytes_to_string(rich)),
+            self.assertEqual(AndroidHandler.escape(bytes_to_string(rich)),
                               bytes_to_string(raw))
 
     def test_unescape(self):
@@ -870,5 +869,5 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
             (u'@string/one', u'@string/one'),
         )
         for raw, rich in cases:
-            self.assertEquals(AndroidHandler.unescape(bytes_to_string(raw)),
+            self.assertEqual(AndroidHandler.unescape(bytes_to_string(raw)),
                               bytes_to_string(rich))

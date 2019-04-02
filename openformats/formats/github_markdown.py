@@ -1,7 +1,11 @@
 from __future__ import absolute_import
+
 import re
 
-from mistune import (BlockLexer, Markdown)
+import six
+
+from mistune import BlockLexer, Markdown
+from openformats.utils.compat import ensure_unicode
 
 from ..handlers import Handler
 from ..strings import OpenString
@@ -32,31 +36,34 @@ def string_handler(token, template):
     if key == 'block_code':
         lines = string.split('\n')
         line = lines[0]
-        spaces = re.findall(r'\n( *){}'.format(re.escape(line)), template)[0]
+        spaces = re.findall(
+            ensure_unicode(r'\n( *){}'.format(re.escape(line))),
+            template
+        )[0]
         if spaces:
             string = ''
-            for l in lines:
-                l = '{}{}'.format(spaces, l)
+            for line in lines:
+                line = '{}{}'.format(spaces, line)
                 string += '\n'
-                string += l
+                string += line
 
     # Line is a liquid template tag, ignore.
     if string.startswith('{%') and string.endswith('%}'):
         return
 
     # Drop # chars from beginning of the string
-    match_header_line = re.search(r'^#+\s', string)
+    match_header_line = re.search(ensure_unicode(r'^#+\s'), string)
     if match_header_line:
         return string.replace(match_header_line.group(), '')
 
     # Extract Text from `[Text](link)` or `"[Text](link)"` lines
-    match_link = re.search(r'^"?\[(.+)\]\(.+\)"?$', string)
+    match_link = re.search(ensure_unicode(r'^"?\[(.+)\]\(.+\)"?$'), string)
     if match_link:
         # Get content between brackets
         return match_link.groups()[0]
 
     # Extract Text from `[Text]: link` or `"[Text]: link"` lines
-    match_reference = re.search(r'^"?\[(.+)\]:.+"?$', string)
+    match_reference = re.search(ensure_unicode(r'^"?\[(.+)\]:.+"?$'), string)
     if match_reference:
         try:
             int(match_reference.groups()[0])
@@ -115,7 +122,7 @@ class TxBlockLexer(BlockLexer):
                 # content in the `self.md_stringset` because of the recursion.
                 if key and key in table_rules:
                     table_token = self.tokens[-1]
-                    keys = table_token.keys()
+                    keys = list(six.iterkeys(table_token))
                     if 'header' in keys and 'cells' in keys:
                         self.md_stringset.extend(
                             [(h, 'header') for h in table_token['header']])
@@ -170,7 +177,9 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
                 # and are at least 2 spaces more intented that the parent line
                 # as one string
                 if value and value in '|>[':
-                    indent = len(re.search(r'^( *)', key_value[0]).group(0))
+                    indent = len(re.search(ensure_unicode(r'^( *)'),
+                                           key_value[0]).
+                                 group(0))
                     block = True
                     continue
                 yaml_strings.append((value, None))
@@ -185,14 +194,16 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         # mistune expands tabs to 4 spaces and trims trailing spaces, so we
         # need to do the same in order to be able to match the substrings
         template = content.expandtabs(4)
-        pattern = re.compile(r'^ +$', re.M)
+        pattern = re.compile(ensure_unicode(r'^ +$'), re.M)
         content = pattern.sub('', template)
 
         template = content
         stringset = []
 
-        yml_header = re.match(r'^(---\s+)([\s\S]*?[^`])\s*(\n---\s+)(?!-)',
-                              content)
+        yml_header = re.match(
+            ensure_unicode(r'^(---\s+)([\s\S]*?[^`])\s*(\n---\s+)(?!-)'),
+            content
+        )
         yaml_header_content = ''
         yaml_stringset = []
         if yml_header:
@@ -216,7 +227,9 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         for string in (yaml_stringset + block.md_stringset):
             string = string_handler(string, template)
             if string and string in template[curr_pos:]:
-                string_object = OpenString(str(order), string, order=order)
+                string_object = OpenString(six.text_type(order),
+                                           string,
+                                           order=order)
                 order += 1
                 stringset.append(string_object)
                 # Keep track of the index of the last replaced hash

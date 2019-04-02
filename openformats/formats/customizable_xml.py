@@ -156,7 +156,7 @@ class CustomizableXMLHandler(Handler):
                         key,
                         tag.content,
                         context=section_tag.attrib[self.section_id_name],
-                        order=order_counter.next(),
+                        order=next(order_counter),
                     )
                     stringset.append(string)
 
@@ -306,8 +306,7 @@ class CustomizableXMLHandler(Handler):
             the iterable
         """
         try:
-            next_string = self.stringset.next()
+            next_string = next(self.stringset)
         except StopIteration:
             next_string = None
         return next_string
-

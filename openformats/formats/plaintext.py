@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
-from ..handlers import Handler
+import six
+
 from openformats.strings import OpenString
+
+from ..handlers import Handler
 from ..utils.compilers import OrderedCompilerMixin
 
 
@@ -30,7 +33,9 @@ class PlaintextHandler(OrderedCompilerMixin, Handler):
         for line in lines:
             stripped_line = line.strip()
             if stripped_line:
-                string = OpenString(str(order), stripped_line, order=order)
+                string = OpenString(six.text_type(order),
+                                    stripped_line,
+                                    order=order)
                 order += 1
                 stringset.append(string)
 

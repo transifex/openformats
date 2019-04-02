@@ -1,15 +1,19 @@
 from __future__ import absolute_import
+
 import re
 
-from mistune import Markdown
+import six
 
+from mistune import Markdown
 from openformats.formats.github_markdown import TxBlockLexer, string_handler
 from openformats.formats.yaml import YamlHandler
+from openformats.utils.compat import ensure_unicode
+
 from ..handlers import Handler
 from ..strings import OpenString
+from ..transcribers import Transcriber
 from ..utils.compilers import OrderedCompilerMixin
 from ..utils.newlines import find_newline_type, force_newline_type
-from ..transcribers import Transcriber
 
 
 class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
@@ -58,13 +62,15 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         # mistune expands tabs to 4 spaces and trims trailing spaces, so we
         # need to do the same in order to be able to match the substrings
         template = content.expandtabs(4)
-        pattern = re.compile(r'^ +$', re.M)
+        pattern = re.compile(ensure_unicode(r'^ +$'), re.M)
         content = pattern.sub('', template)
 
         stringset = []
 
-        yml_header = re.match(r'^(---\s+)([\s\S]*?[^`]\s*)(\n---\s+)(?!-)',
-                              content)
+        yml_header = re.match(
+            ensure_unicode(r'^(---\s+)([\s\S]*?[^`]\s*)(\n---\s+)(?!-)'),
+            content
+        )
         yaml_header_content = ''
         yaml_stringset = []
         yaml_template = ''
@@ -98,7 +104,9 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             # We do this to avoid parsing strings that are not properly
             # handled by the Markdown library, such as ```code``` blocks
             if string and string in md_template[curr_pos:]:
-                string_object = OpenString(str(order), string, order=order)
+                string_object = OpenString(six.text_type(order),
+                                           string,
+                                           order=order)
                 order += 1
                 stringset.append(string_object)
                 # Keep track of the index of the last replaced hash

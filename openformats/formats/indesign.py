@@ -3,14 +3,16 @@ from __future__ import absolute_import
 import io
 import re
 import unicodedata
-
 from itertools import count
-from lxml import etree
-from ucf import UCF
 
+import six
+
+from lxml import etree
 from openformats.handlers import Handler
-from openformats.transcribers import Transcriber
 from openformats.strings import OpenString
+from openformats.transcribers import Transcriber
+from openformats.utils.compat import ensure_unicode
+from ucf import UCF
 
 
 class InDesignHandler(Handler):
@@ -28,8 +30,10 @@ class InDesignHandler(Handler):
 
     # The ? at the end of the string regex, makes it non-greedy in order to
     # allow trailing spaces to be preserved
-    CONTENT_REGEX = re.compile(r'(<Content>\s*)(.*?)(\s*</Content>)')
-    SPECIAL_CHARACTERS_REGEX = re.compile(r'<\?ACE \d+\?>|<Br/>;')
+    CONTENT_REGEX = r'(<Content>\s*)(.*?)(\s*</Content>)'
+    SPECIAL_CHARACTERS_REGEX = re.compile(
+        ensure_unicode(r'<\?ACE \d+\?>|<Br/>;')
+    )
 
     """ Parse Methods """
 
@@ -54,13 +58,14 @@ class InDesignHandler(Handler):
         # Iterate over the contents of the IDML file
         for key in ordered_stories:
             try:
-                story_content = idml[key]
+                # No matter what, idml values are bytes
+                story_content = idml[key].decode('utf8')
             except KeyError:
                 continue
             story_content = self._find_and_replace(story_content)
 
             # Update the XML file to contain the template strings
-            idml[key] = str(story_content)
+            idml[key] = story_content.encode('utf-8')
 
         out = io.BytesIO()
         idml.save(out)
@@ -89,7 +94,7 @@ class InDesignHandler(Handler):
         # In case there are stories that is not referenced in designmap.xml,
         # append them at the end of the list
         all_stories = {
-            k for k in idml.keys()
+            k for k in six.iterkeys(idml)
             if k.startswith('Stories') or k == BACKING_STORY
         }
         story_keys.extend(all_stories - set(story_keys))
@@ -101,7 +106,9 @@ class InDesignHandler(Handler):
         Strings that contain only special characters or can be evaluated
         to a nunber are skipped.
         """
-        stripped_string = self.SPECIAL_CHARACTERS_REGEX.sub('', string).strip()
+        stripped_string = re.\
+            sub(ensure_unicode(self.SPECIAL_CHARACTERS_REGEX), u'', string).\
+            strip()
         if not stripped_string:
             return True
         try:
@@ -138,7 +145,9 @@ class InDesignHandler(Handler):
             the input string with all translatable content replaced by the
             md5 hash of the string.
         """
-        template = self.CONTENT_REGEX.sub(self._replace, story_xml)
+        template = re.sub(ensure_unicode(self.CONTENT_REGEX),
+                          self._replace,
+                          story_xml)
         return template
 
     def _replace(self, match):
@@ -147,15 +156,14 @@ class InDesignHandler(Handler):
         to `self.stringset`.
         """
         opening_tag, string, closing_tag = match.groups()
-        string = string.decode('utf-8')
 
         if self._can_skip_content(string):
             return match.group()
         order = next(self.order)
-        string_object = OpenString(str(order), string, order=order)
+        string_object = OpenString(six.text_type(order), string, order=order)
         self.stringset.append(string_object)
-        return "".join((opening_tag, string_object.template_replacement,
-                        closing_tag))
+        return u"".join((opening_tag, string_object.template_replacement,
+                         closing_tag))
 
     """ Compile Methods """
 
@@ -172,8 +180,9 @@ class InDesignHandler(Handler):
             except KeyError:
                 continue
 
-            story_content = idml[key]
-            idml[key] = self._compile_story(story_content)
+            # no matter what, idml values are bytes
+            story_content = idml[key].decode()
+            idml[key] = self._compile_story(story_content).encode('utf-8')
 
         out = io.BytesIO()
         idml.save(out)
@@ -187,7 +196,7 @@ class InDesignHandler(Handler):
             compiled_story: the compiled story content
         """
         transcriber = Transcriber(story_content)
-        hash_regex = re.compile('[a-z,0-9]{32}_tr')
+        hash_regex = re.compile(ensure_unicode(r'[a-z,0-9]{32}_tr'))
         found = True
         while found:
             try:
@@ -202,7 +211,7 @@ class InDesignHandler(Handler):
                 break
             else:
                 transcriber.copy_until(hash_position)
-                transcriber.add(current_string.string.encode('utf-8'))
+                transcriber.add(current_string.string)
                 transcriber.skip(len(current_string.template_replacement))
 
         # Update the XML file to contain the template strings
@@ -210,5 +219,5 @@ class InDesignHandler(Handler):
         compiled_story = transcriber.get_destination()
         # in case there are any hashes that have not been replaced, replace
         # them with an empty string
-        compiled_story = hash_regex.sub('', compiled_story)
+        compiled_story = hash_regex.sub(u'', compiled_story)
         return compiled_story

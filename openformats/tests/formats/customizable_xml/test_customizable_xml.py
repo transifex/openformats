@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-
 import unittest
 
-from openformats.formats.customizable_xml import CustomizableXMLHandler
+import six
 
 from openformats.exceptions import ParseError
+from openformats.formats.customizable_xml import CustomizableXMLHandler
 from openformats.strings import OpenString
-
 from openformats.tests.formats.common import CommonFormatTestMixin
-
 
 TEST_CONTENT = u"""
 <?xml version="1.0" encoding="UTF-8"?>
@@ -85,8 +83,8 @@ class CustomizableXMLTestCase(CommonFormatTestMixin, unittest.TestCase):
         with self.assertRaises(ParseError) as context:
             handler.parse(content)
         self.assertEqual(
-            str(context.exception),
-            'Root node "<invalid>" not found',
+            six.text_type(context.exception),
+            u'Root node "<invalid>" not found',
         )
 
     def test_missing_key_in_string_node_on_parsing_raises_error(self):
@@ -97,9 +95,9 @@ class CustomizableXMLTestCase(CommonFormatTestMixin, unittest.TestCase):
         with self.assertRaises(ParseError) as context:
             handler.parse(content)
         self.assertEqual(
-            str(context.exception),
-            'Missing "{key}" attribute in <{string}> node, '
-            'parent of "<{tag}>A translatable string</{tag}>"'.format(
+            six.text_type(context.exception),
+            u'Missing "{key}" attribute in <{string}> node, '
+            u'parent of "<{tag}>A translatable string</{tag}>"'.format(
                 key=handler.string_key_name,
                 string=handler.string_name,
                 tag='s',
@@ -115,8 +113,8 @@ class CustomizableXMLTestCase(CommonFormatTestMixin, unittest.TestCase):
         with self.assertRaises(ParseError) as context:
             handler.compile(template, _create_stringset())
         self.assertEqual(
-            str(context.exception),
-            'Root node "<invalid>" not found',
+            six.text_type(context.exception),
+            u'Root node "<invalid>" not found',
         )
 
 

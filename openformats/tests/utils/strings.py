@@ -1,9 +1,12 @@
-from string import ascii_letters, digits
 from random import choice
+from string import ascii_letters, digits
+
+import six
 
 
 def generate_random_string(length=20):
-    return ''.join(choice(ascii_letters + digits) for _ in range(length))
+    return ''.join((choice(ascii_letters + digits)
+                    for _ in six.moves.xrange(length)))
 
 
 def strip_leading_spaces(source):
@@ -27,5 +30,5 @@ def strip_leading_spaces(source):
 
 def bytes_to_string(_bytes):
     for byte in _bytes:
-        assert len(byte) == 1, str(_bytes)
+        assert len(byte) == 1, six.text_type(_bytes)
     return u''.join(_bytes)

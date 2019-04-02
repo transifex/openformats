@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
+from io import open
 
 from openformats.formats.indesign import InDesignHandler
 from openformats.strings import OpenString
@@ -22,7 +23,8 @@ class InDesignTestCase(unittest.TestCase):
 
         template2, stringset2 = self.HANDLER_CLASS().parse(finalidml)
 
-        self.assertEqual(str(stringset), str(stringset2))
+        self.assertEqual([hash(string) for string in stringset],
+                         [hash(string) for string in stringset2])
         self.assertEqual(template, template2)
 
     def test_parser(self):
@@ -71,7 +73,7 @@ class InDesignTestCase(unittest.TestCase):
 
     def test_find_and_replace_simple_story(self):
         handler = self.HANDLER_CLASS()
-        simple_input = """
+        simple_input = u"""
             <Story>
               <Content>One string</Content>
               <Metadata></Metadata>
@@ -79,7 +81,7 @@ class InDesignTestCase(unittest.TestCase):
             </Story>
         """
 
-        simple_output = """
+        simple_output = u"""
             <Story>
               <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
               <Metadata></Metadata>
@@ -91,7 +93,7 @@ class InDesignTestCase(unittest.TestCase):
         self.assertEqual(len(handler.stringset), 1)
 
     def test_compile_story(self):
-        simple_story_template = """
+        simple_story_template = u"""
             <Story>
               <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
               <Content>3afcdbfeb6ecfbdd0ba628696e3cc163_tr</Content>
@@ -99,7 +101,7 @@ class InDesignTestCase(unittest.TestCase):
               <Content>  <?ACE 7?></Content>
             </Story>
         """
-        simple_compiled_story = """
+        simple_compiled_story = u"""
             <Story>
               <Content>Some string 1</Content>
               <Content>Some string 2</Content>
@@ -109,15 +111,15 @@ class InDesignTestCase(unittest.TestCase):
         """
         handler = self.HANDLER_CLASS()
         handler.stringset = [
-            OpenString(str(0), "Some string 1", order=0),
-            OpenString(str(1), "Some string 2", order=1),
+            OpenString(u"0", u"Some string 1", order=0),
+            OpenString(u"1", u"Some string 2", order=1),
         ]
 
         compiled_story = handler._compile_story(simple_story_template)
         self.assertEqual(compiled_story, simple_compiled_story)
 
     def test_compile_story_missing_strings(self):
-        simple_story_template = """
+        simple_story_template = u"""
             <Story>
               <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
               <Content>3afcdbfeb6ecfbdd0ba628696e3cc163_tr</Content>
@@ -125,7 +127,7 @@ class InDesignTestCase(unittest.TestCase):
               <Content>  <?ACE 7?></Content>
             </Story>
         """
-        simple_compiled_story = """
+        simple_compiled_story = u"""
             <Story>
               <Content>Some string 1</Content>
               <Content></Content>
@@ -135,14 +137,14 @@ class InDesignTestCase(unittest.TestCase):
         """
         handler = self.HANDLER_CLASS()
         handler.stringset = [
-            OpenString(str(0), "Some string 1", order=0),
+            OpenString(u"0", u"Some string 1", order=0),
         ]
 
         compiled_story = handler._compile_story(simple_story_template)
         self.assertEqual(compiled_story, simple_compiled_story)
 
     def test_compile_two_stories_with_strings(self):
-        first_story_template = """
+        first_story_template = u"""
             <Story>
               <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
               <Content>3afcdbfeb6ecfbdd0ba628696e3cc163_tr</Content>
@@ -150,7 +152,7 @@ class InDesignTestCase(unittest.TestCase):
               <Content>  <?ACE 7?></Content>
             </Story>
         """
-        second_story_template = """
+        second_story_template = u"""
             <Story>
               <Content>9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr</Content>
               <Content>cdee9bf40a070d58d14dfa3bb61e0032_tr</Content>
@@ -158,7 +160,7 @@ class InDesignTestCase(unittest.TestCase):
               <Content>  <?ACE 7?></Content>
             </Story>
         """
-        expected_first_compiled_story = """
+        expected_first_compiled_story = u"""
             <Story>
               <Content>Some string 1</Content>
               <Content></Content>
@@ -166,7 +168,7 @@ class InDesignTestCase(unittest.TestCase):
               <Content>  <?ACE 7?></Content>
             </Story>
         """
-        expected_second_compiled_story = """
+        expected_second_compiled_story = u"""
             <Story>
               <Content></Content>
               <Content>Some string 2</Content>
@@ -177,8 +179,8 @@ class InDesignTestCase(unittest.TestCase):
         # strings #1 and #2 are missing from the stringset
         handler = self.HANDLER_CLASS()
         handler.stringset = [
-            OpenString(str(0), "Some string 1", order=0),
-            OpenString(str(3), "Some string 2", order=3),
+            OpenString(u"0", u"Some string 1", order=0),
+            OpenString(u"3", u"Some string 2", order=3),
         ]
 
         first_compiled_story = handler._compile_story(

@@ -1,12 +1,14 @@
-import re
 import copy
 import itertools
+import re
+
+import six
 
 import polib
 
+from ..exceptions import ParseError
 from ..handlers import Handler
 from ..strings import OpenString
-from ..exceptions import ParseError
 
 
 class PoHandler(Handler):
@@ -34,7 +36,7 @@ class PoHandler(Handler):
             po = polib.pofile(content)
         except Exception as e:
             raise ParseError("Error while validating PO file syntax: {}".
-                             format(e.message))
+                             format(six.text_type(e)))
         self.only_values = False
         self.only_keys = False
         self.new_po = copy.copy(po)
@@ -43,7 +45,7 @@ class PoHandler(Handler):
             openstring = self._handle_entry(entry)
             if openstring is not None:
                 stringset.append(openstring)
-        return unicode(self.new_po), stringset
+        return six.text_type(self.new_po), stringset
 
     def _handle_entry(self, entry):
         """Handles a po file entry.
@@ -183,9 +185,7 @@ class PoHandler(Handler):
                     is.
         """
         if pluralized:
-            string = {
-                int(k): v for k, v in entry.msgstr_plural.iteritems()
-            }
+            string = {int(k): v for k, v in six.iteritems(entry.msgstr_plural)}
 
         else:
             string = entry.msgstr
@@ -230,7 +230,8 @@ class PoHandler(Handler):
         if pluralized:
             # Find the plurals that have empty string
             text_value_set = set(
-                value and value.strip() or "" for value in string.itervalues()
+                value and value.strip() or ""
+                for value in six.itervalues(string)
             )
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
@@ -287,7 +288,7 @@ class PoHandler(Handler):
                     continue
             indexes_to_remove.append(i)
         self._smart_remove(po, indexes_to_remove)
-        return unicode(po)
+        return six.text_type(po)
 
     def _compile_entry(self, entry, next_string):
         """Compiles the current non pluralized entry.

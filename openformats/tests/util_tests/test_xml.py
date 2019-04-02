@@ -52,7 +52,7 @@ class DumbXmlTestCase(unittest.TestCase):
         )
         for case in cases:
             dumb_xml = NewDumbXml(case[0])
-            self.assertEquals(
+            self.assertEqual(
                 (dumb_xml.source, dumb_xml.position, dumb_xml.tag,
                  dumb_xml.attributes, dumb_xml.attrib, dumb_xml.text_position,
                  dumb_xml.text, dumb_xml.content, dumb_xml.content_end,
@@ -73,7 +73,7 @@ class DumbXmlTestCase(unittest.TestCase):
                  ('<!--jafosijdfoas-', "Comment not closed on line 1"))
         for source, error_msg in cases:
             with self.assertRaisesRegexp(DumbXmlSyntaxError,
-                                         r'^{}$'.format(re.escape(error_msg))):
+                                        r'^{}$'.format(re.escape(error_msg))):
                 dumb_xml = NewDumbXml(source)
                 dumb_xml.end  # should expand all properties eventually
 
@@ -131,9 +131,9 @@ class DumbXmlTestCase(unittest.TestCase):
         for case in cases:
             root = NewDumbXml(case[0])
             children = list(root)
-            self.assertEquals(len(children), 1)
+            self.assertEqual(len(children), 1)
             inner = children[0]
-            self.assertEquals(
+            self.assertEqual(
                 (inner.source, root.content, root.content_end, inner.position,
                  inner.tag, inner.attributes, inner.attrib,
                  inner.text_position, inner.text, inner.tail_position,
@@ -163,8 +163,8 @@ class DumbXmlTestCase(unittest.TestCase):
             content = case[1]
             children_sources = case[2:]
             root = NewDumbXml(root_source)
-            self.assertEquals(root.content, content)
-            self.assertEquals(
+            self.assertEqual(root.content, content)
+            self.assertEqual(
                 [inner.source[inner.position:inner.end] for inner in root],
                 children_sources
             )
@@ -178,7 +178,7 @@ class DumbXmlTestCase(unittest.TestCase):
         )
         for source, error_msg in cases:
             with self.assertRaisesRegexp(DumbXmlSyntaxError,
-                                         r'^{}$'.format(re.escape(error_msg))):
+                                        r'^{}$'.format(re.escape(error_msg))):
                 list(NewDumbXml(source))
 
     def test_inbetweens(self):
@@ -186,9 +186,9 @@ class DumbXmlTestCase(unittest.TestCase):
         collected = [root.text]
         for inner in root:
             collected.append(inner.tail)
-        self.assertEquals(root.content,
-                          'This<b/>is<c/>separated<d/>by<e/>tags')
-        self.assertEquals(collected, ['This', 'is', 'separated', 'by', 'tags'])
+        self.assertEqual(root.content,
+                         'This<b/>is<c/>separated<d/>by<e/>tags')
+        self.assertEqual(collected, ['This', 'is', 'separated', 'by', 'tags'])
 
     def test_find_children(self):
         root = NewDumbXml("""
@@ -202,7 +202,7 @@ class DumbXmlTestCase(unittest.TestCase):
                 <li highlight="true">three</li>
             </ul>
         """)
-        self.assertEquals(
+        self.assertEqual(
             [(inner.tag, inner.attrib, inner.text)
              for inner in root.find_children('li')],
             [('li', {}, "one"), ('li', {}, "two"),
@@ -217,7 +217,7 @@ class DumbXmlTestCase(unittest.TestCase):
                 <c>CCC</c>
             </root>
         """)
-        self.assertEquals(
+        self.assertEqual(
             [(inner.tag, inner.attrib, inner.text)
              for inner in root.find_children('a', 'b')],
             [('a', {}, "AAA"),
@@ -236,7 +236,7 @@ class DumbXmlTestCase(unittest.TestCase):
                 <li highlight="true">three</li>
             </ul>
         """)
-        self.assertEquals(
+        self.assertEqual(
             [(inner.tag, inner.attrib, inner.text.strip())
              for inner in root.find_children()],
             [('li', {}, "one"),
@@ -256,7 +256,7 @@ class DumbXmlTestCase(unittest.TestCase):
                 </div>
             </div>
         """)
-        self.assertEquals(
+        self.assertEqual(
             [(inner.tag, inner.attrib, inner.text)
              for inner in root.find_descendants('p')],
             [('p', {}, "Header"),
@@ -273,7 +273,7 @@ class DumbXmlTestCase(unittest.TestCase):
                 </b>
             </root>
         """)
-        self.assertEquals(
+        self.assertEqual(
             [(inner.tag, inner.attrib, inner.text)
              for inner in root.find_descendants('a', 'c')],
             [('a', {}, "first child"),
@@ -291,7 +291,7 @@ class DumbXmlTestCase(unittest.TestCase):
                 </div>
             </div>
         """)
-        self.assertEquals(
+        self.assertEqual(
             [(inner.tag, inner.attrib, inner.text and inner.text.strip())
              for inner in root.find_descendants()],
             [('p', {}, "Header"),

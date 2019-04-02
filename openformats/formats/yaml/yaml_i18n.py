@@ -1,6 +1,9 @@
 from __future__ import absolute_import
+
 import json
 import re
+
+import six
 
 from openformats.exceptions import ParseError
 from openformats.formats.yaml import YamlHandler
@@ -38,7 +41,7 @@ class I18nYamlHandler(YamlHandler):
         if not isinstance(node, dict):
             return False
 
-        node_keys = node.keys()
+        node_keys = list(six.iterkeys(node))
         # if one of the plural rules is missing from the node keys then this is
         # not a pluralized node
         for rule in rule_names:
@@ -48,7 +51,7 @@ class I18nYamlHandler(YamlHandler):
         # if there are extra keys make sure that they are plural rules
         extra_keys = set(node_keys) - set(rule_names)
         for key in extra_keys:
-            if key not in self._RULES_ATOI.keys():
+            if key not in six.iterkeys(self._RULES_ATOI):
                 return False
 
         # if any one of the values of the node contains sub nodes then this is
@@ -57,13 +60,14 @@ class I18nYamlHandler(YamlHandler):
         #   one:
         #     nested_key: value
         #   other: other_value
-        if any([isinstance(n.value, (dict, list)) for n in node.values()]):
+        if any([isinstance(n.value, (dict, list))
+                for n in six.itervalues(node)]):
             return False
 
         return True
 
     def _get_yaml_data_to_parse(self, yaml_data):
-        keys = yaml_data.keys()
+        keys = list(six.iterkeys(yaml_data))
         if len(keys) > 1:
             raise ParseError("YAML file contains more than one root keys.")
 
@@ -107,13 +111,15 @@ class I18nYamlHandler(YamlHandler):
         plural_styles_json = self._get_plural_styles(string)
 
         plurals = []
-        for rule, translation in string.string.items():
+        for rule, translation in six.iteritems(string.string):
             # If a translation contains a rule that does not exist in the
             # source language, then we inherit the style from the singular
             # version
             default_rule = self.get_rule_number('other')
-            default_style = plural_styles_json.get(str(default_rule), '')
-            plural_style = plural_styles_json.get(str(rule), default_style)
+            default_style = plural_styles_json.get(six.text_type(default_rule),
+                                                   u'')
+            plural_style = plural_styles_json.get(six.text_type(rule),
+                                                  default_style)
             # Dump a Python dictionary that contains a single plural rule as a
             # single YAML rule and preserve the string's style
             plural = yaml.safe_dump(
@@ -122,7 +128,9 @@ class I18nYamlHandler(YamlHandler):
                 default_style=plural_style,
                 allow_unicode=True,
                 width=float('inf'),
-            ).decode('utf-8')
+            )
+            if isinstance(plural, six.binary_type):
+                plural = plural.decode('utf8')
             # The safe_dump method places quotes around the keys too, which are
             # unnecessary. Remove them using the regular expression below. By
             # default, the safe_dump method wraps the keys in double quotes
@@ -211,7 +219,7 @@ class I18nYamlHandler(YamlHandler):
 
         # End position for pluralized string should be the end position of
         # the last plural element and not the end position of the parent node.
-        return max([entry.end for entry in node.values()])
+        return max([entry.end for entry in six.itervalues(node)])
 
     def _parse_pluralized_value(self, node):
         """ Parses input value into an OpenString pluralized value
@@ -230,14 +238,10 @@ class I18nYamlHandler(YamlHandler):
               }
         """
         rule_names = [self.get_rule_string(r) for r in self._lang_rules]
-        value = {
-            self.get_rule_number(key): entry.value
-            for key, entry in node.iteritems()
-            if key in rule_names
-        }
-        styles = {
-            self.get_rule_number(key): entry.style or ''
-            for key, entry in node.iteritems()
-            if key in rule_names
-        }
+        value = {self.get_rule_number(key): entry.value
+                 for key, entry in six.iteritems(node)
+                 if key in rule_names}
+        styles = {self.get_rule_number(key): entry.style or ''
+                  for key, entry in six.iteritems(node)
+                  if key in rule_names}
         return value, styles

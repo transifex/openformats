@@ -6,12 +6,14 @@ import json
 import re
 from itertools import count
 
+import six
+
 from ..exceptions import ParseError
 from ..handlers import Handler
 from ..strings import OpenString
 from ..transcribers import Transcriber
-from ..utils.json import DumbJson
 from ..utils.icu import ICUCompiler, ICUParser
+from ..utils.json import DumbJson
 
 
 class JsonHandler(Handler):
@@ -29,7 +31,7 @@ class JsonHandler(Handler):
     extension = "json"
 
     PLURAL_ARG = 'plural'
-    PLURAL_KEYS_STR = ' '.join(Handler._RULES_ATOI.keys())
+    PLURAL_KEYS_STR = ' '.join(six.iterkeys(Handler._RULES_ATOI))
 
     def parse(self, content, **kwargs):
         # Validate that content is JSON
@@ -43,7 +45,7 @@ class JsonHandler(Handler):
         try:
             parsed = DumbJson(source)
         except ValueError as e:
-            raise ParseError(e.message)
+            raise ParseError(six.text_type(e))
         self._order = count()
         self._extract(parsed)
         self.transcriber.copy_until(len(source))
@@ -65,11 +67,12 @@ class JsonHandler(Handler):
                                      format(key, self.transcriber.line_number))
                 self.existing_keys.add(key)
 
-                if isinstance(value, (str, unicode)):
+                if isinstance(value, (six.binary_type, six.text_type)):
                     if not value.strip():
                         continue
 
-                    openstring = self._create_openstring(key, value, value_position)
+                    openstring = self._create_openstring(key, value,
+                                                         value_position)
                     if openstring:
                         self.stringset.append(openstring)
 
@@ -86,11 +89,12 @@ class JsonHandler(Handler):
                     key = u"..{}..".format(index)
                 else:
                     key = u"{}..{}..".format(nest, index)
-                if isinstance(item, (str, unicode)):
+                if isinstance(item, (six.binary_type, six.text_type)):
                     if not item.strip():
                         continue
 
-                    openstring = self._create_openstring(key, item, item_position)
+                    openstring = self._create_openstring(key, item,
+                                                         item_position)
                     if openstring:
                         self.stringset.append(openstring)
 
@@ -218,7 +222,7 @@ class JsonHandler(Handler):
     def _insert_item(self, value, value_position, is_real_stringset):
         at_least_one = False
 
-        if isinstance(value, (str, unicode)):
+        if isinstance(value, (six.binary_type, six.text_type)):
             string = self._get_next_string()
             string_exists = string is not None
 
@@ -300,7 +304,8 @@ class JsonHandler(Handler):
         replacement_pos = value.find(templ_replacement)
 
         if is_real_stringset:
-            replacement = ICUCompiler().serialize_strings(string.string, delimiter=' ')
+            replacement = ICUCompiler().serialize_strings(string.string,
+                                                          delimiter=' ')
         else:
             replacement = templ_replacement
 
@@ -340,7 +345,7 @@ class JsonHandler(Handler):
         try:
             json.loads(content)
         except ValueError as e:
-            raise ParseError(e.message)
+            raise ParseError(six.text_type(e))
 
     def _clean_empties(self, compiled):
         """ If sections were removed, clean leftover commas, brackets etc.
@@ -480,7 +485,9 @@ class JsonHandler(Handler):
             elif next_symbol == u'u':
                 unicode_escaped = string[ptr:ptr + 6]
                 try:
-                    unescaped = unicode_escaped.decode('unicode-escape')
+                    unescaped = unicode_escaped.\
+                        encode('ascii').\
+                        decode('unicode-escape')
                 except Exception:
                     yield DumbJson.BACKSLASH
                     yield u'u'
@@ -579,4 +586,4 @@ class ChromeI18nHandler(JsonHandler):
             # Save the JSON dict for later use
             self.json_dict = json.loads(content)
         except ValueError as e:
-            raise ParseError(e.message)
+            raise ParseError(six.text_type(e))

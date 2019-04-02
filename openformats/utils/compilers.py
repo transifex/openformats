@@ -1,12 +1,18 @@
 import re
 
+import six
+
 from openformats.transcribers import Transcriber
+from openformats.utils.compat import ensure_unicode
 
 
 class OrderedCompilerMixin(object):
-    SPACE_PAT = re.compile(r'^\s*$')
+    SPACE_PAT = r'^\s*$'
 
     def compile(self, template, stringset, **kwargs):
+        # Fix regex encoding
+        space_pattern = re.compile(ensure_unicode(self.SPACE_PAT))
+
         # assume stringset is ordered within the template
         transcriber = Transcriber(template)
         template = transcriber.source
@@ -30,10 +36,10 @@ class OrderedCompilerMixin(object):
                     hash_position + len(string.template_replacement) +
                     tail_length
                 ]
-                if (self.SPACE_PAT.search(indent) and
-                        self.SPACE_PAT.search(tail)):
+                if (space_pattern.search(indent) and
+                        space_pattern.search(tail)):
                     transcriber.copy_until(hash_position - indent_length)
-                    for rule, value in string.string.items():
+                    for rule, value in six.iteritems(string.string):
                         transcriber.add(
                             indent + self.plural_template.format(
                                 rule=self.RULES_ITOA[rule], string=value
@@ -46,7 +52,7 @@ class OrderedCompilerMixin(object):
                     # string is not on its own, simply replace hash with all
                     # plural forms
                     transcriber.copy_until(hash_position)
-                    for rule, value in string.string.items():
+                    for rule, value in six.iteritems(string.string):
                         transcriber.add(self.plural_template.format(
                             rule=self.RULES_ITOA[rule], string=value
                         ))

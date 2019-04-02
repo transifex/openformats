@@ -2,8 +2,9 @@ from hashlib import md5
 from random import randint
 from unittest import TestCase
 
-from openformats.strings import OpenString
+import six
 
+from openformats.strings import OpenString
 from openformats.tests.utils import generate_random_string
 
 
@@ -31,7 +32,7 @@ class OpenStringTestCase(TestCase):
     def test_plurals_are_returned(self):
         random_strings = {
             i: generate_random_string()
-            for i in xrange(randint(10, 20))
+            for i in six.moves.xrange(randint(10, 20))
             }
         open_string = OpenString('test', random_strings)
 
@@ -41,7 +42,7 @@ class OpenStringTestCase(TestCase):
     def test_multiples_are_plural(self):
         test_strings = {
             i: generate_random_string()
-            for i in xrange(randint(5, 10))
+            for i in six.moves.xrange(randint(5, 10))
             }
         open_string = OpenString('test', test_strings)
 
@@ -97,12 +98,12 @@ class OpenStringTestCase(TestCase):
     def test_hash_is_calculated_from_components(self):
         random_key = generate_random_string()
         random_context = generate_random_string()
-        random_rule = randint(1, 5)
-        random_hash = hash((random_key, random_context, random_rule))
+        random_string = "hello world"
+        random_hash = hash((random_key, random_context, random_string))
 
         open_string = OpenString(random_key, '')
         open_string.context = random_context
-        open_string.rule = random_rule
+        open_string._strings[5] = random_string
 
         self.assertEqual(hash(open_string), random_hash)
 
@@ -111,5 +112,5 @@ class OpenStringTestCase(TestCase):
 
         self.assertEqual(
             open_string.__repr__(),
-            'Invalid string'
+            b'Invalid string'
         )

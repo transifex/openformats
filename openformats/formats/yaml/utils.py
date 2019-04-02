@@ -1,33 +1,35 @@
 from __future__ import absolute_import
 
-import yaml
 import re
 from collections import OrderedDict, namedtuple
 
+import six
+import yaml
 from yaml.constructor import ConstructorError
 
 from openformats.exceptions import ParseError
+from openformats.utils.compat import ensure_unicode
 
-from .constants import YAML_STRING_ID, YAML_BINARY_ID
-from .yaml_representee_classes import (BlockList, FlowList, literal_unicode,
-                                       folded_unicode, double_quoted_unicode,
-                                       single_quoted_unicode, plain_unicode,
-                                       BlockStyleOrderedDict,
-                                       FlowStyleOrderedDict)
-from .yaml_representers import (unicode_representer,
+from .constants import YAML_BINARY_ID, YAML_STRING_ID
+from .yaml_representee_classes import (BlockList, BlockStyleOrderedDict,
+                                       FlowList, FlowStyleOrderedDict,
+                                       double_quoted_unicode, folded_unicode,
+                                       literal_unicode, plain_unicode,
+                                       single_quoted_unicode)
+from .yaml_representers import (block_list_representer,
+                                block_style_ordered_dict_representer,
+                                double_quoted_unicode_representer,
+                                flow_list_representer,
+                                flow_style_ordered_dict_representer,
                                 folded_unicode_representer,
                                 literal_unicode_representer,
-                                double_quoted_unicode_representer,
-                                single_quoted_unicode_representer,
-                                block_list_representer, flow_list_representer,
                                 ordered_dict_representer,
-                                block_style_ordered_dict_representer,
-                                flow_style_ordered_dict_representer)
+                                single_quoted_unicode_representer,
+                                unicode_representer)
 
-
-yaml.add_representer(unicode, unicode_representer)
+yaml.add_representer(six.text_type, unicode_representer)
 yaml.add_representer(plain_unicode, unicode_representer)
-yaml.add_representer(str, unicode_representer)
+yaml.add_representer(six.binary_type, unicode_representer)
 yaml.add_representer(folded_unicode, folded_unicode_representer)
 yaml.add_representer(literal_unicode, literal_unicode_representer)
 yaml.add_representer(double_quoted_unicode,
@@ -54,7 +56,9 @@ class TxYamlLoader(yaml.SafeLoader):
     def __init__(self, *args, **kwargs):
         super(TxYamlLoader, self).__init__(*args, **kwargs)
         self.stream = args[0]
-        self.post_block_comment_pattern = re.compile(r'(?:#.*\r?\n\s*)+$')
+        self.post_block_comment_pattern = re.compile(
+            ensure_unicode(r'(?:#.*\r?\n\s*)+$')
+        )
 
     def compose_node(self, parent, index):
         """ Override parent compose_node method to ignore aliases """
@@ -82,7 +86,9 @@ class TxYamlLoader(yaml.SafeLoader):
         the built-in identifier. For example `tag:yaml.org,2002:str`, not
         `!!str`.
         """
-        return re.match(r'^[\![a-zA-Z_]*]*$', tag, re.IGNORECASE)
+        return re.match(ensure_unicode(r'^[\![a-zA-Z_]*]*$'),
+                        tag,
+                        re.IGNORECASE)
 
     def construct_mapping(self, node, deep=True):
         """
@@ -103,7 +109,7 @@ class TxYamlLoader(yaml.SafeLoader):
                 key = self.construct_object(key_node, deep=deep)
                 value = self.construct_object(value_node, deep=deep)
             except ConstructorError as e:
-                print("During parsing YAML file: {}".format(unicode(e)))
+                print("During parsing YAML file: {}".format(six.text_type(e)))
                 continue
 
             # raise ConstructorError in case of invalid key
@@ -111,11 +117,13 @@ class TxYamlLoader(yaml.SafeLoader):
                 hash(key)
             except TypeError as e:
                 print("Error while constructing a mapping, found unacceptable"
-                      " key ({})".format(unicode(e)))
+                      " key ({})".format(six.text_type(e)))
                 continue
 
-            if not(isinstance(value, unicode) or isinstance(value, str) or
-                    isinstance(value, list) or isinstance(value, dict)):
+            if not(isinstance(value, six.text_type) or
+                   isinstance(value, six.binary_type) or
+                   isinstance(value, list) or
+                   isinstance(value, dict)):
                 continue
             start = value_node.start_mark.index
             end = value_node.end_mark.index
@@ -132,13 +140,15 @@ class TxYamlLoader(yaml.SafeLoader):
                     style = 'flow'
                 else:
                     style = 'block'
-                    start = (start - (value_node.start_mark.column -
-                             key_node.start_mark.column))
+                    start = (start -
+                             (value_node.start_mark.column -
+                              key_node.start_mark.column))
                     # re calculate end position taking into account
                     # comments after a block node (seq or mapping)
                     end = self._calculate_block_end_pos(start, end)
 
-            elif isinstance(value, str) or isinstance(value, unicode):
+            elif (isinstance(value, six.binary_type) or
+                  isinstance(value, six.text_type)):
                 style = value_node.style
 
             # Setup the node's tag
@@ -147,7 +157,7 @@ class TxYamlLoader(yaml.SafeLoader):
                 hasattr(value_node, 'tag')
                 and self._is_custom_tag(value_node.tag)
             ):
-                tag = unicode(value_node.tag)
+                tag = six.text_type(value_node.tag)
 
             value = Node(value, start, end, style, tag)
             pairs.append((key, value))
@@ -171,10 +181,12 @@ class TxYamlLoader(yaml.SafeLoader):
             try:
                 value = self.construct_object(value_node, deep=deep)
             except ConstructorError as e:
-                print("During parsing YAML file: {}".format(unicode(e)))
+                print("During parsing YAML file: {}".format(six.text_type(e)))
                 continue
-            if not(isinstance(value, unicode) or isinstance(value, str) or
-                    isinstance(value, list) or isinstance(value, dict)):
+            if not(isinstance(value, six.text_type) or
+                   isinstance(value, six.binary_type) or
+                   isinstance(value, list) or
+                   isinstance(value, dict)):
                 continue
             start = value_node.start_mark.index
             end = value_node.end_mark.index
@@ -242,7 +254,7 @@ class YamlGenerator(object):
         for se in stringset:
             keys = se.key.split('.')
             flags = se.flags.split(':')
-            keys = map(self.handler.unescape_dots, keys)
+            keys = list(map(self.handler.unescape_dots, keys))
             if se.pluralized:
                 plural_rules = self.handler.get_plural_rules()
                 for rule in plural_rules:
@@ -438,5 +450,6 @@ class TxYamlDumper(yaml.Dumper):
     """
     Custom YAML dumper for Tx
     """
+
     def increase_indent(self, flow=False, indentless=False):
         return super(TxYamlDumper, self).increase_indent(flow, False)

@@ -92,7 +92,7 @@ class DumbJsonTestCase(unittest.TestCase):
     def _test_dfs(self, content, against):
         dumb_json = DumbJson(content)
         sample = self._dfs(dumb_json)
-        self.assertEquals(sample, against)
+        self.assertEqual(sample, against)
 
     def _dfs(self, dumb_json):
         sample = []
