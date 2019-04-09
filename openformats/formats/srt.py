@@ -134,10 +134,10 @@ class SrtHandler(Handler):
         except ValueError:
             rest, milliseconds = timing, "000"
         hours, minutes, seconds = rest.split(':')
-        hours, minutes, seconds, milliseconds = map(
-            int,
-            (hours, minutes, seconds, milliseconds)
-        )
+        hours, minutes, seconds, milliseconds = (int(hours),
+                                                 int(minutes),
+                                                 int(seconds),
+                                                 int(milliseconds))
         return "{:02}:{:02}:{:02}.{:03}".format(hours, minutes, seconds,
                                                 milliseconds)
 
@@ -145,7 +145,7 @@ class SrtHandler(Handler):
         transcriber = Transcriber(template)
         template = transcriber.source
         stringset = iter(stringset)
-        string = stringset.next()
+        string = next(stringset)
 
         for start, subtitle_section in self.\
                 _generate_split_subtitles(template):
@@ -168,7 +168,7 @@ class SrtHandler(Handler):
                 transcriber.copy_until(start + len(subtitle_section))
                 transcriber.mark_section_end()
                 try:
-                    string = stringset.next()
+                    string = next(stringset)
                 except StopIteration:
                     pass
             else:

@@ -4,11 +4,15 @@ import itertools
 import re
 from xml.sax import saxutils
 
+import six
+
+from openformats.utils.compat import ensure_unicode
+
+from ..exceptions import RuleError
 from ..handlers import Handler
 from ..strings import OpenString
-from ..utils.xml import NewDumbXml
-from ..exceptions import RuleError
 from ..transcribers import Transcriber
+from ..utils.xml import NewDumbXml
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
 
@@ -126,6 +130,7 @@ class StringsDictHandler(Handler):
         :returns: A list containing the openstrings created. If no strings were
                     created the list is empty.
         """
+
         # The first key tag contains the main key
         main_key = self._handle_key(key_tag, main_key=True)
         dict_iterator = self._handle_dict(dict_tag)
@@ -140,7 +145,8 @@ class StringsDictHandler(Handler):
             secondary_key = self._handle_key(key_child)
             value_tag = self._get_key_value(dict_iterator, key_child)
             if secondary_key == self.KEY_FORMAT:
-                matches = re.match(self.VALUE_CONTENT_RE, value_tag.content)
+                matches = re.match(ensure_unicode(self.VALUE_CONTENT_RE),
+                                   value_tag.content)
                 if matches is not None:
                     # The prefix and the suffix are relative to the FIRST
                     # variable
@@ -282,7 +288,7 @@ class StringsDictHandler(Handler):
                 main_key,
                 strings_dict,
                 context=secondary_key,
-                order=self.order_counter.next(),
+                order=next(self.order_counter),
                 pluralized=True
             )
             return openstring
@@ -462,9 +468,8 @@ class StringsDictHandler(Handler):
         :param placeholder_value: The placeholder value tag.
         :NOTE: Assigns the self property `next_string` to the next OpenString.
         """
-        string_list = self.next_string.string.items()
         to_add_list = []
-        for (rule, string) in string_list:
+        for rule, string in six.iteritems(self.next_string.string):
             to_add_list.extend([
                 self.KEY_TEMPLATE.format(
                     rule_string=self.get_rule_string(rule)
@@ -485,7 +490,7 @@ class StringsDictHandler(Handler):
                     the itterable.
         """
         try:
-            next_string = self.stringset.next()
+            next_string = next(self.stringset)
         except StopIteration:
             next_string = None
         return next_string
@@ -498,7 +503,7 @@ class StringsDictHandler(Handler):
         :param iterator: The iterator that contains <key> tag's value.
         """
         try:
-            value_tag = iterator.next()
+            value_tag = next(iterator)
         except StopIteration:
             message = (
                 u"Did not find a value for the <key> tag on "

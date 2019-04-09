@@ -1,6 +1,8 @@
-from ..handlers import Handler
+import six
+
 from ..exceptions import ParseError
-from ..utils.xml import NewDumbXml, DumbXmlSyntaxError
+from ..handlers import Handler
+from ..utils.xml import DumbXmlSyntaxError, NewDumbXml
 
 
 def reraise_syntax_as_parse_errors(func):
@@ -8,7 +10,7 @@ def reraise_syntax_as_parse_errors(func):
         try:
             template, stringset = func(*args, **kwargs)
         except DumbXmlSyntaxError as e:
-            raise ParseError(unicode(e))
+            raise ParseError(six.text_type(e))
         return template, stringset
     return safe_parse
 
@@ -74,7 +76,7 @@ class XMLUtils(object):
 
             # Find the plurals that have empty string
             text_value_set = set(
-                value and value.strip() or "" for value in text.itervalues()
+                value and value.strip() or "" for value in six.itervalues(text)
             )
             if "" in text_value_set and len(text_value_set) != 1:
                 # If not all plurals have empty strings raise ParseError
@@ -93,7 +95,7 @@ class XMLUtils(object):
                 return False
 
             # Validate `other` rule is present
-            if Handler._RULES_ATOI['other'] not in text.keys():
+            if Handler._RULES_ATOI['other'] not in six.iterkeys(text):
                 msg = (
                     u"Quantity 'other' is missing from <plurals> tag "
                     u"on line {line_number}"

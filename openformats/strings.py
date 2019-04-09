@@ -1,5 +1,7 @@
 from hashlib import md5
 
+import six
+
 
 class OpenString(object):
     """
@@ -74,13 +76,15 @@ class OpenString(object):
         self.key = key
         if isinstance(string_or_strings, dict):
             self.pluralized = len(string_or_strings) > 1
-            self._strings = {key: value
-                             for key, value in string_or_strings.items()}
+            self._strings = {
+                key: value
+                for key, value in six.iteritems(string_or_strings)
+            }
         else:
             self.pluralized = False
             self._strings = {5: string_or_strings}
 
-        for key, value in self.DEFAULTS.items():
+        for key, value in six.iteritems(self.DEFAULTS):
             setattr(self, key, kwargs.get(key, value))
 
         if 'pluralized' in kwargs:
@@ -89,12 +93,12 @@ class OpenString(object):
         self._string_hash = None
 
     def __hash__(self):
-        return hash((self.key, self.context, self.rule))
+        return hash((self.key, self.context, self._strings[5]))
 
     def __repr__(self):
         return next(
             (
-                self._strings.get(i) for i in xrange(5, -1, -1)
+                self._strings.get(i) for i in six.moves.xrange(5, -1, -1)
                 if self._strings.get(i)
             ), 'Invalid string'
         ).encode('utf-8')

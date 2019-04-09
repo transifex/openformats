@@ -1,13 +1,15 @@
-
 import re
+
 import pyparsing
+import six
 
-from openformats.handlers import Handler
 from openformats.exceptions import ParseError
-
+from openformats.handlers import Handler
+from openformats.utils.compat import ensure_unicode
 
 NUMERIC_RULES = ['=0', '=1', '=2']
-SUPPORTED_PLURAL_RULES = Handler._RULES_ATOI.keys() + NUMERIC_RULES
+SUPPORTED_PLURAL_RULES = (list(six.iterkeys(Handler._RULES_ATOI)) +
+                          NUMERIC_RULES)
 RULE_MAPPING = {
     '=0': 'zero',
     '=1': 'one',
@@ -103,7 +105,8 @@ class ICUString(object):
             Handler.get_rule_number(
                 normalize_plural_rule(plurality_str)
             ): (
-                PLURAL_FORMAT_NUMERIC if plurality_str in RULE_MAPPING.keys()
+                PLURAL_FORMAT_NUMERIC
+                if plurality_str in six.iterkeys(RULE_MAPPING)
                 else PLURAL_FORMAT_STRING
             )
             for plurality_str, content in self.string_info
@@ -195,8 +198,10 @@ class ICUParser(object):
             an ICU plural string but has an invalid structure
         """
         matches = re.match(
-            ur'\s*{\s*([A-Za-z-_\d]+)\s*,\s*([A-Za-z_]+)\s*,\s*(.*)}\s*',
-            value,
+            ensure_unicode(
+                r'\s*{\s*([A-Za-z-_\d]+)\s*,\s*([A-Za-z_]+)\s*,\s*(.*)}\s*'
+            ),
+            value
         )
         if not matches:
             return None
@@ -382,7 +387,7 @@ class ICUParser(object):
 
         invalid_rules = [
             rule for rule in all_keys
-            if rule not in Handler._RULES_ATOI.keys()
+            if rule not in six.iterkeys(Handler._RULES_ATOI)
         ]
         raise ParseError(
             'Invalid plural rule(s): "{}" in pluralized entry '
@@ -390,7 +395,7 @@ class ICUParser(object):
             'Allowed values are: {}'.format(
                 ', '.join(invalid_rules),
                 key, value,
-                ', '.join(Handler._RULES_ATOI.keys())
+                ', '.join(six.iterkeys(Handler._RULES_ATOI))
             )
         )
 
@@ -451,7 +456,7 @@ class ICUCompiler(object):
                 ),
                 translation=translation,
             )
-            for rule, translation in hashes_by_rule.iteritems()
+            for rule, translation in six.iteritems(hashes_by_rule)
         ]
         return delimiter.join(plural_list)
 
@@ -534,6 +539,6 @@ class ICUCompiler(object):
         hash_str = icu_string.strings_by_rule[5]  # rule 5 always exists
         hash_str = hash_str[:-1]  # remove last char (the plural index)
         return {
-            rule: hash_str + str(index)
+            rule: hash_str + six.text_type(index)
             for index, rule in enumerate(target_plural_forms)
         }

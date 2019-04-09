@@ -6,12 +6,14 @@ import json
 import os
 import traceback
 from importlib import import_module
+from io import open
+
+import six
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views.generic.base import TemplateView, View
 from django.views.generic.edit import CreateView
-
 from openformats.handlers import Handler
 from openformats.strings import OpenString
 
@@ -30,9 +32,10 @@ class HandlerMixin(object):
         format_files = [
             filename
             for filename in os.listdir(os.path.join("openformats", "formats"))
-            if (filename.endswith(".py") and filename != "__init__.py" or
-                os.path.isdir(os.path.join("openformats", "formats", filename))
-            )
+            if (filename.endswith(".py")
+                and filename != "__init__.py" or
+                os.path.isdir(os.path.join("openformats", "formats",
+                                           filename)))
         ]
         for filename in format_files:
             if filename.endswith('.py'):
@@ -56,7 +59,7 @@ class MainView(HandlerMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(MainView, self).get_context_data(**kwargs)
-        context['handlers'] = sorted(self.handlers.keys())
+        context['handlers'] = sorted(six.iterkeys(self.handlers))
         if self.payload_hash:
             payload_row = get_object_or_404(Payload,
                                             payload_hash=self.payload_hash)
@@ -81,14 +84,18 @@ class ApiView(HandlerMixin, View):
     def _choose_handler(self, payload):
         handler_name = payload['handler']
         handler_class = self.handlers[handler_name]
-        handler_name_lower = filter(unicode.isalnum, handler_name).lower()
+        handler_name_lower = u"".\
+            join((symbol
+                  for symbol in handler_name
+                  if six.text_type.isalnum(symbol))).\
+            lower()
         sample_filepath = os.path.join(
             "openformats", "tests", "formats", handler_name_lower, "files",
             "1_en.{}".format(handler_class.extension)
         )
         return_value = {'handler': handler_name}
         try:
-            with open(sample_filepath) as f:
+            with open(sample_filepath, encoding='utf-8') as f:
                 return_value['source'] = f.read()
         except IOError:
             pass
@@ -136,8 +143,10 @@ class ApiView(HandlerMixin, View):
         stringset = []
         for string_json in stringset_json:
             key = string_json.pop('key')
-            strings = {int(key): value
-                       for key, value in string_json.pop('strings').items()}
+            strings = {
+                int(key): value
+                for key, value in six.iteritems(string_json.pop('strings'))
+            }
             del string_json['template_replacement']
             stringset.append(OpenString(key, strings, **string_json))
 

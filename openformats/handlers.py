@@ -1,3 +1,5 @@
+import six
+
 from openformats.exceptions import RuleError
 
 
@@ -25,7 +27,7 @@ class Handler(object):
     # binary and not be converted to unicode
     PROCESSES_BINARY = False
 
-    _RULES_ITOA = {value: key for key, value in _RULES_ATOI.iteritems()}
+    _RULES_ITOA = {value: key for key, value in six.iteritems(_RULES_ATOI)}
 
     _RULE_ERROR_MSG = (
         '{attempted} is not a valid rule value. Valid choices are {valid}'
@@ -37,7 +39,8 @@ class Handler(object):
             return cls._RULES_ATOI[string_value]
         except KeyError:
             msg = cls._RULE_ERROR_MSG.format(
-                attempted=string_value, valid=cls._RULES_ATOI.keys()
+                attempted=string_value,
+                valid=list(six.iterkeys(cls._RULES_ATOI))
             )
             raise RuleError(msg)
 
@@ -47,7 +50,8 @@ class Handler(object):
             return cls._RULES_ITOA[number_value]
         except KeyError:
             msg = cls._RULE_ERROR_MSG.format(
-                attempted=number_value, valid=cls._RULES_ITOA.keys()
+                attempted=number_value,
+                valid=list(six.iterkeys(cls._RULES_ITOA))
             )
             raise RuleError(msg)
 
@@ -68,7 +72,7 @@ class Handler(object):
         * Use library or own code to serialize stringset back into a template.
         """
 
-        raise NotImplemented('Abstract method')  # pragma: no cover
+        raise NotImplementedError('Abstract method')  # pragma: no cover
 
     def compile(self, template, stringset):
         """
@@ -92,4 +96,4 @@ class Handler(object):
         to perform the whole compilation in a single pass.
         """
 
-        raise NotImplemented('Abstract method')  # pragma: no cover
+        raise NotImplementedError('Abstract method')  # pragma: no cover

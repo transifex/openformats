@@ -1,24 +1,41 @@
+# -*- coding: utf-8 -*-
+
 """
 Various methods useful for tests and similar operations.
 """
 
+from __future__ import unicode_literals
+
 import csv
 import os
+from io import open
 
+import six
 
 root = os.path.dirname(__file__)
 DICT_FNAME = os.path.join(root, 'dictionary.csv')
+
+try:
+    # This is ugly, but io.open does not work well with csv
+    import sys
+    six.moves.reload_module(sys)
+    sys.setdefaultencoding('utf-8')
+except Exception:
+    pass
 
 
 class FunkyDictionary(object):
     def __init__(self):
         self.phrase_list = []
         self.phrase_dict = {}
-        with open(DICT_FNAME, 'rU') as dict_file:
+        with open(DICT_FNAME, 'rU', encoding='utf-8') as dict_file:
             dict_reader = csv.DictReader(dict_file)
             for phrase in dict_reader:
-                unicode_phrase = {key: value.decode("utf-8")
-                                  for key, value in phrase.items()}
+                unicode_phrase = {}
+                for key, value in six.iteritems(phrase):
+                    if isinstance(value, six.binary_type):
+                        value = value.decode("utf-8")
+                    unicode_phrase[key] = value
                 self.phrase_list.append(unicode_phrase)
                 # We can assume 'en' is going to be used as a source language
                 # often, so it makes sense to be able to do quick lookups
@@ -39,7 +56,7 @@ class FunkyDictionary(object):
         # Phrase not found in funky dict
         if debug:
             print('Lookup for "{}" unsuccessful.'.format(phrase[:20]))
-        return u"{}:{}".format(to_lang, phrase)
+        return "{}:{}".format(to_lang, phrase)
 
 
 funky_dictionary = FunkyDictionary()
@@ -47,7 +64,7 @@ funky_dictionary = FunkyDictionary()
 
 def translate_stringset(stringset, from_lang="en", to_lang="el", debug=False):
     for s in stringset:
-        for rule, pluralform in s._strings.items():
+        for rule, pluralform in list(six.iteritems(s._strings)):
             s._strings[rule] = funky_dictionary.translate(
                 pluralform, to_lang, from_lang, debug
             )

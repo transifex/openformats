@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
+import six
+import yaml
+
+from openformats.formats.yaml.constants import (YAML_DICT_ID, YAML_LIST_ID,
+                                                YAML_STRING_ID)
+
+
 """
 YAML representers
 """
-
-import yaml
-
-from openformats.formats.yaml.constants import (
-    YAML_STRING_ID,
-    YAML_LIST_ID,
-    YAML_DICT_ID,
-)
 
 
 def unicode_representer(dumper, data):
@@ -45,14 +45,14 @@ def flow_list_representer(dumper, data):
 
 
 def ordered_dict_representer(dumper, data):
-    return dumper.represent_dict(data.items())
+    return dumper.represent_dict(six.iteritems(data))
 
 
 def block_style_ordered_dict_representer(dumper, data):
-    return dumper.represent_mapping(YAML_DICT_ID, data.items(),
+    return dumper.represent_mapping(YAML_DICT_ID, six.iteritems(data),
                                     flow_style=False)
 
 
 def flow_style_ordered_dict_representer(dumper, data):
-    return dumper.represent_mapping(YAML_DICT_ID, data.items(),
+    return dumper.represent_mapping(YAML_DICT_ID, six.iteritems(data),
                                     flow_style=True)

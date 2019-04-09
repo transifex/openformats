@@ -76,7 +76,7 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
         """.format(**context_dict))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
-        self.assertEquals(
+        self.assertEqual(
             template,
             strip_leading_spaces(u'''
                 <plist>
@@ -100,9 +100,9 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
             '''.format(**context_dict)
             )
         )
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_removes_untranslated(self):
         context_dict, openstring = self._create_pluralized_string()
@@ -157,7 +157,7 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
         """.format(**context_dict))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces(u"""
                 <plist>
@@ -212,9 +212,9 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
             </plist>
         """)
         template, stringset = self.handler.parse(source)
-        self.assertEquals(template, source)
+        self.assertEqual(template, source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(compiled, source)
+        self.assertEqual(compiled, source)
 
     def test_ignores_closed_string_placeholders(self):
         source = strip_leading_spaces(u"""
@@ -240,9 +240,9 @@ class StringsDictTestCase(CommonFormatTestMixin, unittest.TestCase):
             </plist>
         """)
         template, stringset = self.handler.parse(source)
-        self.assertEquals(template, source)
+        self.assertEqual(template, source)
         compiled = self.handler.compile(template, [])
-        self.assertEquals(compiled, source)
+        self.assertEqual(compiled, source)
 
     """ Test Error Raises """
 

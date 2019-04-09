@@ -21,7 +21,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
     def _create_openstring(self, pluralized, extra_context=None):
         context_dict = extra_context if extra_context is not None else {}
         context_dict.update({
-            'order': self.order_generator.next(),
+            'order': next(self.order_generator),
             'pluralized': pluralized
         })
         key = generate_random_string()
@@ -64,16 +64,16 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             'extracted-comments1\nextracted-comments2\n'
             u' translator-comments1\n translator-comments2'
         )
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(
             stringset[0].developer_comment,
             expected_comment
         )
-        self.assertEquals(
+        self.assertEqual(
             stringset[0].occurrences,
             u'validators.py:9, validators.py:11'
         )
-        self.assertEquals(
+        self.assertEqual(
             stringset[0].flags,
             u'python-format, another-flag'
         )
@@ -106,7 +106,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         }))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [string1, string3])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces(
                 u"""# \nmsgid ""
@@ -168,7 +168,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         }))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [string1, string3])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces(
                 u"""# \nmsgid ""
@@ -214,7 +214,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         }))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [string1])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces(
                 u"""# \nmsgid ""
@@ -243,7 +243,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         }))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [string1])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces(u"""# \nmsgid ""
                 msgstr ""
@@ -280,7 +280,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         }))
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [string1])
-        self.assertEquals(
+        self.assertEqual(
             compiled,
             strip_leading_spaces(
                 u"""# \nmsgid ""

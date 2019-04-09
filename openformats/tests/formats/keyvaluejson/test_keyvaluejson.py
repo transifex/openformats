@@ -2,14 +2,14 @@
 
 import unittest
 
-from openformats.formats.json import JsonHandler
+import six
 
 from openformats.exceptions import ParseError
+from openformats.formats.json import JsonHandler
 from openformats.strings import OpenString
-
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.tests.utils.strings import (generate_random_string,
-                                             bytes_to_string)
+from openformats.tests.utils.strings import (bytes_to_string,
+                                             generate_random_string)
 
 
 class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
@@ -31,22 +31,22 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                                                  self.random_string)
         compiled = self.handler.compile(template, [self.random_openstring])
 
-        self.assertEquals(template, '{"a": "%s"}' % self.random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__,
-                          self.random_openstring.__dict__)
-        self.assertEquals(compiled, '{"a": "%s"}' % self.random_string)
+        self.assertEqual(template, '{"a": "%s"}' % self.random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__,
+                         self.random_openstring.__dict__)
+        self.assertEqual(compiled, '{"a": "%s"}' % self.random_string)
 
     def test_empty_string_ignored(self):
         template, stringset = self.handler.parse(
             '{"not_empty": "hello there", "empty": ""}'
         )
-        self.assertEquals(len(stringset), 1)
+        self.assertEqual(len(stringset), 1)
 
         template, stringset = self.handler.parse(
             '{"not_empty": "hello there", "empty": [""]}'
         )
-        self.assertEquals(len(stringset), 1)
+        self.assertEqual(len(stringset), 1)
 
     def test_root_object_is_list(self):
         source = '["%s"]' % self.random_string
@@ -56,10 +56,10 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
-        self.assertEquals(template, '["%s"]' % random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(template, '["%s"]' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_embedded_dicts(self):
         source = '{"a": {"b": "%s"}}' % self.random_string
@@ -69,10 +69,10 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
 
-        self.assertEquals(template, '{"a": {"b": "%s"}}' % random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(template, '{"a": {"b": "%s"}}' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_embedded_lists(self):
         source = '{"a": ["%s"]}' % self.random_string
@@ -82,19 +82,19 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
 
-        self.assertEquals(template, '{"a": ["%s"]}' % random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, openstring.__dict__)
-        self.assertEquals(compiled, source)
+        self.assertEqual(template, '{"a": ["%s"]}' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_python_values_are_ignored(self):
         source = '[true, "%s", 5e12]' % self.random_string
         random_openstring = OpenString('..1..', self.random_string, order=0)
         random_hash = random_openstring.template_replacement
         template, stringset = self.handler.parse(source)
-        self.assertEquals(template, '[true, "%s", 5e12]' % random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(template, '[true, "%s", 5e12]' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
 
     def test_compile_skips_removed_strings_for_dicts(self):
         string1 = self.random_string
@@ -109,11 +109,11 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEquals(template, '{"a": "%s", "b": "%s"}' % (hash1, hash2))
-        self.assertEquals(len(stringset), 2)
-        self.assertEquals(stringset[0].__dict__, openstring1.__dict__)
-        self.assertEquals(stringset[1].__dict__, openstring2.__dict__)
-        self.assertEquals(compiled, '{"a": "%s"}' % string1)
+        self.assertEqual(template, '{"a": "%s", "b": "%s"}' % (hash1, hash2))
+        self.assertEqual(len(stringset), 2)
+        self.assertEqual(stringset[0].__dict__, openstring1.__dict__)
+        self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
+        self.assertEqual(compiled, '{"a": "%s"}' % string1)
 
     def test_compile_skips_removed_strings_for_lists(self):
         string1 = self.random_string
@@ -128,11 +128,11 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEquals(template, '["%s", "%s"]' % (hash1, hash2))
-        self.assertEquals(len(stringset), 2)
-        self.assertEquals(stringset[0].__dict__, openstring1.__dict__)
-        self.assertEquals(stringset[1].__dict__, openstring2.__dict__)
-        self.assertEquals(compiled, '["%s"]' % string1)
+        self.assertEqual(template, '["%s", "%s"]' % (hash1, hash2))
+        self.assertEqual(len(stringset), 2)
+        self.assertEqual(stringset[0].__dict__, openstring1.__dict__)
+        self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
+        self.assertEqual(compiled, '["%s"]' % string1)
 
     def test_compile_skips_removed_nested_dict(self):
         string1 = self.random_string
@@ -147,11 +147,11 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEquals(template, '["%s", {"a": "%s"}]' % (hash1, hash2))
-        self.assertEquals(len(stringset), 2)
-        self.assertEquals(stringset[0].__dict__, openstring1.__dict__)
-        self.assertEquals(stringset[1].__dict__, openstring2.__dict__)
-        self.assertEquals(compiled, '["%s"]' % string1)
+        self.assertEqual(template, '["%s", {"a": "%s"}]' % (hash1, hash2))
+        self.assertEqual(len(stringset), 2)
+        self.assertEqual(stringset[0].__dict__, openstring1.__dict__)
+        self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
+        self.assertEqual(compiled, '["%s"]' % string1)
 
     def test_compile_skips_removed_nested_list(self):
         string1 = self.random_string
@@ -166,12 +166,12 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEquals(template,
-                          '{"a": "%s", "b": ["%s"]}' % (hash1, hash2))
-        self.assertEquals(len(stringset), 2)
-        self.assertEquals(stringset[0].__dict__, openstring1.__dict__)
-        self.assertEquals(stringset[1].__dict__, openstring2.__dict__)
-        self.assertEquals(compiled, '{"a": "%s"}' % string1)
+        self.assertEqual(template,
+                         '{"a": "%s", "b": ["%s"]}' % (hash1, hash2))
+        self.assertEqual(len(stringset), 2)
+        self.assertEqual(stringset[0].__dict__, openstring1.__dict__)
+        self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
+        self.assertEqual(compiled, '{"a": "%s"}' % string1)
 
     def test_remove_all_strings_removed_from_list_but_non_strings_exist(self):
         random_string = self.random_string
@@ -183,10 +183,10 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
 
-        self.assertEquals(template, '{"a": [null, "%s"]}' % random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, '{"a": [null]}')
+        self.assertEqual(template, '{"a": [null, "%s"]}' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, '{"a": [null]}')
 
     def test_remove_all_strings_removed_from_dict_but_non_strings_exist(self):
         random_string = self.random_string
@@ -198,10 +198,10 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
 
-        self.assertEquals(template, '{"a": "%s", "b": null}' % random_hash)
-        self.assertEquals(len(stringset), 1)
-        self.assertEquals(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEquals(compiled, '{ "b": null}')
+        self.assertEqual(template, '{"a": "%s", "b": null}' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(compiled, '{ "b": null}')
 
     def test_skip_start_of_dict(self):
         string1 = self.random_string
@@ -213,7 +213,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring2])
 
-        self.assertEquals(compiled, '{ "b": "%s"}' % string2)
+        self.assertEqual(compiled, '{ "b": "%s"}' % string2)
 
     def test_skip_end_of_dict(self):
         string1 = self.random_string
@@ -225,7 +225,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEquals(compiled, '{"a": "%s"}' % string1)
+        self.assertEqual(compiled, '{"a": "%s"}' % string1)
 
     def test_skip_middle_of_dict(self):
         string1 = self.random_string
@@ -240,8 +240,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1, openstring3])
 
-        self.assertEquals(compiled, '{"a": "%s", "c": "%s"}' % (string1,
-                                                                string3))
+        self.assertEqual(compiled, '{"a": "%s", "c": "%s"}' % (string1,
+                                                               string3))
 
     def test_skip_start_of_list(self):
         string1 = self.random_string
@@ -253,7 +253,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring2])
 
-        self.assertEquals(compiled, '[ "%s"]' % string2)
+        self.assertEqual(compiled, '[ "%s"]' % string2)
 
     def test_skip_end_of_list(self):
         string1 = self.random_string
@@ -265,7 +265,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEquals(compiled, '["%s"]' % string1)
+        self.assertEqual(compiled, '["%s"]' % string1)
 
     def test_skip_middle_of_list(self):
         string1 = self.random_string
@@ -279,10 +279,17 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1, openstring3])
 
-        self.assertEquals(compiled, '["%s", "%s"]' % (string1, string3))
+        self.assertEqual(compiled, '["%s", "%s"]' % (string1, string3))
 
     def test_invalid_json(self):
-        self._test_parse_error('jaosjf', "No JSON object could be decoded")
+        try:
+            self.handler.parse(u'jaosjf')
+        except Exception as e:
+            self.assertIn(six.text_type(e),
+                          ("Expecting value: line 1 column 1 (char 0)",
+                           "No JSON object could be decoded"))
+        else:
+            raise AssertionError("No parse error raied")
 
     def test_invalid_json_type(self):
         template, stringset = self.handler.parse('[false]')
@@ -295,20 +302,20 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_not_json_container(self):
         self._test_parse_error('"hello"',
-                               'Was expecting whitespace or one of `{[` on '
+                               'Was expecting whitespace or one of `[{` on '
                                'line 1, found `"` instead')
         self._test_parse_error('3',
-                               "Was expecting whitespace or one of `{[` on "
+                               "Was expecting whitespace or one of `[{` on "
                                "line 1, found `3` instead")
         self._test_parse_error('false',
-                               "Was expecting whitespace or one of `{[` on "
+                               "Was expecting whitespace or one of `[{` on "
                                "line 1, found `f` instead")
 
     def test_skipping_stuff_within_strings(self):
         source = '{"a": "b,  ,c"}'
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, source)
+        self.assertEqual(compiled, source)
 
     def test_duplicate_keys(self):
         self._test_parse_error('{"a": "hello", "a": "world"}',
@@ -346,8 +353,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             ([u'a', u'\\', u't', u'b'], [u'a', u'\t', u'b']),
         )
         for raw, rich in cases:
-            self.assertEquals(JsonHandler.unescape(bytes_to_string(raw)),
-                              bytes_to_string(rich))
+            self.assertEqual(JsonHandler.unescape(bytes_to_string(raw)),
+                             bytes_to_string(rich))
 
     def test_escape(self):
         cases = (
@@ -377,8 +384,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             ([u'a', u'\t', u'b'], [u'a', u'\\', u't', u'b']),
         )
         for rich, raw in cases:
-            self.assertEquals(JsonHandler.escape(bytes_to_string(rich)),
-                              bytes_to_string(raw))
+            self.assertEqual(JsonHandler.escape(bytes_to_string(rich)),
+                             bytes_to_string(raw))
 
     # PLURALS
 
@@ -461,7 +468,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # Escaped new lines should be allowed
         self._test_translations_equal(
             '{'
-            '    "k": "{cnt, plural,\\n zero {Empty} other {{count} files} \\n}"'  #noqa
+            '    "k": "{cnt, plural,\\n zero {Empty} other {{count} files} \\n}"'  # noqa
             '}',
             expected_translations
         )
@@ -473,7 +480,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "{cnt, plural,\\n one {0} other {{count} files} \\n}"}'
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
-        self.assertEquals(compiled, source)
+        self.assertEqual(compiled, source)
 
     def test_non_supported_icu_argument(self):
         # Non-supported ICU arguments (everything other than `plural`)
@@ -484,7 +491,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         self.assertEqual(
             stringset[0].string,
-            '{ gender_of_host, select, female {{host} appeared} male {{host} appeared} }'
+            '{ gender_of_host, select, female {{host} appeared} male {{host} appeared} }'  # noqa
         )
 
     def test_nesting_with_plurals(self):
@@ -512,16 +519,13 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         try:
             self.handler.parse(source)
         except ParseError as e:
-            self.assertIn(
-                msg_substr,
-                e.message
-            )
+            self.assertIn(msg_substr, six.text_type(e))
             error_raised = True
         self.assertTrue(error_raised)
 
     def _test_translations_equal(self, source, translations_by_rule):
         template, stringset = self.handler.parse(source)
-        for rule_int in translations_by_rule.keys():
+        for rule_int in six.iterkeys(translations_by_rule):
             self.assertEqual(
                 translations_by_rule[rule_int],
                 stringset[0].string[rule_int]

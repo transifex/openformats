@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import unittest
-
+from io import open
 from os import path
 
+from openformats.formats.github_markdown_v2 import GithubMarkdownHandlerV2
 from openformats.strings import OpenString
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.formats.github_markdown_v2 import GithubMarkdownHandlerV2
-
 
 unittest.TestCase.maxDiff = None
 
@@ -19,13 +18,13 @@ class GithubMarkdownV2TestCase(CommonFormatTestMixin, unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(GithubMarkdownV2TestCase, self).__init__(*args, **kwargs)
         filepath = path.join(self.TESTFILE_BASE, "1_en_export.md")
-        with open(filepath, "r") as myfile:
-            self.data['1_en_export'] = myfile.read().decode("utf-8")
+        with open(filepath, "r", encoding='utf-8') as myfile:
+            self.data['1_en_export'] = myfile.read()
 
     def test_compile(self):
         """Test that import-export is the same as the original file."""
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
-        self.assertEquals(remade_orig_content, self.data["1_en_export"])
+        self.assertEqual(remade_orig_content, self.data["1_en_export"])
 
     def test_parse(self):
         """Test parse converts tabs to spaces"""

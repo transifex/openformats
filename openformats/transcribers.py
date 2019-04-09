@@ -1,3 +1,5 @@
+import six
+
 from .utils.newlines import find_newline_type, force_newline_type
 
 
@@ -195,7 +197,8 @@ class Transcriber(object):
             )
         except ValueError:
             section_end_position = len(self.destination) - 1
-        for i in range(section_start_position, section_end_position + 1):
+        for i in six.moves.xrange(section_start_position,
+                                  section_end_position + 1):
             self.destination[i] = None
 
     def _find_last_section_start(self, place=0):

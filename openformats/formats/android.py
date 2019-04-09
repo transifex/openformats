@@ -1,13 +1,18 @@
 from __future__ import absolute_import
 
-import re
 import itertools
+import re
 
+import six
+
+from openformats.utils.compat import ensure_unicode
+
+from ..exceptions import RuleError
 from ..handlers import Handler
 from ..strings import OpenString
-from ..exceptions import RuleError
-from ..utils.xml import escape as xml_escape, NewDumbXml as DumbXml
 from ..transcribers import Transcriber
+from ..utils.xml import NewDumbXml as DumbXml
+from ..utils.xml import escape as xml_escape
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
 
@@ -24,10 +29,10 @@ class AndroidHandler(Handler):
 
     EXTRACTS_RAW = True
 
-    SPECIFIER = re.compile(
-        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
-        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
-    )
+    SPECIFIER = re.compile(ensure_unicode(
+        r'%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
+        r'(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+    ))
 
     # Where to start parsing the file
     PARSE_START = "<resources"
@@ -276,7 +281,7 @@ class AndroidHandler(Handler):
                 name,
                 text,
                 context=product,
-                order=self.order_counter.next(),
+                order=next(self.order_counter),
                 developer_comment=comment,
                 pluralized=pluralized,
             )
@@ -503,7 +508,7 @@ class AndroidHandler(Handler):
                 start = start.replace(end, '', 1)
                 self.transcriber.add(end)
 
-            for rule, string in self.next_string.string.items():
+            for rule, string in six.iteritems(self.next_string.string):
                 self.transcriber.add(
                     start +
                     self.PLURAL_TEMPLATE.format(
@@ -542,7 +547,7 @@ class AndroidHandler(Handler):
                     the itterable.
         """
         try:
-            next_string = self.stringset.next()
+            next_string = next(self.stringset)
         except StopIteration:
             next_string = None
         return next_string
@@ -556,7 +561,7 @@ class AndroidHandler(Handler):
 
         :returns: True if it contains any else false.
         """
-        for key, value in AndroidHandler.SKIP_ATTRIBUTES.iteritems():
+        for key, value in six.iteritems(AndroidHandler.SKIP_ATTRIBUTES):
             filter_attr = child.attrib.get(key)
             if filter_attr is not None and filter_attr == value:
                 return True
@@ -589,7 +594,7 @@ class AndroidHandler(Handler):
             # another string, then we need to escape it using a leading
             # backslash
             if string.startswith(u'@') and not string.startswith(u'@string/'):
-                string = string.replace(u'@', u'\@', 1)
+                string = string.replace(u'@', u'\\@', 1)
             return string.\
                 replace(DumbXml.DOUBLE_QUOTES,
                         u''.join([DumbXml.BACKSLASH, DumbXml.DOUBLE_QUOTES])).\
@@ -602,7 +607,7 @@ class AndroidHandler(Handler):
     def unescape(string):
         # If the string starts with an escaped at-sign, do not display the
         # backslash
-        if string.startswith(u'\@'):
+        if string.startswith(u'\\@'):
             string = string[1:]
         if len(string) and string[0] == string[-1] == DumbXml.DOUBLE_QUOTES:
             return string[1:-1].\

@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import six
+
 from openformats.exceptions import RuleError
 from openformats.handlers import Handler
 
@@ -20,7 +22,7 @@ class HandlerTestCase(TestCase):
             'many': 4,
             'other': 5
         }
-        for rule_str, rule in rules.iteritems():
+        for rule_str, rule in six.iteritems(rules):
             self.assertEqual(self.handler.get_rule_number(rule_str), rule)
 
     def test_get_rule_string_returns(self):
@@ -32,7 +34,7 @@ class HandlerTestCase(TestCase):
             4: 'many',
             5: 'other',
         }
-        for rule, rule_str in rules.iteritems():
+        for rule, rule_str in six.iteritems(rules):
             self.assertEqual(self.handler.get_rule_string(rule), rule_str)
 
     def test_get_rule_string_returns_error(self):

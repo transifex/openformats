@@ -1,5 +1,6 @@
 import fnmatch
-import re
+import six
+from io import open
 
 from os import listdir, path
 from os.path import isfile, join
@@ -47,8 +48,8 @@ class CommonFormatTestMixin(object):
                     name, self.HANDLER_CLASS.extension))
                 if not isfile(filepath):
                     self.fail("Bad test files: Expected to find %s" % filepath)
-                with open(filepath, "r") as myfile:
-                    self.data[name] = myfile.read().decode("utf-8")
+                with open(filepath, "r", encoding='utf-8') as myfile:
+                    self.data[name] = myfile.read()
 
     def setUp(self):
         self.handler = self.HANDLER_CLASS()
@@ -60,7 +61,7 @@ class CommonFormatTestMixin(object):
         """Test that the template created is the same as static one."""
         # FIXME: Test descriptions should have the handler's name prefixed to
         # be able to differentiate between them.
-        self.assertEquals(self.tmpl, self.data["1_tpl"])
+        self.assertEqual(self.tmpl, self.data["1_tpl"])
 
     def test_no_empty_strings_in_handler_stringset(self):
         for s in self.strset:
@@ -69,13 +70,13 @@ class CommonFormatTestMixin(object):
     def test_compile(self):
         """Test that import-export is the same as the original file."""
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
-        self.assertEquals(remade_orig_content, self.data["1_en"])
+        self.assertEqual(remade_orig_content, self.data["1_en"])
 
     def test_translate(self):
         """Test that translate + export is the same as the precompiled file."""
         translated_strset = translate_stringset(self.strset)
         translated_content = self.handler.compile(self.tmpl, translated_strset)
-        self.assertEquals(translated_content, self.data["1_el"])
+        self.assertEqual(translated_content, self.data["1_el"])
 
     def _test_parse_error(self, source, error_msg, parse_kwargs=None):
         """
@@ -83,8 +84,13 @@ class CommonFormatTestMixin(object):
         exactly like 'error_msg'
         """
         parse_kwargs = parse_kwargs if parse_kwargs is not None else {}
-        self.assertRaisesRegexp(
-            ParseError,
-            r'^{}$'.format(re.escape(error_msg)),
-            lambda: self.handler.parse(source, **parse_kwargs)
-        )
+        exception = None
+        try:
+            self.handler.parse(source, **parse_kwargs)
+        except ParseError as e:
+            exception = six.text_type(e)
+        except Exception:
+            raise AssertionError("Did not raise ParseError")
+        else:
+            raise AssertionError("Did not raise '{}'".format(error_msg))
+        self.assertEqual(exception, error_msg)

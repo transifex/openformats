@@ -1,14 +1,15 @@
 import unittest
-from mock import MagicMock
 from collections import OrderedDict
 
-from openformats.formats.yaml.utils import YamlGenerator
+import six
 
-from openformats.formats.yaml.yaml_representee_classes import (
-    BlockList, FlowList, literal_unicode, folded_unicode,
-    double_quoted_unicode, single_quoted_unicode,
-    BlockStyleOrderedDict, FlowStyleOrderedDict
-)
+from mock import MagicMock
+from openformats.formats.yaml.utils import YamlGenerator
+from openformats.formats.yaml.yaml_representee_classes import (BlockList,
+                                                               FlowList,
+                                                               FlowStyleOrderedDict,
+                                                               double_quoted_unicode,
+                                                               single_quoted_unicode)
 
 
 class YamlGeneratorTestCase(unittest.TestCase):
@@ -30,7 +31,7 @@ class YamlGeneratorTestCase(unittest.TestCase):
         #         ]))
         #     ]))
         # ])
-        self.assertListEqual(result.keys(), ['one'])
+        self.assertListEqual(list(six.iterkeys(result)), ['one'])
         self.assertIsInstance(result['one'], OrderedDict)
         self.assertIsInstance(result['one']['two'], BlockList)
         self.assertIsInstance(result['one']['two'][0], single_quoted_unicode)
@@ -56,8 +57,9 @@ class YamlGeneratorTestCase(unittest.TestCase):
         #         ]))
         #     ]))
         # ])
-        self.assertListEqual(result.keys(), ['one'])
-        self.assertListEqual(result['one'].keys(), ['three', 'two'])
+        self.assertListEqual(list(six.iterkeys(result)), ['one'])
+        self.assertListEqual(list(six.iterkeys(result['one'])),
+                             ['three', 'two'])
         self.assertIsInstance(result['one']['two'], BlockList)
         self.assertIsInstance(result['one']['two'][0], single_quoted_unicode)
 
@@ -78,7 +80,7 @@ class YamlGeneratorTestCase(unittest.TestCase):
         #         ]))
         #     ]))
         # ])
-        self.assertListEqual(result.keys(), ['one'])
+        self.assertListEqual(list(six.iterkeys(result)), ['one'])
         self.assertIsInstance(result['one'], OrderedDict)
         self.assertIsInstance(result['one']['two'], FlowList)
         self.assertIsInstance(result['one']['two'][0], double_quoted_unicode)
@@ -98,7 +100,7 @@ class YamlGeneratorTestCase(unittest.TestCase):
         #         (u'two', double_quoted_unicode(u'test'))
         #     ]))
         # ])
-        self.assertListEqual(result.keys(), ['one'])
+        self.assertListEqual(list(six.iterkeys(result)), ['one'])
         self.assertIsInstance(result['one'], FlowStyleOrderedDict)
         self.assertIsInstance(result['one']['two'], double_quoted_unicode)
 
@@ -119,7 +121,7 @@ class YamlGeneratorTestCase(unittest.TestCase):
         #         ])
         #     ]))
         # ])
-        self.assertListEqual(result.keys(), ['one'])
+        self.assertListEqual(list(list(six.iterkeys(result))), ['one'])
         self.assertIsInstance(result['one'], BlockList)
         self.assertIsInstance(result['one'][0], FlowStyleOrderedDict)
         self.assertIsInstance(result['one'][0]['two'], double_quoted_unicode)

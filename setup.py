@@ -8,7 +8,7 @@ install_requires = [
     'PyYAML==3.10',
     'pyparsing==2.2.0',
     'lxml==4.1.1',
-    'UCFlib==0.2.1',
+    'ucflib @ git+https://github.com/kbairak/ucflib.git@py3_compatibility#egg=ucflib-0.2.1',  # noqa
 ]
 
 tests_require = [

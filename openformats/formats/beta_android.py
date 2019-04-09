@@ -2,9 +2,12 @@ from __future__ import absolute_import
 
 import re
 
-from ..handlers import Handler
+import six
+
 from openformats.strings import OpenString
 from openformats.transcribers import Transcriber
+
+from ..handlers import Handler
 from ..utils.xml import DumbXml
 
 
@@ -22,13 +25,13 @@ class BetaAndroidHandler(Handler):
     EXTRACTS_RAW = False
 
     SPECIFIER = re.compile(
-        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
-        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+        r'%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
+        r'(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
     )
 
     def parse(self, content, **kwargs):
         stringset = []
-        if type(content) == str:
+        if isinstance(content, six.binary_type):
             content = content.decode("utf-8")  # convert to unicode
 
         resources_tag_position = content.index("<resources")
@@ -201,7 +204,7 @@ class BetaAndroidHandler(Handler):
         If the tag has a key: value elemement that matches FILTER_ATTRIBUTES
         it will return True, else it returns False
         """
-        for key, value in self.FILTER_ATTRIBUTES.iteritems():
+        for key, value in six.iteritems(self.FILTER_ATTRIBUTES):
             filter_attr = tag.attrs.get(key, None)
             if filter_attr is not None and filter_attr == value:
                 return True
@@ -333,7 +336,7 @@ class BetaAndroidHandler(Handler):
             if is_multiline:
                 # write until beginning of hash
                 self.transcriber.copy_until(hash_position - indent_length)
-                for rule, value in next_string.string.items():
+                for rule, value in six.iteritems(next_string.string):
                     self.transcriber.add(
                         indent +
                         self.plural_template.format(
@@ -349,7 +352,7 @@ class BetaAndroidHandler(Handler):
                 # string is not on its own, simply replace hash with all plural
                 # forms
                 self.transcriber.copy_until(hash_position)
-                for rule, value in next_string.string.items():
+                for rule, value in six.iteritems(next_string.string):
                     self.transcriber.add(
                         self.plural_template.format(
                             rule=self.get_rule_string(rule), string=value

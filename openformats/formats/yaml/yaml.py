@@ -1,19 +1,24 @@
 from __future__ import absolute_import
 
-import re
 import copy
-from StringIO import StringIO
+import re
+
+import six
 from yaml.constructor import SafeConstructor
 from yaml.emitter import Emitter
 
+from openformats.exceptions import ParseError
+from openformats.formats.yaml.utils import (TxYamlDumper, TxYamlLoader,
+                                            YamlGenerator, yaml)
 from openformats.handlers import Handler
 from openformats.strings import OpenString
-from openformats.exceptions import ParseError
 from openformats.transcribers import Transcriber
-from openformats.formats.yaml.utils import (
-    TxYamlLoader, YamlGenerator, TxYamlDumper
-)
-from openformats.formats.yaml.utils import yaml
+from openformats.utils.compat import ensure_unicode
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class YamlHandler(Handler):
@@ -76,7 +81,8 @@ class YamlHandler(Handler):
         # Helper to store the processed data while parsing the file
         self._parsed_data = []
         self._parse_yaml_data(yaml_data, '', '')
-        self._parsed_data.sort()
+        self._parsed_data = sorted(self._parsed_data,
+                                   key=lambda node: node.get('start'))
 
         end = 0
         order = 0
@@ -89,7 +95,7 @@ class YamlHandler(Handler):
             style = node.get('style')
             if not value:
                 continue
-            if isinstance(value, dict) and not all(value.values()):
+            if isinstance(value, dict) and not all(six.itervalues(value)):
                 continue
             string_object = OpenString(
                 key, value, context=tag or '', flags=style, order=order,
@@ -139,9 +145,9 @@ class YamlHandler(Handler):
         try:
             return yaml.load(content, Loader=loader)
         except yaml.scanner.ScannerError as e:
-            raise ParseError(unicode(e))
+            raise ParseError(six.text_type(e))
         except Exception as e:
-            raise ParseError(unicode(e))
+            raise ParseError(six.text_type(e))
 
     def _parse_leaf_node(self, node, parent_key, style=[],
                          pluralized=False):
@@ -201,10 +207,10 @@ class YamlHandler(Handler):
         Returns:
             A string similar to parent_key with key appended to it.
         """
-        if not isinstance(key, basestring):
+        if not isinstance(key, (six.binary_type, six.text_type)):
             # Int keys are stored in < and > around it, so it can be reverted
             # on int again on compiling.
-            key = str('<%s>' % key)
+            key = u'<{}>'.format(key)
         if '.' in key:
             key = self.escape_dots(key)
         if parent_key == '':
@@ -241,14 +247,14 @@ class YamlHandler(Handler):
         parent_style = parent_style or []
 
         if isinstance(yaml_data, dict):
-            for key, node in yaml_data.items():
+            for key, node in six.iteritems(yaml_data):
                 node_key = self._get_key_for_node(key, parent_key)
                 # Copy style for each node to avoid getting affected from the
                 # previous loops
                 node_style = copy.copy(parent_style)
                 # Case of dictionary that represents a plural rule
                 if (isinstance(node.value, dict) and
-                   self.is_pluralized(node.value)):
+                        self.is_pluralized(node.value)):
                     self._parsed_data.append(
                         self._parse_pluralized_leaf_node(
                             node, node_key,
@@ -411,9 +417,12 @@ class YamlHandler(Handler):
         yaml_dict = yg.generate_yaml_dict(stringset)
         if self.language_code:
             yaml_dict = self._wrap_yaml_dict(yaml_dict, self.language_code)
-        return yaml.dump(yaml_dict, width=float('inf'),
-                         Dumper=TxYamlDumper, allow_unicode=True,
-                         indent=self.indent).decode("utf-8")
+        return_value = yaml.dump(yaml_dict, width=float('inf'),
+                                 Dumper=TxYamlDumper, allow_unicode=True,
+                                 indent=self.indent)
+        if isinstance(return_value, six.binary_type):
+            return_value = return_value.decode("utf-8")
+        return return_value
 
     @staticmethod
     def unescape_dots(k):
@@ -438,7 +447,9 @@ class YamlHandler(Handler):
         """
         # Match all whitespace characters after first `:` (end of first  key).
         # Stops on first non whitespace character.
-        indent_pattern = re.compile(':\r?\n(?P<indent>[ \t\n]+)')
+        indent_pattern = re.compile(
+            ensure_unicode(r':\r?\n(?P<indent>[ \t\n]+)')
+        )
         m = indent_pattern.search(template)
         indent = m.groups('indent')[0] if m else ' ' * 2
         # keep only last line

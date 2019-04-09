@@ -1,6 +1,10 @@
 import re
 from itertools import count
 
+import six
+
+from openformats.utils.compat import ensure_unicode
+
 from ..transcribers import Transcriber
 
 
@@ -103,13 +107,10 @@ class DumbXml(object):
         yields
     """
 
-    OPENING_TAG_PAT = re.compile(
-        r'^\s*\<(?P<name>[^\s\n\>]+)(?P<attrs>[^\>]*)\>',
-        re.DOTALL
-    )
-    ATTR_PAT = re.compile(r'\b(?P<key>[^=]+)="(?P<value>[^"]+)"')
+    OPENING_TAG_PAT = r'^\s*\<(?P<name>[^\s\n\>]+)(?P<attrs>[^\>]*)\>'
+    ATTR_PAT = r'\b(?P<key>[^=]+)="(?P<value>[^"]+)"'
     COMMENT = "!--"
-    SINGLE_TAG_PAT = re.compile(r'/\s*\>$')
+    SINGLE_TAG_PAT = r'/\s*\>$'
 
     def __init__(self, content):
         """
@@ -125,6 +126,12 @@ class DumbXml(object):
             * inner: the inner content of the tag
         """
 
+        # Fix regex encoding
+        self.opening_tag_pat = re.compile(ensure_unicode(self.OPENING_TAG_PAT),
+                                          re.DOTALL)
+        self.attr_pat = re.compile(ensure_unicode(self.ATTR_PAT))
+        self.single_tag_pat = re.compile(ensure_unicode(self.SINGLE_TAG_PAT))
+
         self.content = content
 
         if self.content[:4] == "<!--":
@@ -135,12 +142,12 @@ class DumbXml(object):
             self.inner = self.content[4:self.content.index("-->")]
             return
 
-        opening_match = self.OPENING_TAG_PAT.search(content)
+        opening_match = self.opening_tag_pat.search(content)
         self.inner_offset = opening_match.end()
         self.name = opening_match.groupdict()['name']
         attrs = opening_match.groupdict()['attrs']
         self.attrs = {}
-        for match in self.ATTR_PAT.finditer(attrs):
+        for match in self.attr_pat.finditer(attrs):
             self.attrs[match.groupdict()['key']] = match.groupdict()['value']
 
         closing_start, closing_end = self.find_closing(0)
@@ -148,15 +155,18 @@ class DumbXml(object):
         self.inner = self.content[opening_match.end():closing_start]
 
     def find(self, tags=[]):
-        if isinstance(tags, (str, unicode)):
+        if isinstance(tags, (six.binary_type, six.text_type)):
             tags = [tags]
 
         if not tags:
-            pat = re.compile(r'\<', re.DOTALL)
+            pat = re.compile(ensure_unicode(r'\<'), re.DOTALL)
         else:
-            pat = re.compile(r'\<(?:{})'.format(
-                '|'.join((re.escape(tag) for tag in tags))
-            ), re.DOTALL)
+            pat = re.compile(
+                ensure_unicode(r'\<(?:{})'.
+                               format('|'.join((re.escape(tag)
+                                                for tag in tags)))),
+                re.DOTALL
+            )
 
         for match in pat.finditer(self.content):
             if match.start() == 0 or self._is_within_comment(match):
@@ -175,17 +185,21 @@ class DumbXml(object):
             closing_start = self.content[start:].index("-->")
             return start + closing_start, start + closing_start + 3
 
-        opening_match = self.OPENING_TAG_PAT.search(self.content[start:])
+        opening_match = self.opening_tag_pat.search(self.content[start:])
 
-        if self.SINGLE_TAG_PAT.search(opening_match.group()):
+        if self.single_tag_pat.search(opening_match.group()):
             # Single tag, eg `<foo a="b" />`
             return start + opening_match.end(), start + opening_match.end()
 
         tag_name = opening_match.groupdict()['name']
-        tag_pat = re.compile(r'\<(?:(?:{tag_name})|(?:/{tag_name}\>))'.
-                             format(tag_name=re.escape(tag_name)))
+        tag_pat = re.compile(
+            ensure_unicode(
+                r'\<(?:(?:{tag_name})|(?:/{tag_name}\>))'.
+                format(tag_name=re.escape(tag_name))
+            )
+        )
         match_generator = tag_pat.finditer(self.content[start:])
-        first_match = match_generator.next()
+        first_match = next(match_generator)
         assert first_match and first_match.start() == 0 and\
             first_match.group()[1] != '/'
         count = 1
@@ -231,8 +245,8 @@ if __name__ == "__main__":
         '<resources><string name="foo">hello world</string></resources>'
     )
     strings = document.find('string')
-    string, _ = strings.next()
-    print "{}: {}".format(string.attrs['name'], string.inner)
+    string, _ = next(strings)
+    print("{}: {}".format(string.attrs['name'], string.inner))
 
 
 class DumbXmlSyntaxError(Exception):
@@ -385,7 +399,7 @@ class NewDumbXml(object):
             self._process_comment()
             return self._tag
 
-        for ptr in xrange(self.position + 1, len(self.source)):
+        for ptr in six.moves.xrange(self.position + 1, len(self.source)):
             candidate = self.source[ptr]
             if (candidate in (self.FORWARD_SLASH, self.GREATER_THAN) or
                     candidate.isspace()):
@@ -490,7 +504,7 @@ class NewDumbXml(object):
             # This is a "single-tag", eg '<br />'
             self._text_position = None
             start = ptr + 1
-            for ptr in xrange(start, len(self.source)):
+            for ptr in six.moves.xrange(start, len(self.source)):
                 candidate = self.source[ptr]
                 if candidate.isspace():
                     continue
@@ -553,7 +567,8 @@ class NewDumbXml(object):
                         u"line {}".
                         format(closing_tag, self.tag, self._find_line_number())
                     )
-                for ptr in xrange(start + 2 + len(self.tag), len(self.source)):
+                for ptr in six.moves.xrange(start + 2 + len(self.tag),
+                                            len(self.source)):
                     candidate = self.source[ptr]
                     if candidate.isspace():
                         continue
@@ -666,7 +681,7 @@ class NewDumbXml(object):
 
     def _find_next_lt(self, start):
         in_cdata = False
-        for ptr in xrange(start, len(self.source)):
+        for ptr in six.moves.xrange(start, len(self.source)):
             candidate = self.source[ptr]
             if in_cdata:
                 if (candidate == ']' and
@@ -690,7 +705,7 @@ class NewDumbXml(object):
         self._attrib = {}
 
         self._text_position = self.position + len("<!--")
-        for ptr in xrange(self._text_position, len(self.source)):
+        for ptr in six.moves.xrange(self._text_position, len(self.source)):
             candidate = self.source[ptr]
             if candidate == '-' and self.source[ptr:ptr + len("-->")] == "-->":
                 self._content_end = ptr
