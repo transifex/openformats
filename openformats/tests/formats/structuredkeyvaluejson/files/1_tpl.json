@@ -1,0 +1,44 @@
+{
+  "singular_key": {
+    "string": "ab2800d7ccb83ba2d643174531d08e36_tr"
+  },
+  "total_files": {
+    "string": "{ item_count, plural, 4d0dfbc44762841c0cec988d1e18b4a6_pl }",
+    "context": "Noun"
+  },
+  "special_chars": {
+    "string": "{ cnt, plural, 00fe762ad9b56187fed536350bc3a40c_pl }",
+    "developer_comment": "This is a string with special characters"
+  },
+  "gold_coins": {
+    "string": "{ count, plural,\n 8060865280cf7fc9e80b79145208a825_pl \n}",
+    "character_limit": 150
+  },
+  "something": {
+    "else": {
+      "string": "27fc99812beff2126b12708a336513c8_tr"
+    },
+    "is": {
+      "going_on": {
+        "string": "38eb89d2562cc44ff2061a045b05ebca_tr"
+      },
+      "wrong": {
+        "string": "{ sth, plural, a125aead7129e03261500e0cade68557_pl }"
+      }
+    }
+  },
+  "parent_key": {
+      "child_key": {
+        "string": "aa1b6a1fd1c606a100f686af700ed34c_tr",
+        "context": "Noun",
+        "developer_comment": "This is a comment.",
+        "character_limit": 150
+      }
+    },
+  "custom_plural_value": {
+    "string": "ee829fd77061d65f1f18982a577b915b_tr"
+  },
+  "json_list": ["This is a regular string",
+                "This is a another string",
+                "This is the final string"]
+}
