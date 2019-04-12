@@ -1,0 +1,44 @@
+{
+  "singular_key": {
+    "string": "el:This is a regular string."
+  },
+  "total_files": {
+    "string": "{ item_count, plural, one {el:You have {file_count} file.} other {el:You have {file_count} files.} }",
+    "context": "Noun"
+  },
+  "special_chars": {
+    "string": "{ cnt, plural, one {el:This is Sam's book.} other {el:These are Sam's books.} }",
+    "developer_comment": "This is a string with special characters"
+  },
+  "gold_coins": {
+    "string": "{ count, plural,\n zero {el:The chest is empty.} one {el:You have one gold coin.} other {el:You have {cnt} gold coins.} \n}",
+    "character_limit": 150
+  },
+  "something": {
+    "else": {
+      "string": "el:Something else"
+    },
+    "is": {
+      "going_on": {
+        "string": "el:Something is going on."
+      },
+      "wrong": {
+        "string": "{ sth, plural, one {el:Something is wrong.} other {el:Somethings are wrong.} }"
+      }
+    }
+  },
+  "parent_key": {
+      "child_key": {
+        "string": "el:This is a key from a child",
+        "context": "Noun",
+        "developer_comment": "This is a comment.",
+        "character_limit": 150
+      }
+    },
+  "custom_plural_value": {
+    "string": "el:{number, plural, =1 {1 New}, =2 {# New}}"
+  },
+  "json_list": ["This is a regular string",
+                "This is a another string",
+                "This is the final string"]
+}

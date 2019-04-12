@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import json
 import re
 from itertools import count
+import copy
 
 import six
 
@@ -504,6 +505,220 @@ class JsonHandler(Handler):
             else:
                 yield symbol
                 ptr += 1
+
+
+class StructuredJsonHandler(JsonHandler):
+    """Handler that preserves certain keys for internal usage, while
+    keeping the flexibility and functionality of the original JsonHandler. It
+    should be used in cases where developers want to add certain metadata
+    to their source entities, like developer_comments or context. The parent
+    handler would parse them as valid key-value entries, however this new
+    one will use them to enhance the OpenString object.
+
+    Currently, we reserve the following keywords:
+    - string
+    - context
+    - developer_comment
+    - character_limit
+
+    Naturally, all of these originate from the OpenString class, but future
+    reserved keywords don't have to be limited to that.
+
+    Example:
+    {
+      "key": {
+        "string": "{count, plural, one {{cnt} file.} other {{cnt} files.}}",
+        "developer_comment": "This is a developer comment",
+        "context": "Sentence",
+        "character_limit": 100
+        }
+    }
+    Because the format assumes that each string when parsed will contain a
+    dictionary with at least one element in it (ex. "string"),
+    StructuredJsonHandler does not support lists, something that the parent
+    parser does.
+
+    As an example, ["a string", "another string"] will not be parsed and will
+    instead be part of the actual template
+    """
+
+    name = "STRUCTURED_JSON"
+
+    STRING_KEY = "string"
+    CONTEXT_KEY = "context"
+    DEVELOPER_COMMENT_KEY = "developer_comment"
+    CHARACTER_LIMIT_KEY = "character_limit"
+    STRUCTURE_FIELDS = {CONTEXT_KEY, DEVELOPER_COMMENT_KEY,
+                        CHARACTER_LIMIT_KEY}
+
+    def _create_pluralized_string(self, icu_string, value_position):
+        """Create a pluralized string based on the given information.
+
+        Also updates the transcriber accordingly.
+
+        :param ICUString icu_string: The ICUString object that will generate
+            the pluralized string
+        :return: an OpenString object
+        :rtype: OpenString
+        """
+        icu_string.key = self._parse_key(icu_string.key)
+        # Don't create strings for metadata fields
+        if not icu_string.key:
+            return None
+
+        structure = self._get_string_structure(icu_string.key)
+        openstring = OpenString(
+            icu_string.key,
+            icu_string.strings_by_rule,
+            pluralized=icu_string.pluralized,
+            order=next(self._order),
+            developer_comment=structure[self.DEVELOPER_COMMENT_KEY],
+            character_limit=structure[self.CHARACTER_LIMIT_KEY],
+            context=structure[self.CONTEXT_KEY]
+        )
+
+        current_pos = icu_string.current_position
+        string_to_replace = icu_string.string_to_replace
+
+        self.transcriber.copy_until(value_position + current_pos)
+        self.transcriber.add(openstring.template_replacement)
+        self.transcriber.skip(len(string_to_replace))
+
+        return openstring
+
+    def _create_regular_string(self, key, value, value_position):
+        """
+        Return a new OpenString based on the given key and value
+        and update the transcriber accordingly.
+
+        :param key: the string key
+        :param value: the translation string
+        :return: an OpenString or None
+        """
+        key = self._parse_key(key)
+        # Don't create strings for metadata fields
+        if not key:
+            return None
+
+        structure = self._get_string_structure(key)
+        openstring = OpenString(
+            key, value, order=next(self._order),
+            developer_comment=structure[self.DEVELOPER_COMMENT_KEY],
+            character_limit=structure[self.CHARACTER_LIMIT_KEY],
+            context=structure[self.CONTEXT_KEY]
+        )
+        self.transcriber.copy_until(value_position)
+        self.transcriber.add(openstring.template_replacement)
+        self.transcriber.skip(len(value))
+
+        return openstring
+
+    def _parse_key(self, key):
+        """Return the proper key for translatable entries or None
+        for metadata entries or other keys that don't match those cases.
+
+        Examples:
+        - The key "first.second.string" ends in '.string' and thus
+          it points to a translatable string. The method will return
+          'first.second' as the final key
+        - The key "first.second.context" points to a metadata value
+          ('context'), so the method will return None
+
+        :param str key: The key to check against
+        :return: The updated key if this is a valid key, None otherwise
+        :rtype: str
+        """
+        # We need to parse only STRING_KEY keys, otherwise we should
+        # early return
+        if not key.endswith(".{}".format(self.STRING_KEY)):
+            return None
+        # Remove the STRING_KEY part of the key as it is not needed. Add +1
+        # when calculating the length of the STRING_KEY, for the "." character
+        return key[:-(len(self.STRING_KEY)+1)]
+
+    def _get_string_structure(self, key):
+        """Given a key, find its corresponding value in a nested JSON object.
+
+        Example:
+        If our JSON file has the following structure,
+        {'key':{
+            'another_key':{
+                'string': 'This is a text',
+                'developer_comment': 'These are the developer notes'
+            }
+          }
+        }
+        Then given the key `key.another_key`, the _get_string_structure
+        function will return the following dictionary:
+        {
+            "string": "This is a text",
+            "context": "",
+            "developer_comment": "These are the developer notes",
+            "character_limit": None
+        }
+
+        :param str key: the key to search against
+        :return: a dictionary with the string structure
+        :rtype: dict
+        """
+        json_dict = self._get_value_for_key(key)
+        return {field: json_dict[field]
+                if field in json_dict
+                else OpenString.DEFAULTS[field]
+                for field in self.STRUCTURE_FIELDS
+                }
+
+    def _get_value_for_key(self, key):
+        """Given a key, find its value in a nested JSON object.
+
+        Key will always have the format `key.[another_key[..]]`
+        As an example, given the key 'key.another_key.string'
+        and our JSON object has the following structure:
+        {'key':{
+            'another_key':{
+                'string': 'This is a text',
+                'developer_comment': 'These are the developer notes'
+            }
+          }
+        }
+        We should return the following dictionary:
+        {
+            'string': 'This is a text',
+            'developer_comment': 'These are the developer notes'
+        }
+
+        :param str key: the key to search against
+        :return: a dictionary with the value for the given key
+        :rtype: dict
+        """
+        # Go through all parts of the composite key
+        keys = key.split('.')
+        json_dict = self.json_dict
+        for k in keys:
+            json_dict = json_dict[k]
+        return json_dict
+
+    def validate_content(self, content):
+        """Validate that a given string is valid JSON file.
+
+        :param str content: the content to parse
+        :raise ParseError: if the content is not valid JSON format
+        """
+        try:
+            # Save the JSON dict for later use
+            self.json_dict = json.loads(content)
+        except ValueError as e:
+            raise ParseError(six.text_type(e))
+
+    def _copy_until_and_remove_section(self, pos):
+        """
+        Copy characters to the transcriber until the given position,
+        then end the current section.
+        """
+        self.transcriber.copy_until(pos)
+        self.transcriber.mark_section_end()
+        # Unlike the JSON format, do not remove the remaining section of the
+        # template
 
 
 class ChromeI18nHandler(JsonHandler):
