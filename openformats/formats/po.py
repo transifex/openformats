@@ -45,7 +45,33 @@ class PoHandler(Handler):
             openstring = self._handle_entry(entry)
             if openstring is not None:
                 stringset.append(openstring)
-        return six.text_type(self.new_po), stringset
+
+        po_str = self._po_file_to_str(self.new_po)
+        return po_str, stringset
+
+    def _po_file_to_str(self, po_file):
+        """
+        Generate the template for the PO file.
+
+        Use this method instead of six.text_type(po_file)
+        in order to avoid the separate handling of obsoleted strings
+        by the PO file handler of polib in its __unicode__ method,
+        since this affects the order of strings in the tempate and
+        as a consequence, strings after obsoleted ones are missing
+        in the compiled file.
+        """
+        result = []
+        headers = po_file.header.split('\n')
+        for header in headers:
+            if header[:1] in [',', ':']:
+                result.append('#%s' % header)
+            else:
+                result.append('# %s' % header)
+        result.append(six.text_type(po_file.metadata_as_entry()))
+        for entry in po_file:
+            result.append(six.text_type(entry))
+
+        return six.text_type('\n'.join(result))
 
     def _handle_entry(self, entry):
         """Handles a po file entry.
@@ -288,7 +314,7 @@ class PoHandler(Handler):
                     continue
             indexes_to_remove.append(i)
         self._smart_remove(po, indexes_to_remove)
-        return six.text_type(po)
+        return self._po_file_to_str(po)
 
     def _compile_entry(self, entry, next_string):
         """Compiles the current non pluralized entry.
