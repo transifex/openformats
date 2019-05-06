@@ -83,3 +83,4 @@ bin: !!binary aGVsbG8= # Should ignore
 # Test with non-ASCII keys
 #σχόλιο
 σχόλιο: κείμενο
+emojis: \uD83D\uDC40 🏹🍍🍍 \U0001F418

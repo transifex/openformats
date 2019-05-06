@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 install_requires = [
     'polib==1.0.3',
     'mistune==0.7.3',
-    'PyYAML==3.10',
+    'PyYAML==5.1',
     'pyparsing==2.2.0',
     'lxml==4.1.1',
     'ucflib @ git+https://github.com/kbairak/ucflib.git@py3_compatibility#egg=ucflib-0.2.1',  # noqa
