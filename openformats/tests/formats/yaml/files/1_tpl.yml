@@ -74,3 +74,4 @@ bin: !!binary aGVsbG8= # Should ignore
 # Test with non-ASCII keys
 #σχόλιο
 σχόλιο: 8687f34a9bf89770b456b48ad2395788_tr
+emojis: 8f9f68d76af0fa4a5e4830530618e55c_tr

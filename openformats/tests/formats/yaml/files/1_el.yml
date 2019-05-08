@@ -80,3 +80,4 @@ bin: !!binary aGVsbG8= # Should ignore
 # Test with non-ASCII keys
 #σχόλιο
 σχόλιο: "el:κείμενο"
+emojis: "el:\\uD83D\\uDC40 \U0001F3F9\U0001F34D\U0001F34D \\U0001F418"

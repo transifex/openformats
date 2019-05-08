@@ -40,3 +40,4 @@ foo: !test 'bar'
 bar: !xml "foo <xml>bar</xml>"
 hello: World
 σχόλιο: κείμενο
+emojis: \uD83D\uDC40 🏹🍍🍍 \U0001F418

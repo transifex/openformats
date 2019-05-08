@@ -1,4 +1,4 @@
-PyYAML==3.13
+PyYAML==5.1
 django==1.11
 mistune==0.7.3
 polib==1.0.3
