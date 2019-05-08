@@ -78,6 +78,62 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             u'python-format, another-flag'
         )
 
+    def test_compiled_includes_all_with_obsoleted_strings(self):
+        """
+        Test that the existence of obsoleted strings in the po file
+        marked with #~ does not cause strings after the obsoleted ones
+        to be missing from the compiled file.
+        """
+        string1 = self._create_openstring(False)
+        string2 = self._create_openstring(False)
+        string3 = self._create_openstring(False)
+        source = strip_leading_spaces(u"""
+            msgid ""
+            msgstr ""
+            
+            msgid "{s1_key}"
+            msgstr "{s1_str}"
+            
+            #~ msgid "{s2_key}"
+            #~ msgstr "{s2_str}"
+            
+            msgid "{s3_key}"
+            msgstr "{s3_str}"
+        """.format(**{
+            's1_key': string1.key,
+            's1_str': string1.string,
+            's2_key': string2.key,
+            's2_str': string2.string,
+            's3_key': string3.key,
+            's3_str': string3.string
+        }))
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [string1, string2, string3])
+
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                u"""# \nmsgid ""
+                msgstr ""
+                
+                msgid "{s1_key}"
+                msgstr "{s1_str}"
+                
+                #~ msgid "{s2_key}"
+                #~ msgstr "{s2_str}"
+                
+                msgid "{s3_key}"
+                msgstr "{s3_str}"
+                """.format(**{
+                    's1_key': string1.key,
+                    's1_str': string1.string,
+                    's2_key': string2.key,
+                    's2_str': string2.string,
+                    's3_key': string3.key,
+                    's3_str': string3.string
+                }))
+        )
+
     def test_removes_untranslated_non_pluralized(self):
         string1 = self._create_openstring(False)
         string2 = self._create_openstring(False)
