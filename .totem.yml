@@ -1,0 +1,47 @@
+settings:
+  pr_comment_report:
+    enabled: True
+    delete_previous: True
+    show_empty_sections: False
+    show_message: True
+    show_details: True
+    show_successful: False
+  console_report:
+    show_empty_sections: True
+    show_message: True
+    show_details: True
+    show_successful: True
+  local_console_report:
+    show_empty_sections: False
+    show_message: True
+    show_details: True
+    show_successful: False
+checks:
+  branch_name:
+    pattern: ^(?!TX-[0-9]+)[a-z\-\d]+$
+    pattern_descr: Branch name must include lowercase characters, digits and dashes, e.g. `sync-translations`
+    failure_level: error
+  pr_title:
+    pattern: ^(?!TX-[0-9]+).+$
+    pattern_descr: Example of valid value: `Sync translations to Transifex`
+    failure_level: error
+  pr_body_checklist:
+    failure_level: error
+  pr_body_includes:
+    patterns:
+      - Problem and/or solution
+      - How to test
+      - Reviewer checklist
+    failure_level: error
+  commit_message:
+    subject:
+      min_length: 10
+      max_length: 50
+      pattern: ^[A-Z].+(?<!\.)$
+      pattern_descr: Commit message subject must start with a capital letter and must not finish with a dot
+    body:
+      max_line_length: 72
+      smart_require:
+        min_changes: 100
+        min_body_lines: 1
+    failure_level: error

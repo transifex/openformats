@@ -20,9 +20,47 @@ jobs:
       - run:
           name: Run tests
           command: tox
+  totem:
+    docker:
+    - image: python:alpine
+      environment:
+    steps:
+    - checkout
+    - add_ssh_keys:
+        fingerprint:
+          # A public Deploy key of the current repository
+          "00:38:d6:47:6b:a3:ca:d5:40:3d:f5:75:6f:33:71:a7"
+    - run:
+        name: Install git/openssh-client and add github to the list of known hosts
+        command: apk add git openssh-client && mkdir ~/.ssh && ssh-keyscan github.com > ~/.ssh/known_hosts
+    - run:
+        name: Install Totem
+        command: pip install totem
+    # The pull request string can be empty for 2 reasons:
+    #   1. This is a merge commit, so there is currently no PR
+    #   2. A bug of CircleCI does not populate the PR variable
+    # We cannot know for sure why this has happened. We check the current
+    # branch and if it's not `master` or `devel`, then we assume
+    # we've hit the bug.
+    - run:
+        name: Run Totem
+        command: |
+          if [[ "$CIRCLE_BRANCH" == "devel" || "$CIRCLE_BRANCH" == "master" ]]; then
+            echo "Totem is disabled on branch '$CIRCLE_BRANCH'. Won't execute."
+          else
+            if [[ "$CIRCLE_PULL_REQUEST" == "" ]]; then
+              echo "\$CIRCLE_PULL_REQUEST is empty. It's probably due to CircleCI's bug"
+              echo "(https://discuss.circleci.com/t/circle-pull-request-not-being-set/14409)."
+              echo "Please rerun the workflow until the PR variable is populated by CircleCI."
+              exit 1
+            else
+              totem --pr-url "$CIRCLE_PULL_REQUEST" --config-file ".totem.yml" --details-url "$CIRCLE_BUILD_URL"
+            fi
+          fi
 
 workflows:
   version: 2
   run_tests:
     jobs:
       - build
+      - totem
