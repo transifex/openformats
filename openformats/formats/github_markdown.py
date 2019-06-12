@@ -145,6 +145,7 @@ class TxBlockLexer(BlockLexer):
 class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
     name = "Github_Markdown"
     extension = "md"
+    EXTRACTS_RAW = False
 
     # Translatable YAML header attributes
     YAML_ATTR = (u'title', u'description')
