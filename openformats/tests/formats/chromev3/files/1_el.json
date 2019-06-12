@@ -1,0 +1,31 @@
+{
+  "simple": {
+    "message": "el:simple message"
+  },
+  "with description": {
+    "message": "el:simple message",
+    "description": "simple description"
+  },
+  "description not a string": {
+    "message": "el:simple message",
+    "description": 3
+  },
+  "not a dictionary": 3,
+  "not a dictionary v2": [3],
+  "message not a string": {
+    "message": 3
+  },
+  "with extra stuff": {
+    "message": "el:simple message",
+    "placeholders": {
+      "a": 1,
+      "b": 2
+    }
+  },
+  "key.with.dots": {
+    "message": "el:simple message"
+  },
+  "pluralized": {
+    "message": "{cnt, plural, one {el:horse} other {el:horses}}"
+  }
+}

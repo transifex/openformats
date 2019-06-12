@@ -5,7 +5,6 @@ from __future__ import absolute_import
 import json
 import re
 from itertools import count
-import copy
 
 import six
 
@@ -802,3 +801,209 @@ class ChromeI18nHandler(JsonHandler):
             self.json_dict = json.loads(content)
         except ValueError as e:
             raise ParseError(six.text_type(e))
+
+
+class ChromeI18nHandlerV3(Handler):
+    """ New version of chrome-json handler.
+
+        Compared to v2, this handler:
+        - Only accepts a flat JSON structure, ie all strings must be at the top
+          level of the root object
+        - Does not escape keys; the same key that appears in the source file
+          will be the key of the extracted string
+        - Fixes a bug with parsing descriptions/comments; the previous version
+          would not detect the description if the key had a dot (`.`) in it
+
+        Example source file:
+
+            {
+                "a": {"message": "aaa"},
+                "b": {"message": "bbb", "description": "description"},
+                "c": {"message": "{plural, cnt, one {horse} other {horses}}"}
+            }
+
+        Extracted strings:
+
+            |-----+-----------------------+-------------------|
+            | key | string(s)             | developer_comment |
+            |-----+-----------------------+-------------------|
+            | a   | aaa                   |                   |
+            | b   | bbb                   | description       |
+            | c   | {1: horse, 5: horses} |                   |
+            |-----+-----------------------+-------------------|
+    """
+    name = "CHROME_V3"
+    extension = "json"
+
+    def parse(self, content, **kwargs):
+        icu_parser = ICUParser(allow_numeric_plural_values=False)
+
+        # Sanity checks
+        try:
+            json.loads(content)
+        except ValueError as e:
+            raise ParseError(six.text_type(e))
+
+        # Useful objects
+        transcriber = Transcriber(content)
+        source = transcriber.source
+        stringset = []
+        existing_keys = set()
+        _order = count()
+
+        # Sanity checks vol2
+        try:
+            parsed = DumbJson(source)
+        except ValueError as e:
+            raise ParseError(six.text_type(e))
+        if parsed.type != dict:
+            raise ParseError(u"Source file must be a JSON object")
+
+        # Main loop
+        for (outer_key,
+             outer_key_position, outer_value, outer_value_position) in parsed:
+            if outer_key in existing_keys:
+                transcriber.copy_until(outer_key_position)
+                raise ParseError(u"Key '{}' appears multiple times (line {})".
+                                 format(outer_key, transcriber.line_number))
+            existing_keys.add(outer_key)
+
+            if not isinstance(outer_value, DumbJson):
+                continue
+            if outer_value.type != dict:
+                continue
+
+            # Figure out message and description
+            (message, message_position), (description, _) = outer_value.\
+                find_children('message', 'description')
+            if not isinstance(message, six.string_types):
+                continue
+            if not isinstance(description, six.string_types):
+                description = None
+
+            # Extract string
+            icu_string = icu_parser.parse(outer_key, message)
+            if icu_string:
+                # Pluralized
+                openstring = OpenString(icu_string.key,
+                                        icu_string.strings_by_rule,
+                                        pluralized=icu_string.pluralized,
+                                        order=next(_order),
+                                        developer_comment=description or '')
+                # Preserve ICU formatting:
+                #   '{cnt, plural, one {foo} other {foos}}' ->
+                #   '{cnt, plural, <hash>}'
+                transcriber.copy_until(message_position +
+                                       icu_string.current_position)
+                transcriber.add(openstring.template_replacement)
+                transcriber.skip(len(icu_string.string_to_replace))
+            else:
+                # Singular
+                openstring = OpenString(outer_key, message,
+                                        order=next(_order),
+                                        developer_comment=description or '')
+                transcriber.copy_until(message_position)
+                transcriber.add(openstring.template_replacement)
+                transcriber.skip(len(message))
+            stringset.append(openstring)
+        transcriber.copy_to_end()
+        return transcriber.get_destination(), stringset
+
+    def compile(self, template, stringset, **kwargs):
+        icu_compiler = ICUCompiler()
+
+        # Useful objects
+        transcriber = Transcriber(template)
+        source = transcriber.source
+        stringset_iter = iter(stringset)
+        openstring = next(stringset_iter, None)
+        parsed = DumbJson(source)
+
+        # Main loop
+        for (outer_key,
+             outer_key_position, outer_value, outer_value_position) in parsed:
+            # Mark section start in case we want to delete this section
+            transcriber.copy_until(outer_key_position - 1)
+            transcriber.mark_section_start()
+
+            # Not something we extracted a string from, skip
+            if not isinstance(outer_value, DumbJson):
+                continue
+            if outer_value.type != dict:
+                continue
+
+            # Find message
+            (message_hash, message_position), = outer_value.\
+                find_children('message')
+
+            # Message not found, skip
+            if not isinstance(message_hash, six.string_types):
+                continue
+
+            # We have found a message
+
+            # Message hash doesn't not match next string from stringset,
+            # delete. Section start was marked at the top of this loop
+            if (openstring is None or
+                    openstring.template_replacement not in message_hash):
+                try:
+                    # If this is not the last key-value pair, delete up to
+                    # (including) the next ','
+                    #     ..., "a": {"message": "foo"}, ...
+                    #          ^                       ^
+                    #          |                       |
+                    #        start                    end
+                    delete_until = source.index(',', outer_value.end) + 1
+
+                except ValueError:
+                    # If this is the last key-value pair, delete up to (not
+                    # including) the next '}':
+                    #     ..., "a": {"message": "foo"}}
+                    #          ^                      ^
+                    #          |                      |
+                    #        start                   end
+                    delete_until = source.index('}', outer_value.end)
+                transcriber.copy_until(delete_until + 1)
+                transcriber.mark_section_end()
+                transcriber.remove_section()
+                continue
+
+                if openstring.key != outer_key:  # pragma: no cover
+                    # This should never happen
+                    raise ParseError(u"Key '{}' from the database does not "
+                                     u"match key '{}' from the template".
+                                     format(openstring.key, outer_key))
+
+            if (message_hash == openstring.template_replacement and
+                    not openstring.pluralized):
+                # Singular
+                transcriber.copy_until(message_position)
+                transcriber.add(openstring._strings[5])
+                transcriber.skip(len(openstring.template_replacement))
+            elif (openstring.template_replacement in message_hash and
+                    openstring.pluralized):
+                # Pluralized, preserve ICU formatting
+                #   '{cnt, plural, <hash>}' ->
+                #   '{cnt, plural, one {foo} other {foos}}'
+                replacement_position = message_hash.find(
+                    openstring.template_replacement
+                )
+                transcriber.copy_until(message_position + replacement_position)
+                transcriber.add(icu_compiler.serialize_strings(
+                    openstring.string, delimiter=' '
+                ))
+                transcriber.skip(len(openstring.template_replacement))
+            else:  # pragma: no cover
+                # This should never happen
+                raise ParseError(u"Pluralized status of the string in the "
+                                 u"template does not match the string's "
+                                 u"status from the database, key: '{}'".
+                                 format(openstring.key))
+            openstring = next(stringset_iter, None)
+        transcriber.copy_to_end()
+        compiled = transcriber.get_destination()
+
+        # Remove trailing ',', in case we deleted the last section
+        compiled = re.sub(r',(\s*)}(\s*)$', r'\1}\2', compiled)
+
+        return compiled

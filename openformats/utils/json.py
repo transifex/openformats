@@ -274,6 +274,31 @@ class DumbJson(object):
     def end(self, value):
         self._end = value
 
+    def find_children(self, *keys):
+        """
+            Get values (and positions) of a DumbJson dict. Usage:
+
+                >>> jj = DumbJson('{"a": "aaa", "b": "bbb"}')
+
+                >>> (a, a_pos), (c, c_pos) = jj.find_children('a', 'c')
+                >>> print(a, a_pos, c, c_pos)
+                <<< 'aaa', 7, None, None
+
+                >>> # Notice the trailing comma (`,`)
+                >>> (a, a_pos), = jj.find_children('a')
+                >>> print(a, a_pos)
+                <<< 'aaa', 7
+
+            :return: a list of 2-tuples with values and value positions
+            :rtype: list
+        """
+
+        found = {}
+        for key, key_position, value, value_position in self:
+            if key in keys:
+                found[key] = (value, value_position)
+        return [(found.get(key, (None, None))) for key in keys]
+
 
 for symbol in (DumbJson.BACKSLASH, DumbJson.DOUBLE_QUOTES,
                DumbJson.FORWARD_SLASH, DumbJson.BACKSPACE, DumbJson.FORMFEED,
