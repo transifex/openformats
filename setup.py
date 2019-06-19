@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
+import versioneer
 
 install_requires = [
     'polib==1.0.3',
@@ -20,7 +21,8 @@ tests_require = [
 
 setup(
     name="openformats",
-    version='0.0.54',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description="The Transifex Open Formats library",
     author="Transifex",
     author_email="support@transifex.com",
