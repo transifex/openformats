@@ -1,0 +1,31 @@
+{
+  "simple": {
+    "message": "f39e4a122e9a8c8e9b398aa9a7003bee_tr"
+  },
+  "with description": {
+    "message": "1f6c3d7ca32998ebb32189701c33b596_tr",
+    "description": "simple description"
+  },
+  "description not a string": {
+    "message": "8a3a0089b0ddfbba3e04cc7a4e847022_tr",
+    "description": 3
+  },
+  "not a dictionary": 3,
+  "not a dictionary v2": [3],
+  "message not a string": {
+    "message": 3
+  },
+  "with extra stuff": {
+    "message": "87ca036cc1ecbea02075c5be9c93d530_tr",
+    "placeholders": {
+      "a": 1,
+      "b": 2
+    }
+  },
+  "key.with.dots": {
+    "message": "e5c58379e175c372ca6e7b0efa9b5a76_tr"
+  },
+  "pluralized": {
+    "message": "{cnt, plural, ea4101a387e08dd12345e43f3f389c9a_pl}"
+  }
+}

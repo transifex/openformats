@@ -88,6 +88,24 @@ class DumbJsonTestCase(unittest.TestCase):
         self._test_dfs('{"a": "hello world\\\\"}',
                        [('a', 2, 'hello world\\\\', 7)])
 
+    # find_children
+    def test_find_children(self):
+        test_cases = [
+            ('{"a": "aaa"}', [], []),
+            ('{"a": "aaa"}', ['a'], [('aaa', 7)]),
+            ('{"a": "aaa"}', ['b'], [(None, None)]),
+            ('{"a": "aaa", "b": "bbb"}', [], []),
+            ('{"a": "aaa", "b": "bbb"}', ['a'], [('aaa', 7)]),
+            ('{"a": "aaa", "b": "bbb"}', ['b'], [('bbb', 19)]),
+            ('{"a": "aaa", "b": "bbb"}', ['a', 'b'],
+             [('aaa', 7), ('bbb', 19)]),
+            ('{"a": "aaa", "b": "bbb"}', ['a', 'c'],
+             [('aaa', 7), (None, None)]),
+        ]
+        for source, keys, expected_result in test_cases:
+            self.assertEqual(DumbJson(source).find_children(*keys),
+                             expected_result)
+
     # Utils
     def _test_dfs(self, content, against):
         dumb_json = DumbJson(content)
