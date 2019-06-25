@@ -181,7 +181,7 @@ class InDesignHandler(Handler):
                 continue
 
             # no matter what, idml values are bytes
-            story_content = idml[key].decode()
+            story_content = idml[key].decode('utf-8')
             idml[key] = self._compile_story(story_content).encode('utf-8')
 
         out = io.BytesIO()
