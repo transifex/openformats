@@ -300,6 +300,109 @@ class DumbJson(object):
         return [(found.get(key, (None, None))) for key in keys]
 
 
+def escape(string):
+    return u''.join(_escape_generator(string))
+    # btw, this seems equivalent to
+    # return json.dumps(string, ensure_ascii=False)[1:-1]
+
+
+def _escape_generator(string):
+    for symbol in string:
+        if symbol == DumbJson.DOUBLE_QUOTES:
+            yield DumbJson.BACKSLASH
+            yield DumbJson.DOUBLE_QUOTES
+        elif symbol == DumbJson.BACKSLASH:
+            yield DumbJson.BACKSLASH
+            yield DumbJson.BACKSLASH
+        elif symbol == DumbJson.BACKSPACE:
+            yield DumbJson.BACKSLASH
+            yield u'b'
+        elif symbol == DumbJson.FORMFEED:
+            yield DumbJson.BACKSLASH
+            yield u'f'
+        elif symbol == DumbJson.NEWLINE:
+            yield DumbJson.BACKSLASH
+            yield u'n'
+        elif symbol == DumbJson.CARRIAGE_RETURN:
+            yield DumbJson.BACKSLASH
+            yield u'r'
+        elif symbol == DumbJson.TAB:
+            yield DumbJson.BACKSLASH
+            yield u't'
+        else:
+            yield symbol
+
+
+def unescape(string):
+    return u''.join(_unescape_generator(string))
+    # btw, this seems equivalent to
+    # return json.loads(u'"{}"'.format(string))
+
+
+def _unescape_generator(string):
+    # I don't like this aldschool approach, but we may have to rewind a bit
+    ptr = 0
+    while True:
+        if ptr >= len(string):
+            break
+
+        symbol = string[ptr]
+
+        if symbol != DumbJson.BACKSLASH:
+            yield symbol
+            ptr += 1
+            continue
+
+        try:
+            next_symbol = string[ptr + 1]
+        except IndexError:
+            yield DumbJson.BACKSLASH
+            ptr += 1
+            continue
+
+        if next_symbol in (DumbJson.DOUBLE_QUOTES, DumbJson.FORWARD_SLASH,
+                           DumbJson.BACKSLASH):
+            yield next_symbol
+            ptr += 2
+        elif next_symbol == u'b':
+            yield DumbJson.BACKSPACE
+            ptr += 2
+        elif next_symbol == u'f':
+            yield DumbJson.FORMFEED
+            ptr += 2
+        elif next_symbol == u'n':
+            yield DumbJson.NEWLINE
+            ptr += 2
+        elif next_symbol == u'r':
+            yield DumbJson.CARRIAGE_RETURN
+            ptr += 2
+        elif next_symbol == u't':
+            yield DumbJson.TAB
+            ptr += 2
+        elif next_symbol == u'u':
+            unicode_escaped = string[ptr:ptr + 6]
+            try:
+                unescaped = unicode_escaped.\
+                    encode('ascii').\
+                    decode('unicode-escape')
+            except Exception:
+                yield DumbJson.BACKSLASH
+                yield u'u'
+                ptr += 2
+                continue
+            if len(unescaped) != 1:
+                yield DumbJson.BACKSLASH
+                yield u'u'
+                ptr += 2
+                continue
+            yield unescaped
+            ptr += 6
+
+        else:
+            yield symbol
+            ptr += 1
+
+
 for symbol in (DumbJson.BACKSLASH, DumbJson.DOUBLE_QUOTES,
                DumbJson.FORWARD_SLASH, DumbJson.BACKSPACE, DumbJson.FORMFEED,
                DumbJson.NEWLINE, DumbJson.CARRIAGE_RETURN, DumbJson.TAB):
