@@ -11,6 +11,7 @@ from ..utils.compilers import OrderedCompilerMixin
 class PlaintextHandler(OrderedCompilerMixin, Handler):
     name = "Plaintext"
     extension = "txt"
+    EXTRACTS_RAW = False
 
     def parse(self, content, **kwargs):
         stringset = []
