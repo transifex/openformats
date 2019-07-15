@@ -27,6 +27,7 @@ class InDesignHandler(Handler):
     extension = "idml"
     SPECIFIER = None
     PROCESSES_BINARY = True
+    EXTRACTS_RAW = False
 
     # The ? at the end of the string regex, makes it non-greedy in order to
     # allow trailing spaces to be preserved

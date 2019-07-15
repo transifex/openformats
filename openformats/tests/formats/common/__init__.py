@@ -57,6 +57,11 @@ class CommonFormatTestMixin(object):
         self.tmpl, self.strset = self.handler.parse(self.data["1_en"])
         super(CommonFormatTestMixin, self).setUp()
 
+    def test_extracts_raw(self):
+        if self.HANDLER_CLASS.EXTRACTS_RAW:
+            self.assertTrue(hasattr(self.HANDLER_CLASS, 'escape'))
+            self.assertTrue(hasattr(self.HANDLER_CLASS, 'unescape'))
+
     def test_template(self):
         """Test that the template created is the same as static one."""
         # FIXME: Test descriptions should have the handler's name prefixed to

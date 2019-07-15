@@ -9,6 +9,7 @@ from openformats.transcribers import Transcriber
 class SrtHandler(Handler):
     name = "SRT"
     extension = "srt"
+    EXTRACTS_RAW = False
 
     NON_SPACE_PAT = re.compile(r'[^\s]')
 

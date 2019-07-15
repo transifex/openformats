@@ -27,6 +27,11 @@ class InDesignTestCase(unittest.TestCase):
                          [hash(string) for string in stringset2])
         self.assertEqual(template, template2)
 
+    def test_extracts_raw(self):
+        if self.HANDLER_CLASS.EXTRACTS_RAW:
+            self.assertTrue(hasattr(self.HANDLER_CLASS, 'escape'))
+            self.assertTrue(hasattr(self.HANDLER_CLASS, 'unescape'))
+
     def test_parser(self):
         """Test parsing to template and validate template."""
 
