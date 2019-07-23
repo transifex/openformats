@@ -182,6 +182,9 @@ This is as reference [link][1].
 "[Reference]: http://example.com/"
 
 
+# Escaping
+The next char here is the backspace control character -><- (but you can't see it)
+
 # Special section
 WARNING! The example shown here seems to break all tests on content that is below the javascript code block, because of the "el:" part that is added before the code block notation. Please keep this at the end of the file.  
 
