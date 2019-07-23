@@ -137,3 +137,14 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
         openstring = OpenString('k', u' @κάπου')
         string = self.handler._transform_yaml_string(openstring)
         self.assertEqual(string, u'" @κάπου"')
+
+    def test_escape_control_characters(self):
+        openstring = OpenString('k', u'者・最')  # 2nd character is the backspace char
+        self.handler._escape_invalid_chars(openstring)
+        self.assertEqual(openstring.string, u'者\\u0008・最')
+
+        openstring = OpenString('k', {5: u'者・最', 1: u'AA', 2: u'aa'})
+        self.handler._escape_invalid_chars(openstring)
+        self.assertEqual(
+            openstring.string, {5: u'者\\u0008・最', 1: u'\\u0008AA', 2: u'\\u0008aa'},
+        )

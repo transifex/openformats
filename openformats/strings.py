@@ -110,6 +110,10 @@ class OpenString(object):
         else:
             return self._strings[5]
 
+    @property
+    def strings(self):
+        return self._strings
+
     def _get_string_hash(self):
         keys = [self.key, self.context or '']
         return md5(':'.join(keys).encode('utf-8')).hexdigest()
