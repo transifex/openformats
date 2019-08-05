@@ -5,6 +5,8 @@ import re
 import six
 
 from mistune import Markdown
+from yaml.reader import Reader
+
 from openformats.formats.github_markdown import TxBlockLexer, string_handler
 from openformats.formats.yaml import YamlHandler
 from openformats.utils.compat import ensure_unicode
@@ -39,15 +41,16 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         transcriber = Transcriber(template)
         template = transcriber.source
 
-        for string in stringset:
-            tr_string = string.string
-            if self._is_yaml_string(string):
-                tr_string = self._transform_yaml_string(string)
+        for openstring in stringset:
+            tr_string = openstring.string
+            if self._is_yaml_string(openstring):
+                self._escape_invalid_chars(openstring)
+                tr_string = self._transform_yaml_string(openstring)
 
-            hash_position = template.index(string.template_replacement)
+            hash_position = template.index(openstring.template_replacement)
             transcriber.copy_until(hash_position)
             transcriber.add(tr_string)
-            transcriber.skip(len(string.template_replacement))
+            transcriber.skip(len(openstring.template_replacement))
 
         transcriber.copy_until(len(template))
         compiled = transcriber.get_destination()
@@ -136,6 +139,28 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             return True
 
         return False
+
+    def _escape_invalid_chars(self, openstring):
+        """Escape any invalid characters in the given string.
+
+        Modifies the given OpenString object in place, checking strings for all
+        plural rules.
+
+        :param OpenString openstring: the string object to check
+        """
+        # Check each plural rule of the string
+        for rule, string in six.iteritems(openstring.strings):
+            chars = []
+            # Go through each character
+            # If a control character is found (e.g. backspace)
+            # escape it to a unicode format, e.g. \u007f
+            for x in string:
+                if Reader.NON_PRINTABLE.match(x):
+                    chars.append('\\u{:04x}'.format(ord(x)))
+                else:
+                    chars.append(x)
+
+            openstring._strings[rule] = u"".join(chars)
 
     def _transform_yaml_string(self, openstring):
         """Transform the given YAML-formatted string to make it valid for compilation.
