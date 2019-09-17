@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import re
 
@@ -23,18 +23,23 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     extension = "md"
     EXTRACTS_RAW = False
 
-    BACKSLASH = u'\\'
-    DOUBLE_QUOTES = u'"'
+    BACKSLASH = '\\'
+    DOUBLE_QUOTES = '"'
     SINGLE_QUOTE = u"'"
-    NEWLINE = u'\n'
-    COLON = u':'
-    ASTERISK = u'*'
-    AMPERSAND = u'&'
-    DASH = u'-'
-    HASHTAG = u'#'
-    AT_SIGN = u'@'  # reserved character in the YAML spec
-    BRACKET_LEFT = u'['
-    BRACKET_RIGHT = u']'
+    NEWLINE = '\n'
+    COLON = ':'
+    ASTERISK = '*'
+    AMPERSAND = '&'
+    DASH = '-'
+    HASHTAG = '#'
+    AT_SIGN = '@'  # reserved character in the YAML spec
+    BRACKET_LEFT = '['
+    BRACKET_RIGHT = ']'
+
+    # A string that looks like '\u0008'
+    ESCAPED_UNICODE = re.compile(r'\\u[a-fA-F0-9]{4}')
+    # ... or '\x2D'
+    ESCAPED_UNICODE_HEX = re.compile(r'\\x[a-fA-F0-9]{2}')
 
     def compile(self, template, stringset, **kwargs):
         # assume stringset is ordered within the template
@@ -78,12 +83,16 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         yaml_stringset = []
         yaml_template = ''
         seperator = ''
+
         if yml_header:
             yaml_header_content = ''.join(yml_header.group(1, 2))
             seperator = yml_header.group(3)
             md_content = content[len(yaml_header_content + seperator):]
             yaml_template, yaml_stringset = YamlHandler().parse(
-                yaml_header_content)
+                yaml_header_content
+            )
+            for openstring in yaml_stringset:
+                self._unescape_non_printable(openstring)
         else:
             md_content = content
 
@@ -141,12 +150,12 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         return False
 
     def _escape_invalid_chars(self, openstring):
-        """Escape any invalid characters in the given string.
+        """Escape any invalid (non-printable) characters in the given string.
 
         Modifies the given OpenString object in place, checking strings for all
         plural rules.
 
-        :param OpenString openstring: the string object to check
+        :param OpenString openstring: the string object to check and update
         """
         # Check each plural rule of the string
         for rule, string in six.iteritems(openstring.strings):
@@ -154,13 +163,64 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             # Go through each character
             # If a control character is found (e.g. backspace)
             # escape it to a unicode format, e.g. \u007f
-            for x in string:
-                if Reader.NON_PRINTABLE.match(x):
-                    chars.append('\\u{:04x}'.format(ord(x)))
+            for char in string:
+                if Reader.NON_PRINTABLE.match(char):
+                    chars.append('\\u{:04x}'.format(ord(char)))
                 else:
-                    chars.append(x)
+                    chars.append(char)
 
             openstring._strings[rule] = u"".join(chars)
+
+    def _unescape_non_printable(self, openstring):
+        """Unescape any invalid (non-printable) characters in the given string.
+
+        Modifies the given OpenString object in place, checking strings for all
+        plural rules.
+
+        :param OpenString openstring: the string object to check and update
+        """
+        # Check each plural rule of the string
+        for rule, string in six.iteritems(openstring.strings):
+            # Check \u0000 notation
+            all_matches = list(GithubMarkdownHandlerV2.ESCAPED_UNICODE.finditer(string))
+
+            # We need to loop in reverse, otherwise the length of the string
+            # changes as we go because of the replacements we do, and the indexes
+            # in matches are no longer correct, cutting characters off the string
+            # by mistake
+            for match in reversed(all_matches):
+                escaped = match.group()
+                # From a string like '\u0008' get everything after `\u`
+                # and convert it to a character based on its int value
+                char = six.unichr(int(escaped[2:]))
+                if Reader.NON_PRINTABLE.match(char):
+                    string = '{before}{repl}{after}'.format(
+                        before=string[:match.start()],
+                        repl=char,
+                        after=string[match.start() + len(escaped):]
+                    )
+
+            # Check \x00 notation
+            all_matches = list(
+                GithubMarkdownHandlerV2.ESCAPED_UNICODE_HEX.finditer(string)
+            )
+
+            for match in reversed(all_matches):
+                escaped = match.group()
+                # From a string like '\x2E' get everything after `\x`
+                # and convert it to a character based on its hex int value
+                # Exclude \x00, which is non-printable but must not be unescaped,
+                # otherwise an exception is thrown when trying to store the string
+                # e.g. on the database
+                char = six.unichr(int(escaped[2:], 16))
+                if Reader.NON_PRINTABLE.match(char) and escaped != '\\x00':
+                    string = '{before}{repl}{after}'.format(
+                        before=string[:match.start()],
+                        repl=char,
+                        after=string[match.start() + len(escaped):]
+                    )
+
+            openstring._strings[rule] = string
 
     def _transform_yaml_string(self, openstring):
         """Transform the given YAML-formatted string to make it valid for compilation.
@@ -194,7 +254,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         :rtype: unicode
         :raise ValueError: if `quote_char` is not one of the valid values
         """
-        if quote_char == u'"':
+        if quote_char == '"':
             string = string.replace(quote_char, self.BACKSLASH + quote_char)
         elif quote_char == u"'":
             string = string.replace(quote_char, quote_char * 2)
@@ -206,7 +266,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             )
 
         # wrap string with quotes
-        return u'{}{}{}'.format(quote_char, string, quote_char)
+        return '{}{}{}'.format(quote_char, string, quote_char)
 
     def _should_wrap_in_quotes(self, string):
         """Check if the given string should be wrapped in quotes.

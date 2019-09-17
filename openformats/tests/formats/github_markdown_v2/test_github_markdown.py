@@ -3,6 +3,8 @@ import unittest
 from io import open
 from os import path
 
+import six
+
 from openformats.formats.github_markdown_v2 import GithubMarkdownHandlerV2
 from openformats.strings import OpenString
 from openformats.tests.formats.common import CommonFormatTestMixin
@@ -148,3 +150,24 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
         self.assertEqual(
             openstring.string, {5: u'者\\u0008・最', 1: u'\\u0008AA', 2: u'\\u0008aa'},
         )
+
+    def test_unescape_control_characters_escapes_non_printable(self):
+        openstring = OpenString(
+            'k', u'start\\x01\\x02\\x03\\u0003\\x04\\u0004\\x05\\x06\\x07\\x08'
+                 u'\\x10\\x11\\x12\\x1e\\x1F\\x7fend'
+        )
+        self.handler._unescape_non_printable(openstring)
+        expected = u'start\x01\x02\x03\x03\x04\x04\x05\x06\x07\x08' \
+                   u'\x10\x11\x12\x1e\x1F\x7fend'
+
+        self.assertEqual(
+            openstring.string,
+            expected,
+        )
+
+    def test_unescape_control_characters_keeps_printable(self):
+        openstring = OpenString(
+            'k', u'start\x85\x00\x09\xA9\\u0041end'
+        )
+        self.handler._unescape_non_printable(openstring)
+        self.assertEqual(openstring.string, u'start\x85\x00\x09\xA9\\u0041end')
