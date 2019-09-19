@@ -7,4 +7,3 @@ six
 
 # InDesign
 lxml==4.1.1
-git+git://github.com/kbairak/ucflib@py3_compatibility
