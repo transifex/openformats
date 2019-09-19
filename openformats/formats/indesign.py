@@ -53,22 +53,16 @@ class InDesignHandler(Handler):
         """
 
         template_dict = {}
-        f_in = io.BytesIO(content)
-        z_in = zipfile.ZipFile(f_in)
-        filenames = self._get_story_filenames(z_in)
+        file_in = io.BytesIO(content)
+        zipfile_in = zipfile.ZipFile(file_in)
+        filenames = self._get_story_filenames(zipfile_in)
 
         for filename in filenames:
-            story = z_in.read(filename).decode('utf-8')
+            story = zipfile_in.read(filename).decode('utf-8')
             template_dict[filename] = self._find_and_replace(story)
 
-        f_out = io.BytesIO()
-        z_out = zipfile.ZipFile(f_out, 'w')
-        for filename in z_in.namelist():
-            z_out.writestr(z_in.getinfo(filename),
-                           template_dict.get(filename, z_in.read(filename)))
-        z_out.close()
-        f_out.seek(0)
-        return f_out.read(), self.stringset
+        template = self._make_zipfile_copy(zipfile_in, template_dict)
+        return template, self.stringset
 
     def _find_and_replace(self, story_xml):
         """ Finds all the translatable content in the given XML string
@@ -126,9 +120,10 @@ class InDesignHandler(Handler):
             the symbols and the punctuation.
         """
 
+        LETTER, PUNCTUATION, SYMBOL = 'L', 'P', 'S'
         for letter in string:
             char_type = unicodedata.category(letter)
-            if char_type[0] in ("L", "P", "S"):
+            if char_type[0] in (LETTER, PUNCTUATION, SYMBOL):
                 return True
         return False
 
@@ -147,24 +142,14 @@ class InDesignHandler(Handler):
 
         self.stringset, compiled_dict = iter(stringset), {}
         self.string = next(self.stringset)
-        f_in = io.BytesIO(template)
-        z_in = zipfile.ZipFile(f_in)
-        filenames = self._get_story_filenames(z_in)
+        file_in = io.BytesIO(template)
+        zipfile_in = zipfile.ZipFile(file_in)
+        filenames = self._get_story_filenames(zipfile_in)
         for filename in filenames:
-            template = z_in.read(filename).decode('utf8')
+            template = zipfile_in.read(filename).decode('utf8')
             compiled_dict[filename] = self._compile_story(template)
 
-        f_out = io.BytesIO()
-        z_out = zipfile.ZipFile(f_out, 'w')
-        for filename in z_in.namelist():
-            info = z_in.getinfo(filename)
-            if filename in compiled_dict:
-                z_out.writestr(info, compiled_dict[filename].encode('utf8'))
-            else:
-                z_out.writestr(info, z_in.read(filename))
-        z_out.close()
-        f_out.seek(0)
-        return f_out.read()
+        return self._make_zipfile_copy(zipfile_in, compiled_dict)
 
     def _compile_story(self, template):
         """ Handles the compilation of a single story
@@ -196,17 +181,36 @@ class InDesignHandler(Handler):
         return compiled
 
     @staticmethod
-    def _get_story_filenames(z_in):
-        """ Find the filenames of all Story fragmens by intersecting the list
-            of keys of the 'StoryList' attribute of the top node in
-            'designmap.xml' with the filenames within the archive that refer to
-            Story fragments.
+    def _get_story_filenames(zipfile_in):
+        """ Find the filenames of all the Story fragments within the archive
+            that must be parsed/compiled. The files are the intersection of:
+
+            * The keys that are in the 'StoryList' attribute of the root XML
+              node in 'designmap.xml'
+            * All the filenames in the archive
+
+            The rest of the files in the archive are meant to be left
+            untouched.
         """
 
         designmap = etree.fromstring(
-            z_in.read('designmap.xml'),
+            zipfile_in.read('designmap.xml'),
             parser=etree.XMLParser(resolve_entities=False),
         )
         story_keys = {'Stories/Story_{}.xml'.format(key)
                       for key in designmap.attrib.get('StoryList', "").split()}
-        return sorted(story_keys & set(z_in.namelist()))
+        return sorted(story_keys & set(zipfile_in.namelist()))
+
+    @staticmethod
+    def _make_zipfile_copy(zipfile_in, data):
+        file_out = io.BytesIO()
+        zipfile_out = zipfile.ZipFile(file_out, 'w')
+        for filename in zipfile_in.namelist():
+            info = zipfile_in.getinfo(filename)
+            if filename in data:
+                zipfile_out.writestr(info, data[filename].encode('utf8'))
+            else:
+                zipfile_out.writestr(info, zipfile_in.read(filename))
+        zipfile_out.close()
+        file_out.seek(0)  # Reset the "cursor" for `read` to return everything
+        return file_out.read()
