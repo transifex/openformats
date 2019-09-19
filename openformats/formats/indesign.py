@@ -203,6 +203,13 @@ class InDesignHandler(Handler):
 
     @staticmethod
     def _make_zipfile_copy(zipfile_in, data):
+        """ Copy most of 'zipfile_in' to a new zip file. If a filename in
+            'zipfile_in' exists as a key in 'data', then instead of copying
+            that file from 'zipfile_in', write the relevant value from 'data'.
+
+            Return the byte contents of the new zipfile.
+        """
+
         file_out = io.BytesIO()
         zipfile_out = zipfile.ZipFile(file_out, 'w')
         for filename in zipfile_in.namelist():
