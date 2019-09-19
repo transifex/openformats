@@ -115,10 +115,9 @@ class InDesignTestCase(unittest.TestCase):
             </Story>
         """
         handler = self.HANDLER_CLASS()
-        handler.stringset = [
-            OpenString(u"0", u"Some string 1", order=0),
-            OpenString(u"1", u"Some string 2", order=1),
-        ]
+        handler.stringset = iter([OpenString(u"0", u"Some string 1", order=0),
+                                  OpenString(u"1", u"Some string 2", order=1)])
+        handler.string = next(handler.stringset)
 
         compiled_story = handler._compile_story(simple_story_template)
         self.assertEqual(compiled_story, simple_compiled_story)
@@ -141,9 +140,8 @@ class InDesignTestCase(unittest.TestCase):
             </Story>
         """
         handler = self.HANDLER_CLASS()
-        handler.stringset = [
-            OpenString(u"0", u"Some string 1", order=0),
-        ]
+        handler.stringset = iter([OpenString(u"0", u"Some string 1", order=0)])
+        handler.string = next(handler.stringset)
 
         compiled_story = handler._compile_story(simple_story_template)
         self.assertEqual(compiled_story, simple_compiled_story)
@@ -183,16 +181,12 @@ class InDesignTestCase(unittest.TestCase):
         """
         # strings #1 and #2 are missing from the stringset
         handler = self.HANDLER_CLASS()
-        handler.stringset = [
-            OpenString(u"0", u"Some string 1", order=0),
-            OpenString(u"3", u"Some string 2", order=3),
-        ]
+        handler.stringset = [OpenString(u"0", u"Some string 1", order=0),
+                             OpenString(u"3", u"Some string 2", order=3)]
+        handler.stringset = iter(handler.stringset)
+        handler.string = next(handler.stringset)
 
-        first_compiled_story = handler._compile_story(
-            first_story_template
-        )
-        second_compiled_story = handler._compile_story(
-            second_story_template
-        )
+        first_compiled_story = handler._compile_story(first_story_template)
+        second_compiled_story = handler._compile_story(second_story_template)
         self.assertEqual(first_compiled_story, expected_first_compiled_story)
         self.assertEqual(second_compiled_story, expected_second_compiled_story)
