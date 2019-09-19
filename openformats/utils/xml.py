@@ -354,6 +354,7 @@ class NewDumbXml(object):
         "Special value for None because for some properties, None is valid"
 
     COMMENT = '!--'
+    PROCESSING_INSTRUCTION = '?'
 
     def __init__(self, source, start=0):
         self.source = source
@@ -397,6 +398,12 @@ class NewDumbXml(object):
         if self.source[start:end] == "<!--":
             self._tag = self.COMMENT
             self._process_comment()
+            return self._tag
+
+        end = start + len('<?')
+        if self.source[start:end] == "<?":
+            self._tag = self.PROCESSING_INSTRUCTION
+            self._process_processing_instruction()
             return self._tag
 
         for ptr in six.moves.xrange(self.position + 1, len(self.source)):
@@ -552,7 +559,8 @@ class NewDumbXml(object):
         return self._text
 
     def __iter__(self):
-        if self.text is None or self.tag == self.COMMENT:
+        if (self.text is None or self.tag == self.COMMENT
+                or self.tag == self.PROCESSING_INSTRUCTION):
             return
 
         start = self.text_position + len(self.text)
@@ -615,7 +623,7 @@ class NewDumbXml(object):
                ^^^^^^^^^^^^^^^^^^^^^^^^^
         """
 
-        if self.tag == self.COMMENT:
+        if self.tag == self.COMMENT or self.tag == self.PROCESSING_INSTRUCTION:
             return self.text
         if self.content_end is None:
             return None
@@ -714,6 +722,22 @@ class NewDumbXml(object):
                 return
         raise DumbXmlSyntaxError(u"Comment not closed on line {}".
                                  format(self._find_line_number()))
+
+    def _process_processing_instruction(self):
+        self._attrib_string, self._attributes, self._attrib = "", [], {}
+
+        self._text_position = self.position + len("<?")
+        for ptr in six.moves.xrange(self._text_position, len(self.source)):
+            candidate = self.source[ptr]
+            if candidate == "?" and self.source[ptr:ptr + len("?>")] == "?>":
+                self._content_end = ptr
+                self._text = self.source[self.text_position:ptr]
+                self._tail_position = ptr + len("?>")
+                return
+        raise DumbXmlSyntaxError(
+            u"Processing instruction not closed on line {}".
+            format(self._find_line_number())
+        )
 
     def _find_line_number(self, ptr=None):
         ptr = ptr or self.position
