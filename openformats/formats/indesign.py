@@ -212,7 +212,7 @@ class InDesignHandler(Handler):
                 break
             else:
                 transcriber.copy_until(hash_position)
-                transcriber.add(current_string.string)
+                transcriber.add(self._escape_amps(current_string.string))
                 transcriber.skip(len(current_string.template_replacement))
 
         # Update the XML file to contain the template strings
@@ -222,3 +222,40 @@ class InDesignHandler(Handler):
         # them with an empty string
         compiled_story = hash_regex.sub(u'', compiled_story)
         return compiled_story
+
+    @staticmethod
+    def _escape_amps(string):
+        """ Escape "lonely" `&` (ampersands).
+
+            If a valid XML escape sequence is found, it is left as it is.
+            Otherwise, any occurrences of `&` are replaced with `&amp;`. Eg,
+
+            "hello world"         -> "hello world"
+            "hello &world"        -> "hello &amp;world"
+            "hello &amp;world"    -> "hello &amp;world"
+            "hello &lt;world"     -> "hello &lt;world"
+            "hello &#x0a1f;world" -> "hello &#x0a1f;world"
+            "&&#x05af;&&"         -> "&amp;&#x05af;&amp;&amp;"
+        """
+
+        # Find "lonely" ampersand positions by finding all ampersand positions
+        # and subtracting the positions of ampersands that are part of valid
+        # XML escape sequences
+        all_amp_positions = {match.span()[0]
+                             for match in re.finditer(r'&', string)}
+        escaped_amp_positions = {
+            match.span()[0]
+            for match in re.finditer(
+                r'&(lt|gt|amp|apos|quot|#\d+|#x[0-9a-fA-F]+);', string
+            )
+        }
+        target_positions = sorted(all_amp_positions - escaped_amp_positions)
+
+        # Use Transcriber to replace lonely ampersands with '&amp;'
+        transcriber = Transcriber(string)
+        for position in target_positions:
+            transcriber.copy_until(position)
+            transcriber.add('&amp;')
+            transcriber.skip(1)
+        transcriber.copy_to_end()
+        return transcriber.get_destination()

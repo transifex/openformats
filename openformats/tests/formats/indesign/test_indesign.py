@@ -196,3 +196,36 @@ class InDesignTestCase(unittest.TestCase):
         )
         self.assertEqual(first_compiled_story, expected_first_compiled_story)
         self.assertEqual(second_compiled_story, expected_second_compiled_story)
+
+    def test_compile_story_with_amps(self):
+        regular = OpenString('0', u"hello world", order=0)
+        with_amp = OpenString('1', u"hello &world", order=1)
+        with_amp_escaped = OpenString('2', u"hello &lt;world", order=2)
+        many_amps = OpenString('3', u"&&#x0a1f;&&", order=3)
+
+        base_template = u"""
+            <Story>
+                <Content>{regular}</Content>
+                <Content>{with_amp}</Content>
+                <Content>{with_amp_escaped}</Content>
+                <Content>{many_amps}</Content>
+            </Story>
+        """
+
+        template = base_template.format(
+            regular=regular.template_replacement,
+            with_amp=with_amp.template_replacement,
+            with_amp_escaped=with_amp_escaped.template_replacement,
+            many_amps=many_amps.template_replacement,
+        )
+        expected_compiled_story = base_template.format(
+            regular=u"hello world",
+            with_amp=u"hello &amp;world",
+            with_amp_escaped=u"hello &lt;world",
+            many_amps=u"&amp;&#x0a1f;&amp;&amp;",
+        )
+
+        handler = self.HANDLER_CLASS()
+        handler.stringset = [regular, with_amp, with_amp_escaped, many_amps]
+        compiled_story = handler._compile_story(template)
+        self.assertEqual(compiled_story, expected_compiled_story)
