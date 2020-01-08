@@ -37,13 +37,13 @@ def string_handler(token, template):
         lines = string.split('\n')
         line = lines[0]
         spaces = re.findall(
-            ensure_unicode(r'\n( *){}'.format(re.escape(line))),
+            ensure_unicode(r'\n( *){}').format(re.escape(line)),
             template
         )[0]
         if spaces:
             string = ''
             for line in lines:
-                line = '{}{}'.format(spaces, line)
+                line = u'{}{}'.format(spaces, line)
                 string += '\n'
                 string += line
 
