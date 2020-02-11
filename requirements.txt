@@ -1,5 +1,5 @@
 PyYAML==5.1
-django==1.11
+django==1.11.28
 mistune==0.7.3
 polib==1.0.3
 pyparsing==2.2.0
