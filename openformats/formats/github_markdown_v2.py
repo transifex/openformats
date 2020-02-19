@@ -229,7 +229,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         :return: a string that is valid for exporting
         :rtype: str
         """
-        should_wrap, quote_char = self._should_wrap_in_quotes(openstring.string)
+        should_wrap, quote_char = self._should_wrap_in_quotes(openstring)
         if should_wrap:
             string = self._wrap_in_quotes(openstring.string, quote_char)
         else:
@@ -268,7 +268,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         # wrap string with quotes
         return '{}{}{}'.format(quote_char, string, quote_char)
 
-    def _should_wrap_in_quotes(self, string):
+    def _should_wrap_in_quotes(self, openstring):
         """Check if the given string should be wrapped in quotes.
 
         In order to decide if wrapping is necessary, it takes into account
@@ -280,7 +280,11 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             the character that should be used for wrapping
         :rtype: tuple (bool, str)
         """
-        string = string.strip()
+        # If single or double quote flags appear, wrap it.
+        if openstring.flags in [self.DOUBLE_QUOTES, self.SINGLE_QUOTE]:
+            return True, openstring.flags
+
+        string = openstring.string.strip()
 
         # If wrapped already in double quotes, don't wrap again
         wrapped_in_double_quotes = (
