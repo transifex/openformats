@@ -54,25 +54,30 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
         self.assertTrue(self.handler._is_yaml_string(openstring))
 
     def test_should_wrap_in_quotes_false_if_no_special_case(self):
-        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(u' Απλό case')
+        openstring = OpenString('k', u' Απλό case')
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(openstring)
         self.assertFalse(should_wrap)
         self.assertIsNone(wrap_char)
 
     def test_should_wrap_in_quotes_false_if_already_wrapped(self):
-        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(u'  "Κάτι άλλο "')
+        openstring = OpenString('k', u'  "Κάτι άλλο "')
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(openstring)
         self.assertFalse(should_wrap)
         self.assertIsNone(wrap_char)
 
-        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(u"  'Κάτι άλλο' ")
+        openstring = OpenString('k', u"  'Κάτι άλλο' ")
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(openstring)
         self.assertFalse(should_wrap)
         self.assertIsNone(wrap_char)
 
     def test_should_wrap_in_quotes_if_starts_but_not_ends_with_quote(self):
-        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(u' " Κάτι άλλο ')
+        openstring = OpenString('k', u' " Κάτι άλλο ')
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(openstring)
         self.assertTrue(should_wrap)
         self.assertEqual(wrap_char, u"'")
 
-        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(u" ' Κάτι άλλο  ")
+        openstring = OpenString('k', u" ' Κάτι άλλο  ")
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(openstring)
         self.assertTrue(should_wrap)
         self.assertEqual(wrap_char, u'"')
 
@@ -84,8 +89,9 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
             GithubMarkdownHandlerV2.AT_SIGN,
         ]
         for char in starting_chars:
+            openstring = OpenString('k', u' {} Κάτι άλλο '.format(char))
             should_wrap, wrap_char = self.handler._should_wrap_in_quotes(
-                u' {} Κάτι άλλο '.format(char)
+                openstring
             )
             self.assertTrue(should_wrap)
             self.assertEqual(wrap_char, u'"')
@@ -97,14 +103,16 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
             GithubMarkdownHandlerV2.HASHTAG,
         ]
         for char in special_chars:
+            openstring = OpenString('k', u' Κάτι άλλο {} -'.format(char))
             should_wrap, wrap_char = self.handler._should_wrap_in_quotes(
-                u' Κάτι άλλο {} -'.format(char)
+                openstring
             )
             self.assertTrue(should_wrap)
             self.assertEqual(wrap_char, u'"')
 
     def test_should_wrap_in_quotes_if_starts_but_not_ends_with_bracket(self):
-        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(u' [Κάτι] άλλο ')
+        openstring = OpenString('k', u' [Κάτι] άλλο ')
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(openstring)
         self.assertTrue(should_wrap)
         self.assertEqual(wrap_char, u'"')
 
@@ -127,6 +135,16 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
 
     def test_transform_yaml_string_wrapped_for_brackets(self):
         openstring = OpenString('k', u' [Θέλω] quotes')
+        string = self.handler._transform_yaml_string(openstring)
+        self.assertEqual(string, u'" [Θέλω] quotes"')
+
+    def test_transform_yaml_string_wrapped__with_flag_single_quotes(self):
+        openstring = OpenString('k', u' [Θέλω] quotes', flags=u"'")
+        string = self.handler._transform_yaml_string(openstring)
+        self.assertEqual(string, u"' [Θέλω] quotes'")
+
+    def test_transform_yaml_string_wrapped_with_flag_double_quotes(self):
+        openstring = OpenString('k', u' [Θέλω] quotes', flags=u'"')
         string = self.handler._transform_yaml_string(openstring)
         self.assertEqual(string, u'" [Θέλω] quotes"')
 
