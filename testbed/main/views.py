@@ -111,6 +111,8 @@ class ApiView(HandlerMixin, View):
                             'compile_error': ""}
         try:
             template, stringset = handler.parse(source)
+            if handler.name == 'PO':
+                template = handler.pofile_to_str(template)
         except Exception:
             returned_payload.update({'stringset': [], 'template': "",
                                      'parse_error': traceback.format_exc()})
