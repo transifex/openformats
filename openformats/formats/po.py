@@ -46,10 +46,10 @@ class PoHandler(Handler):
             if openstring is not None:
                 stringset.append(openstring)
 
-        po_str = self._po_file_to_str(self.new_po)
-        return po_str, stringset
+        return self.new_po, stringset
 
-    def _po_file_to_str(self, po_file):
+    @staticmethod
+    def pofile_to_str(po_file):
         """
         Generate the template for the PO file.
 
@@ -300,7 +300,11 @@ class PoHandler(Handler):
         stringset = iter(stringset)
         next_string = next(stringset, None)
 
-        po = polib.pofile(template)
+        if isinstance(template, polib.POFile):
+            po = template
+        else:
+            po = polib.pofile(template)
+
         indexes_to_remove = []
         for i, entry in enumerate(po):
             if next_string is not None:
@@ -314,7 +318,8 @@ class PoHandler(Handler):
                     continue
             indexes_to_remove.append(i)
         self._smart_remove(po, indexes_to_remove)
-        return self._po_file_to_str(po)
+
+        return PoHandler.pofile_to_str(po)
 
     def _compile_entry(self, entry, next_string):
         """Compiles the current non pluralized entry.
