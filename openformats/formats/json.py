@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import csv
 import json
 import re
 from itertools import count
@@ -14,6 +15,18 @@ from ..strings import OpenString
 from ..transcribers import Transcriber
 from ..utils.icu import ICUCompiler, ICUParser
 from ..utils.json import DumbJson, escape, unescape
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+
+def csv_reader_next(reader):
+    try:
+        return reader.next()
+    except AttributeError:
+        return next(reader)
 
 
 class JsonHandler(Handler):
@@ -500,6 +513,7 @@ class StructuredJsonHandler(JsonHandler):
         :return: an OpenString or None
         """
         key = self._parse_key(key)
+
         # Don't create strings for metadata fields
         if not key:
             return None
@@ -596,7 +610,11 @@ class StructuredJsonHandler(JsonHandler):
         :rtype: dict
         """
         # Go through all parts of the composite key
-        keys = key.split('.')
+        keys = csv_reader_next(
+            csv.reader(
+                StringIO(key), delimiter='.', escapechar="\\"
+            )
+        )
         json_dict = self.json_dict
         for k in keys:
             json_dict = json_dict[k]

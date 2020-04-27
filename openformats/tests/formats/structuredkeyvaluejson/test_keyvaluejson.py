@@ -40,6 +40,24 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                          self.random_openstring.__dict__)
         self.assertEqual(compiled,
                          '{"a": {"string":"%s"}}' % self.random_string)
+    
+    def test_dots_in_key(self):
+        first_level_key = "a.b"
+        source = '{"%s": {"c": {"string": "%s"}}}' % (first_level_key, self.random_string)
+        openstring = OpenString(
+            "{}.c".format(self.handler._escape_key(first_level_key)), 
+            self.random_string, order=0
+        )
+        random_hash = openstring.template_replacement
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [openstring])
+
+        self.assertEqual(template,
+                         '{"a.b": {"c": {"string": "%s"}}}' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, openstring.__dict__)
+        self.assertEqual(compiled, source)
 
     def test_embedded_dicts(self):
         source = '{"a": {"b": {"string": "%s"}}}' % self.random_string
