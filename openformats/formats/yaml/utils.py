@@ -95,6 +95,8 @@ class TxYamlLoader(yaml.SafeLoader):
         Override `yaml.SafeLoader.construct_mapping` to return for each item
         of the mapping a tuple of the form `(key, (value, start, end, style,
         tag))` instead of the default which is `(key, value)`.
+        :raise ParseError: if node is not a MappingNode
+            or duplicate keys are found.
         """
         if not isinstance(node, yaml.MappingNode):
             raise ParseError(
@@ -161,6 +163,26 @@ class TxYamlLoader(yaml.SafeLoader):
 
             value = Node(value, start, end, style, tag)
             pairs.append((key, value))
+
+        # If there are duplicate keys, throw an exception
+        pair_keys = [pair[0] for pair in pairs]
+        seen = set()
+        duplicates = set()
+        seen_add = seen.add
+        duplicate_add = duplicates.add
+        for x in pair_keys:
+            if x not in seen:
+                seen_add(x)
+            else:
+                duplicates_add(x)
+
+        if len(duplicates):
+            duplicates_list = list(duplicates)
+            error_duplicate_keys = ','.join(key for key in duplicates_list)
+            raise ParseError(
+                "Duplicate keys found ({})".format(error_duplicate_keys)
+            )
+
         return pairs
 
     def construct_sequence(self, node, deep=True):
