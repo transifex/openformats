@@ -146,3 +146,16 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
         content_string = strings[1]
         self.assertEqual(content_string.context, '!tag')
         self.assertEqual(content_string.flags, "'")
+
+    def test_parse_duplicate_keys(self):
+        content = '''\
+            something:
+              attribute_1: Attribute 1 value
+              attribute_2: Attribute 2 value
+              attribute_3: Attribute 3 value
+              attribute_1: Attribute 1 value
+              attribute_2: Attribute 2 value
+        '''
+
+        with self.assertRaises(ParseError):
+            self.handler.parse(content)
