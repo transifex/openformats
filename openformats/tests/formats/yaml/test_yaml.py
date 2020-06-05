@@ -157,5 +157,9 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
               attribute_2: Attribute 2 value
         '''
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(ParseError) as e:
             self.handler.parse(content)
+        self.assertEqual(
+            str(e.exception),
+            "Duplicate keys found (attribute_2, attribute_1)"
+        )

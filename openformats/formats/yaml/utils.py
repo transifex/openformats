@@ -174,11 +174,11 @@ class TxYamlLoader(yaml.SafeLoader):
             if x not in seen:
                 seen_add(x)
             else:
-                duplicates_add(x)
+                duplicate_add(x)
 
         if len(duplicates):
             duplicates_list = list(duplicates)
-            error_duplicate_keys = ','.join(key for key in duplicates_list)
+            error_duplicate_keys = ', '.join(key for key in duplicates_list)
             raise ParseError(
                 "Duplicate keys found ({})".format(error_duplicate_keys)
             )
