@@ -81,3 +81,11 @@ bin: !!binary aGVsbG8= # Should ignore
 #σχόλιο
 σχόλιο: "el:κείμενο"
 emojis: "el:\\uD83D\\uDC40 \U0001F3F9\U0001F34D\U0001F34D \\U0001F418"
+
+anchor_with_label:
+  test: "el:something"
+  anchor_test: &another_anchor     "el:this is another anchor with alias and label - value1 - value2"
+  testing_alias:
+    - *another_anchor
+    - *an_anchor
+    - "el:something else"

@@ -159,7 +159,14 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         with self.assertRaises(ParseError) as e:
             self.handler.parse(content)
-        self.assertEqual(
-            str(e.exception),
-            "Duplicate keys found (attribute_2, attribute_1)"
+
+        self.assertTrue(
+            str(e.exception) in [
+                "Duplicate keys found (attribute_2, attribute_1)",
+                "Duplicate keys found (attribute_1, attribute_2)",
+            ]
         )
+
+    def test_parse_anchor_with_label_is_maintained_on_template(self):
+        remade_orig_content = self.handler.compile(self.tmpl, self.strset)
+        self.assertEqual("&another_anchor    " in remade_orig_content, True)
