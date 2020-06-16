@@ -73,6 +73,24 @@ class TxYamlLoader(yaml.SafeLoader):
             )
         return super(TxYamlLoader, self).compose_node(parent, index)
 
+    def compose_scalar_node(self, anchor):
+        """
+            Override parent compose_scalar_node method to maintain
+            the anchor label
+        """
+        if anchor is None:
+            return super(TxYamlLoader, self).compose_scalar_node(anchor)
+        else:
+           node = super(TxYamlLoader, self).compose_scalar_node(anchor)
+           anchor_value = self.stream[
+               node.start_mark.index:node.end_mark.index
+            ].split(' ', 1)[1]
+           leading_spaces = len(anchor_value) - len(anchor_value.lstrip(' '))
+
+           node.start_mark.index = node.end_mark.index - len(anchor_value) \
+               + leading_spaces
+           return node
+
     def _is_custom_tag(self, tag):
         """
         Check whether a value is tagged with a custom type.

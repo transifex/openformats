@@ -75,3 +75,11 @@ bin: !!binary aGVsbG8= # Should ignore
 #σχόλιο
 σχόλιο: 8687f34a9bf89770b456b48ad2395788_tr
 emojis: 8f9f68d76af0fa4a5e4830530618e55c_tr
+
+anchor_with_label:
+  test: 35816ec55d0782ae231c9910897bc467_tr
+  anchor_test: &another_anchor     345e2c2ed4e035c68da1a8377a4d4315_tr
+  testing_alias:
+    - *another_anchor
+    - *an_anchor
+    - bf9a733efd3e3dd9470b532dca9303cb_tr
