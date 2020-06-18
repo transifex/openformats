@@ -100,3 +100,25 @@ en:
   alias_key:
     - *an_anchor
     - "another true value"
+
+  # Custom tags
+  foo:  !test bar # Should treat as string and ignore leading spaces
+  bar: !xml "foo <xml>bar</xml>" # Also a string
+  hello: !!str World # Translatable
+  number: !!int 123 # Should ignore
+  bin: !!binary aGVsbG8= # Should ignore
+
+  # Test with non-ASCII keys
+  #σχόλιο
+  σχόλιο: κείμενο
+  emojis: \uD83D\uDC40 🏹🍍🍍 \U0001F418
+
+  anchor_with_label:
+    test: something
+    anchor_test: &another_anchor     this is another anchor with alias and label
+      - value1
+      - value2
+    testing_alias:
+      - *another_anchor
+      - *an_anchor
+      - "something else"

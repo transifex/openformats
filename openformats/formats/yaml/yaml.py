@@ -21,6 +21,9 @@ except ImportError:
     from io import StringIO
 
 
+REMOVE_LINE_INDICATOR = '<<__TX_REMOVE_LINE__>>'
+
+
 class YamlHandler(Handler):
     name = "Yaml"
     extension = "yml"
@@ -35,11 +38,10 @@ class YamlHandler(Handler):
     # `extra_indent = 1`
     extra_indent = 0
 
-    # When compiling for a mode that needs to completely remove
-    # an entry from the compiled file we cannot use the template for
-    # compilation but we need to construct the YAML file from scratch
-    # only with the subset of included entries.
-    should_use_template = True
+    # If True, all entries that have no translation will be removed
+    # from the compiled string, while leaving the rest of the
+    # template intact
+    should_remove_empty = False
 
     language_code = None
 
@@ -83,7 +85,6 @@ class YamlHandler(Handler):
         self._parse_yaml_data(yaml_data, '', '')
         self._parsed_data = sorted(self._parsed_data,
                                    key=lambda node: node.get('start'))
-
         end = 0
         order = 0
         for node in self._parsed_data:
@@ -93,10 +94,12 @@ class YamlHandler(Handler):
             tag = node.get('tag')
             value = node.get('value')
             style = node.get('style')
+
             if not value:
                 continue
             if isinstance(value, dict) and not all(six.itervalues(value)):
                 continue
+
             string_object = OpenString(
                 key, value, context=tag or '', flags=style, order=order,
             )
@@ -125,10 +128,89 @@ class YamlHandler(Handler):
             A unicode, dumped YAML content.
         """
         self.indent = self._get_indent(template)
-        if self.should_use_template:
-            return self._compile_from_template(template, stringset)
-        else:
-            return self._compile_without_template(stringset)
+        transcriber = Transcriber(template)
+        template = transcriber.source
+
+        translations_removed = False
+        for string in stringset:
+            # If the string is empty or all plurals of a pluralized string
+            # are empty, there is no translation
+            if not string.string or (isinstance(string.string, dict)
+                                     and not all(six.itervalues(string.string)
+                                                 )):
+                translation = None
+            elif string.pluralized:
+                translation = self._compile_pluralized(string)
+            else:
+                translation = self._write_styled_literal(string)
+
+            hash_position = template.index(string.template_replacement)
+            transcriber.copy_until(hash_position)
+
+            # The context contains custom tags. If it exists, we must prepend
+            # it and apply a space afterwards so it doesn't get merged with the
+            # string
+            if string.context:
+                transcriber.add(string.context)
+                transcriber.add(' ')
+            transcriber.add(translation)
+
+            # If there is no translation for this string, mark the entry
+            # so that it can later be removed
+            if self.should_remove_empty and not translation:
+                transcriber.add(REMOVE_LINE_INDICATOR)
+                translations_removed = True
+
+                # If folded style is used, we need to add an extra newline,
+                # otherwise the next entry will be on the same line as
+                # the indicator, and will also be removed
+                style = string.flags.split(':')[-1]
+                if style == '>':
+                    transcriber.add('\n')
+
+            transcriber.skip(len(string.template_replacement))
+
+        transcriber.copy_until(len(template))
+        compiled = transcriber.get_destination()
+
+        # Remove lines that are marked for removal, if they exist
+        # For any removed string, any comment lines that proceed it
+        # should also be removed
+        if translations_removed:
+            string = StringIO(compiled)
+            output = StringIO()
+            current_comment = StringIO()
+
+            while True:
+                line = string.readline()
+                # End of string
+                if not line:
+                    break
+
+                # Marked for removal; get rid of the corresponding comments
+                # and skip the line altogether
+                if REMOVE_LINE_INDICATOR in line:
+                    current_comment = StringIO()
+                    continue
+
+                # A comment line was found; keep to check later
+                # if it should be added or not
+                if line.lstrip().startswith('#'):
+                    current_comment.write(line)
+                    continue
+
+                # Write any comments and reset
+                output.write(current_comment.getvalue())
+                current_comment = StringIO()
+
+                # Write the actual line
+                output.write(line)
+
+            # There might be comments left in the end, so write them now
+            output.write(current_comment.getvalue())
+            compiled = output.getvalue()
+
+        return compiled
 
     def _load_yaml(self, content, loader):
         """
@@ -378,51 +460,6 @@ class YamlHandler(Handler):
         translation = emitter.stream.getvalue() or string.string
         emitter.stream.close()
         return translation
-
-    def _compile_from_template(self, template, stringset, **kwargs):
-        """ Compiles translation file from template
-
-        Iterates over the stringset and for each strings replaces
-        template replacement in the template with the actual translation.
-
-        Returns:
-            The compiled file content.
-        """
-        transcriber = Transcriber(template)
-        template = transcriber.source
-
-        for string in stringset:
-            if string.pluralized:
-                translation = self._compile_pluralized(string)
-            else:
-                translation = self._write_styled_literal(string)
-            hash_position = template.index(string.template_replacement)
-            transcriber.copy_until(hash_position)
-            # The context contains custom tags. If it exists, we must prepend
-            # it and apply a space afterwards so it doesn't get merged with the
-            # string
-            if string.context:
-                transcriber.add(string.context)
-                transcriber.add(' ')
-            transcriber.add(translation)
-            transcriber.skip(len(string.template_replacement))
-
-        transcriber.copy_until(len(template))
-        compiled = transcriber.get_destination()
-
-        return compiled
-
-    def _compile_without_template(self, stringset):
-        yg = YamlGenerator(self)
-        yaml_dict = yg.generate_yaml_dict(stringset)
-        if self.language_code:
-            yaml_dict = self._wrap_yaml_dict(yaml_dict, self.language_code)
-        return_value = yaml.dump(yaml_dict, width=float('inf'),
-                                 Dumper=TxYamlDumper, allow_unicode=True,
-                                 indent=self.indent)
-        if isinstance(return_value, six.binary_type):
-            return_value = return_value.decode("utf-8")
-        return return_value
 
     @staticmethod
     def unescape_dots(k):

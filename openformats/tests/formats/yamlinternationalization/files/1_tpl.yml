@@ -87,3 +87,23 @@ en:
   alias_key:
     - *an_anchor
     - ddc3cfcedcf1686d9e3ba6b99a0d091b_tr
+
+  # Custom tags
+  foo:  3e4000f6f4cd8bb27db6fb82e1b50bb4_tr # Should treat as string and ignore leading spaces
+  bar: 75ce597a505a4faf6369b66b885926c8_tr # Also a string
+  hello: b0ed9cf22c0a5186d1c5b483a910dd33_tr # Translatable
+  number: !!int 123 # Should ignore
+  bin: !!binary aGVsbG8= # Should ignore
+
+  # Test with non-ASCII keys
+  #σχόλιο
+  σχόλιο: 8687f34a9bf89770b456b48ad2395788_tr
+  emojis: 8f9f68d76af0fa4a5e4830530618e55c_tr
+
+  anchor_with_label:
+    test: 35816ec55d0782ae231c9910897bc467_tr
+    anchor_test: &another_anchor     345e2c2ed4e035c68da1a8377a4d4315_tr
+    testing_alias:
+      - *another_anchor
+      - *an_anchor
+      - bf9a733efd3e3dd9470b532dca9303cb_tr

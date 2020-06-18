@@ -1,0 +1,62 @@
+---
+title: "el:About writing and formatting on GitHub"
+intro: "el:into text"
+numeric_var: 12.5
+
+# one comment
+
+key1:
+  - list_key:
+      # second comment
+    - "el:li within li 2"
+key2:
+  - object_within_list: "el:value"
+  - 3.5
+  - true
+
+custom_vars:
+  var2: |
+    el:literal
+    style with "quotes"
+    text
+nested_key_outer:
+  nested_key_inner:
+
+
+
+empty_value: ''
+
+value with start backtick: "el:`value"
+
+
+
+double_list:
+
+
+binary_value: !!binary |
+  R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+  OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+  +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+  AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+
+# complex key syntax
+? - Manchester United
+  - Real Madrid
+: [ 2001-01-01, 2002-02-02 ]
+
+# anchors and aliases
+anchor_key: &an_anchor
+alias_key:
+  - *an_anchor
+
+number: !!int 123 # Should ignore
+bin: !!binary aGVsbG8= # Should ignore
+
+emojis: "el:\\uD83D\\uDC40 \U0001F3F9\U0001F34D\U0001F34D \\U0001F418"
+
+anchor_with_label:
+  anchor_test: &another_anchor     "el:this is another anchor with alias and label - value1 - value2"
+  testing_alias:
+    - *another_anchor
+    - *an_anchor
+    - "el:something else"

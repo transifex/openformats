@@ -1,10 +1,5 @@
 en:
-  normal string: "el:normal string"
   pluralized_string:
-    one: el:One ȧɠǿ
-    other: el:Other ȧɠǿ
-
-  another normal string: "el:normal string"
 
   empty_pluralized_string:
     one: ""
@@ -12,22 +7,14 @@ en:
 
   # A correct plural rule
   pluralized_string_with_quotes:
-    one: 'el:this is a test'
-    other: "el:this is a double quote test"
-
 
   pluralized_string_with_extra_keys:
     one: el:One
     other: el:Other
 
   non_pluralized_string_with_extra_keys:
-    extra_key: "el:random value"
-    one: "el:One"
-    other: "el:Other"
   plural_key_with_nested_nodes:
     one:
-      nested_key: "el:One"
-    other: "el:Other"
 
   title: "el:About writing and formatting on GitHub"
   intro: "el:into text"
@@ -37,50 +24,31 @@ en:
 
   key1:
     - list_key:
-      - "el:li within li"
         # second comment
       - "el:li within li 2"
-    - "el:li 2"
   key2:
     - object_within_list: "el:value"
-    - "el:text with a #hashtag in it"
-    - "el:li 5"
     - 3.5
     - true
 
-  description: >
-    el:folded style text
   custom_vars:
-    var1: "el:text: some value"
     var2: |
       el:literal
       style with "quotes"
       text
   nested_key_outer:
     nested_key_inner:
-      "el:nested_value"
 
-  key.with.dots: "el:dot value"
 
-  1: "el:integer key"
 
   empty_value: ''
 
-  single_quoted_value: 'el:single quoted value'
-  value with quote: "el:'value"
   value with start backtick: "el:`value"
-  value with end backtick: "el:value`"
 
-  <weird_key>: "el:value"
-  "[weird_key]": "el:value"
 
-  true: "el:boolean key"
 
   double_list:
-    - - "el:test"
 
-  simple_flow_list: ["el:one", 'el:two', "el:three"]
-  double_flow_list: [[ "el:test" ]]
 
   binary_value: !!binary |
     R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
@@ -95,25 +63,15 @@ en:
 
   # anchors and aliases
   anchor_key: &an_anchor
-    - "el:value"
   alias_key:
     - *an_anchor
-    - "el:another true value"
 
-  # Custom tags
-  foo:  !test "el:bar" # Should treat as string and ignore leading spaces
-  bar: !xml "el:foo <xml>bar</xml>" # Also a string
-  hello: "el:World" # Translatable
   number: !!int 123 # Should ignore
   bin: !!binary aGVsbG8= # Should ignore
 
-  # Test with non-ASCII keys
-  #σχόλιο
-  σχόλιο: "el:κείμενο"
   emojis: "el:\\uD83D\\uDC40 \U0001F3F9\U0001F34D\U0001F34D \\U0001F418"
 
   anchor_with_label:
-    test: "el:something"
     anchor_test: &another_anchor     "el:this is another anchor with alias and label - value1 - value2"
     testing_alias:
       - *another_anchor
