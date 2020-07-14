@@ -57,6 +57,18 @@ class OpenString(object):
       strings are shown to translators which can provide context and thus
       improve translation quality.
 
+    * `parents` (experimental, (see openformats/formats/yaml/yaml.py)
+
+      For formats supporting nested nodes (eg YML) this is the list of the
+      chain of parent nodes leading to the current node - string. Each list
+      item consists of a tuple in the form of :
+
+               (<parent_key>, <start_pos>, <end_pos>)
+
+      where <parent_key> is the combined parent key of each parent node,
+      <start/end_pos> is the integer position in content where the value of
+      the parent node starts/ends.
+
     Once you have created an OpenString, you can get it's hash using the
     `template_replacement` property
     """
@@ -89,6 +101,9 @@ class OpenString(object):
 
         if 'pluralized' in kwargs:
             self.pluralized = kwargs['pluralized']
+
+        if 'parents' in kwargs:
+            self.parents = kwargs['parents']
 
         self._string_hash = None
 

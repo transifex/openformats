@@ -82,7 +82,7 @@ class YamlHandler(Handler):
         yaml_data = self._get_yaml_data_to_parse(yaml_data)
         # Helper to store the processed data while parsing the file
         self._parsed_data = []
-        self._parse_yaml_data(yaml_data, '', '')
+        self._parse_yaml_data(yaml_data, '', [], '')
         self._parsed_data = sorted(self._parsed_data,
                                    key=lambda node: node.get('start'))
         end = 0
@@ -94,6 +94,7 @@ class YamlHandler(Handler):
             tag = node.get('tag')
             value = node.get('value')
             style = node.get('style')
+            parents = node.get('parents')
 
             if not value:
                 continue
@@ -101,7 +102,7 @@ class YamlHandler(Handler):
                 continue
 
             string_object = OpenString(
-                key, value, context=tag or '', flags=style, order=order,
+                key, value, context=tag or '', flags=style, order=order, parents=parents
             )
             stringset.append(string_object)
             order += 1
@@ -165,7 +166,7 @@ class YamlHandler(Handler):
                 # otherwise the next entry will be on the same line as
                 # the indicator, and will also be removed
                 style = string.flags.split(':')[-1]
-                if style == '>':
+                if style == '>' or style == '|':
                     transcriber.add('\n')
 
             transcriber.skip(len(string.template_replacement))
@@ -231,13 +232,23 @@ class YamlHandler(Handler):
         except Exception as e:
             raise ParseError(six.text_type(e))
 
-    def _parse_leaf_node(self, node, parent_key, style=[],
+    def _parse_leaf_node(self, node, parent_key, parents, style=[],
                          pluralized=False):
         """Parse a leaf node in yaml_dict.
         Args:
             node: A tuple of the form (string, start, end, style, tag)
             parent_key: A string of keys concatenated by '.' to
                 reach this node
+            parents: the list of the chain of parent nodes leading to
+                the current leaf node - string. Each list item consists
+                of a tuple in the form of:
+
+                (<parent_key>, <start_pos>, <end_pos>)
+
+                where <parent_key> is the combined parent key of each parent
+                node (see parent_key above), <start/end_pos> is the integer
+                position in content where the value of the parent node
+                starts/ends.
             style: A list of YAML node styles from root node to
                    immediate parent node of the current YAML node.
 
@@ -253,6 +264,7 @@ class YamlHandler(Handler):
             'tag': node.tag,
             'style': ':'.join(style or []),
             'pluralized': pluralized,
+            'parents': parents,
         }
 
     def _parse_pluralized_leaf_node(self, yaml_data, parent_key, style=[],
@@ -301,7 +313,7 @@ class YamlHandler(Handler):
             parent_key += '.' + key
         return parent_key
 
-    def _parse_yaml_data(self, yaml_data, parent_key, context="",
+    def _parse_yaml_data(self, yaml_data, parent_key, parents, context="",
                          parent_style=None):
         """
         Parse data returned by YAML loader
@@ -319,6 +331,16 @@ class YamlHandler(Handler):
             yaml_data: The output of yaml.loads()
             parent_key: A string of keys concatenated by '.' to
                         reach this node,
+            parents: the list of the chain of parent nodes leading to
+                the current leaf node - string. Each list item consists
+                of a tuple in the form of:
+
+                (<parent_key>, <start_pos>, <end_pos>)
+
+                where <parent_key> is the combined parent key of each parent
+                node (see parent_key above), <start/end_pos> is the integer
+                position in content where the value of the parent node
+                starts/ends.
             context: A string
             parent_style: A list of YAML node styles for each parent node.
 
@@ -328,8 +350,10 @@ class YamlHandler(Handler):
         """
         parent_style = parent_style or []
 
+        parents_copy = [] if parent_key == '' else copy.deepcopy(parents)
         if isinstance(yaml_data, dict):
             for key, node in six.iteritems(yaml_data):
+                parents_copy = [] if parent_key == '' else parents_copy
                 node_key = self._get_key_for_node(key, parent_key)
                 # Copy style for each node to avoid getting affected from the
                 # previous loops
@@ -339,21 +363,24 @@ class YamlHandler(Handler):
                         self.is_pluralized(node.value)):
                     self._parsed_data.append(
                         self._parse_pluralized_leaf_node(
-                            node, node_key,
+                            node, node_key, parents_copy,
                             style=node_style,
                             pluralized=True
                         )
                     )
+                    parents_copy = []
                 # Handle dictionaries and lists
                 elif isinstance(node.value, (dict, list)):
                     node_style.append(node.style or '')
-                    self._parse_yaml_data(node.value, node_key, context,
+                    parents_copy.append((node_key, node.start, node.end))
+                    self._parse_yaml_data(node.value, node_key, parents_copy, context,
                                           parent_style=node_style)
+                    parents_copy.pop()
                 # Otherwise handle the node as a leaf
                 else:
                     self._parsed_data.append(
                         self._parse_leaf_node(
-                            node, node_key, style=node_style
+                            node, node_key, parents_copy, style=node_style
                         )
                     )
         elif (isinstance(yaml_data, list)):
@@ -361,18 +388,21 @@ class YamlHandler(Handler):
             # using the position (index) of it as parent key using
             # brackets around it. I.e.: 'foo.[0].bar'.
             for i, node in enumerate(yaml_data):
-                node_key = self._get_key_for_node('[%s]' % (i), parent_key)
+                parents_copy = [] if parent_key == '' else parents_copy
+                node_key = self._get_key_for_node('[{}]'.format(i), parent_key)
                 # Copy style for each node to avoid getting affected from the
                 # previous loops
                 node_style = copy.copy(parent_style)
                 if isinstance(node.value, (dict, list)):
                     node_style.append(node.style or '')
-                    self._parse_yaml_data(node.value, node_key, context,
+                    parents_copy.append((node_key, node.start, node.end))
+                    self._parse_yaml_data(node.value, node_key, parents_copy, context,
                                           parent_style=node_style)
+                    parents_copy.pop()
                 else:
                     self._parsed_data.append(
                         self._parse_leaf_node(
-                            node, node_key, style=node_style
+                            node, node_key, parents_copy, style=node_style
                         )
                     )
 
