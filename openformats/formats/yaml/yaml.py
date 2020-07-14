@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from builtins import str
 
 import copy
 import re
@@ -116,6 +117,192 @@ class YamlHandler(Handler):
         template = u''.join(template)
         return template, stringset
 
+    def find_backwards_in_list(self, l, start_idx, compare_func):
+        i = start_idx - 1
+        while i >= 0:
+            elem = l[i]
+            if compare_func(elem):
+                return i
+            i -= 1
+        return None
+
+    def get_ptr_for_start_section(self, full_key, transcriber, start_idx):
+        partial_key = self.get_last_partial_key(full_key)
+        if re.search('\[\d+\]', partial_key):  # part of a list
+            find_elem = ' - '
+        else:
+            find_elem = '{}:'.format(partial_key)
+        # search for last previous ' - ' in string
+        idx_key = self.find_backwards_in_list(transcriber.destination, start_idx, lambda x: x == find_elem)
+        # look further back to include also related comments
+        idx = idx_key
+        while True:
+            idx_comment = self.find_backwards_in_list(transcriber.destination, idx, lambda x: x.startswith("#"))
+            if idx_comment == None:
+                break
+            else:
+                idx = idx_comment
+        return idx
+
+    def add_section(self, transcriber, ptr_start, ptr_end):
+        # SOS transcriber length and pointer are changed after this!!!
+        transcriber.destination.insert(ptr_end + 1, transcriber.SectionEnd)
+        transcriber.destination.insert(ptr_start, transcriber.SectionStart)
+
+    def key_is_nested(self, key):
+        return len(key.split('.')) > 1
+
+    def translation_is_empty(self, string):
+        return not string or (isinstance(string, dict)
+                                     and not all(six.itervalues(string)))
+
+    def get_key_data(self, transcriber, key, hash):
+        """Return a tuple of:
+           * transcriber ptr to the position of it's key for a given hash
+           * the string in the template consisting of the key and hash combined
+        """
+        partial_key = self.get_last_partial_key(key)
+        if re.search('\[\d+\]', partial_key):  # part of a list
+            find_elem = ' - {}'.format(hash)
+            return transcriber.source.find(find_elem, transcriber.ptr), find_elem
+        else:
+            find_elem = '- {}: {}'.format(partial_key, hash)
+            ptr = transcriber.source.index(find_elem, transcriber.ptr)
+            if ptr == -1:
+                find_elem = '{}: {}'.format(partial_key, hash)
+                ptr = transcriber.source.index(find_elem, transcriber.ptr)
+            return ptr, find_elem
+
+    def stringset_keys(self, stringset):
+        """Return the keys of a stringset as keys of a dict for efficient lookups"""
+        keys = {}
+        i = 0
+        for string in stringset:
+            keys[string.key] = i
+            i += 1
+        return keys
+
+    def check_children_empty(self, stringset, key):
+        """Check if all children of a key in a stringset are empty"""
+        for string in stringset:
+            string_key = string.key
+            if string_key.startswith(key):
+                if not self.translation_is_empty(string.string):
+                    return False
+        return True
+
+    def get_children(self, stringset, key):
+        """Find last child of an ancestor node, returns an Openstring"""
+        children = []
+        for string in stringset:
+            string_key = string.key
+            if string_key.startswith(key):
+                children.append(string)
+        return children
+
+    def get_last_partial_key(self, full_key):
+        return full_key.split('.')[-1]
+
+    def key_is_list(self, key):
+        return re.search('\[\d+\]', key)
+
+    def locate_in_template(self, transcriber, text, start_idx=0):
+        return (transcriber.source.find(text, start_idx) > -1)
+
+    def pos_of_key(self, key, known_key, known_key_template_text,
+                   transcriber, template):
+        end_pos = template.find(known_key_template_text)
+
+    def get_ancestor_in_template(self, key, key_template_text, template):
+        """key, key_template_text should be the first children node"""
+        parts = key.split('.')
+        if len(parts) <= 1:
+            return key, key_template_text
+        else:
+            known_key_pos = template.find(key_template_text)
+            parts.pop()
+            ancestor_key = parts[-1]
+            if re.search('\[\d+\]', ancestor_key):  # part of a list
+                find_elem = ' - '
+                pos1 = template.rfind(find_elem, known_key_pos)
+                find_elem = '['
+                pos2 = template.rfind(find_elem, known_key_pos)
+                pos = max([pos1, pos2])
+            else:
+                if len(parts) > 1 and re.search('\[\d+\]', parts[-2]):
+                    find_elem = ' - {}:'.format(ancestor_key)
+                else:
+                    find_elem = '{}:'.format(ancestor_key)
+                pos = template.rfind(find_elem, known_key_pos)
+            if pos > 0:
+                return pos
+            else:
+                raise Exception('ancestor_key `{}` not found with expression:`{}`'.format(ancestor_key, find_elem))
+
+    def get_current_key(self, full_key, transcriber, hash, start_idx=0):
+        yg = YamlGenerator(self)
+        parts = full_key.split('.')
+        last = yg._parse_int_key(self.unescape_dots(parts.pop()))
+        # import pdb; pdb.set_trace()
+        ancestor = '.'.join(parts)
+        if not self.key_is_list(str(last)):
+            # how the key appears in the template
+            in_template = '{}: {}'.format(last, hash)
+            if len(parts) and self.key_is_list(parts[-1]):
+                pre = parts.pop()
+                last = '.'.join([pre, last])
+                in_template = ' - {}'.format(in_template)
+            ancestor = '.'.join(parts)
+        else:
+            if self.locate_in_template(transcriber, ' - {}'.format(hash), start_idx):
+                in_template = ' - {}'.format(hash)
+            # probably in in-line list, check variations`
+            elif self.locate_in_template(transcriber, '[{}'.format(hash), start_idx):
+                in_template = '[{}'.format(hash)
+            elif self.locate_in_template(transcriber, '{}]'.format(hash), start_idx):
+                in_template = '[{}'.format(hash)
+            elif self.locate_in_template(transcriber, '{},'.format(hash), start_idx):
+                in_template = '{},'.format(hash)
+            elif self.locate_in_template(transcriber, '[{}]'.format(hash), start_idx):
+                in_template = '[{}]'.format(hash)
+            else:
+                raise Exception('Cannot locate hash {} in template'.format(hash))
+
+        # current key, ancestor key, prefix to current key, last_in_template
+        if not self.locate_in_template(transcriber, in_template, start_idx):
+            raise Exception('Cannot locate hash {} in template'.format(hash))
+        return last, ancestor, in_template
+
+    def first_ancestor_with_empty_children(self, key, first_key_in_template, first_key,
+                                           stringset, transcriber):
+        parts = key.split('.')
+        if len(parts) <= 1:
+            return key, first_key_in_template, first_key
+        else:
+            last = parts.pop()
+            ancestor = '.'.join(parts)
+            if not self.check_children_empty(ancestor):
+                return key, first_key_in_template, first_key
+            else:
+                first = self.get_children(stringset, ancestor)[0]
+                k, ancestor_k, k_in_template = self.get_current_key(
+                    first.key, transcriber, first.template_replacement)
+                return self.first_ancestor_with_empty_children(ancestor_k, k_in_template, k,
+                                                               stringset, transcriber)
+
+    def mark_section_by_text(self, transcriber, text, template):
+        ptr_start = template.index(text)
+        transcriber.copy_until(ptr_start)
+        transcriber.mark_section_start()
+        transcriber.skip(len(text))
+        transcriber.mark_section_end()
+
+    def mark_section_by_ptr(self, transcriber, ptr_start, ptr_end, template):
+        transcriber.copy_until(ptr_start)
+        transcriber.mark_section_start()
+        transcriber.skip(ptr_end - ptr_start)
+        transcriber.mark_section_end()
+
     def compile(self, template, stringset, **kwargs):
         """
         Dump YAML content for a resource translation taking
@@ -128,12 +315,71 @@ class YamlHandler(Handler):
         Returns:
             A unicode, dumped YAML content.
         """
+        stringset_2 = stringset
         self.indent = self._get_indent(template)
         transcriber = Transcriber(template)
         template = transcriber.source
+        empty_keys = []
+        section_cnt = 0
 
+        # 1st pass, remove empty translations
         translations_removed = False
-        for string in stringset:
+        if self.should_remove_empty:
+            for string in stringset:
+                import pdb; pdb.set_trace()
+                pass
+        #         print(u'key: {}'.format(str(string.key)))
+        #         # If the string is empty or all plurals of a pluralized string
+        #         # are empty, there is no translation
+        #         if self.translation_is_empty(string.string) and not string.key in empty_keys:
+        #             # import pdb; pdb.set_trace()
+        #
+        #             translation = None
+        #             translations_removed = True
+        #             k, ancestor_k, k_in_template = self.get_current_key(
+        #                 string.key, transcriber, string.template_replacement)
+        #             if self.key_is_nested(string.key):
+        #                 # lookup ancestor node's children, are all empty?
+        #                 if not self.check_children_empty(ancestor_k):
+        #                     # not all empty, just mark the current key for removal
+        #                     self.mark_section_by_text(transcriber, k_in_template, template)
+        #                     empty_keys.append(string.key)
+        #                     section_cnt += 1
+        #                 else:
+        #                     # all child nodes empty
+        #                     # lookup previous ancestor (same logic) until you find starting node
+        #                     # find last empty child node (to mark section end)
+        #                     first_ancestor_k, first_in_template, first_key = \
+        #                         self.first_ancestor_with_empty_children(ancestor_k,
+        #                                                                 k_in_template, k,
+        #                                                                 stringset)
+        #                     ancestor = ancestor_k if first_ancestor_k == ancestor_k else first_ancestor_k
+        #                     start_pos = self.get_ancestor_in_template(ancestor, first_in_template, template)
+        #                     children = self.get_children(stringset, ancestor)
+        #                     last = children[-1]
+        #                     last_pos = template.index(last.template_replacement) + len(last.template_replacement)
+        #                     self.mark_section_by_ptr(transcriber, start_pos, last_pos, template)
+        #                     empty_keys.extend(list(map(lambda child: child.key, children)))
+        #                     section_cnt += 1
+        #             else:
+        #                 # mark start - end section in place
+        #                 self.mark_section_by_text(transcriber, k_in_template, template)
+        #                 empty_keys.append(string.key)
+        #                 section_cnt += 1
+        #
+        #     transcriber.copy_until(len(template))
+        #     for i in range(1, section_cnt+1):
+        #         transcriber.remove_section()
+        #     template = transcriber.get_destination()
+        #     stringset_2 = [string
+        #                    for string in stringset
+        #                    if string.key not in empty_keys]
+
+
+        transcriber = Transcriber(template)
+        # template = transcriber.source
+        for string in stringset_2:
+            print(u'key: {}'.format(str(string.key)))
             # If the string is empty or all plurals of a pluralized string
             # are empty, there is no translation
             if not string.string or (isinstance(string.string, dict)
@@ -161,6 +407,13 @@ class YamlHandler(Handler):
             if self.should_remove_empty and not translation:
                 transcriber.add(REMOVE_LINE_INDICATOR)
                 translations_removed = True
+                # ptr_end = transcriber.ptr
+                # ptr_start = self.get_ptr_for_start_section(string.key, transcriber, ptr_end)
+                # self.add_section(transcriber, ptr_start, ptr_end)
+                # add section changes transcriber length so must fix ptr
+                # transcriber.ptr = len(transcriber.destination) - 1
+                # # store ptr of empty translation
+                # empty_ptrs.append(transcriber.ptr - 1) # last is end section
 
                 # If folded style is used, we need to add an extra newline,
                 # otherwise the next entry will be on the same line as
@@ -174,42 +427,55 @@ class YamlHandler(Handler):
         transcriber.copy_until(len(template))
         compiled = transcriber.get_destination()
 
+        # # add nested sections for nested keys
+        # for string in stringset:
+        #     if not string.string or (isinstance(string.string, dict)
+        #                              and not all(six.itervalues(string.string)
+        #                                          )):
+        #         pass
+        # remove sections
+
         # Remove lines that are marked for removal, if they exist
         # For any removed string, any comment lines that proceed it
         # should also be removed
-        if translations_removed:
-            string = StringIO(compiled)
-            output = StringIO()
-            current_comment = StringIO()
-
-            while True:
-                line = string.readline()
-                # End of string
-                if not line:
-                    break
-
-                # Marked for removal; get rid of the corresponding comments
-                # and skip the line altogether
-                if REMOVE_LINE_INDICATOR in line:
-                    current_comment = StringIO()
-                    continue
-
-                # A comment line was found; keep to check later
-                # if it should be added or not
-                if line.lstrip().startswith('#'):
-                    current_comment.write(line)
-                    continue
-
-                # Write any comments and reset
-                output.write(current_comment.getvalue())
-                current_comment = StringIO()
-
-                # Write the actual line
-                output.write(line)
-
-            # There might be comments left in the end, so write them now
-            output.write(current_comment.getvalue())
-            compiled = output.getvalue()
+        # if translations_removed:
+        #     string = StringIO(compiled)
+        #     output = StringIO()
+        #     current_output = StringIO()
+        #     current_comment = StringIO()
+        #
+        #     while True:
+        #         line = string.readline()
+        #         # End of string
+        #         if not line:
+        #             break
+        #
+        #         # Marked for removal; get rid of the corresponding comments
+        #         # and skip the line altogether
+        #         if REMOVE_LINE_INDICATOR in line:
+        #             current_comment = StringIO()
+        #             current_output = StringIO()
+        #             continue
+        #
+        #         # A comment line was found; keep to check later
+        #         # if it should be added or not
+        #         if line.lstrip().startswith('#'):
+        #             current_comment.write(line)
+        #             continue
+        #         else:
+        #             current_output.write(line)
+        #
+        #         # Write any comments and reset
+        #         output.write(current_comment.getvalue())
+        #         current_comment = StringIO()
+        #
+        #         # Write the actual line
+        #         output.write(current_output.getvalue())
+        #         current_output = StringIO()
+        #
+        #     # There might be comments left in the end, so write them now
+        #     output.write(current_comment.getvalue())
+        #     compiled = output.getvalue()
 
         return compiled
 
