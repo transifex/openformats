@@ -29,7 +29,6 @@ def string_handler(token, template):
     # Drop new lines around string.
     string, key = token
     string = string.strip('\n')
-
     # for code blocks we need to maintain the exact indentation as in
     # the source file both for matching the string and replacing it in the
     # template and for producing a valid markdown on compilation
@@ -63,7 +62,7 @@ def string_handler(token, template):
         return match_link.groups()[0]
 
     # Extract Text from `[Text]: link` or `"[Text]: link"` lines
-    match_reference = re.search(ensure_unicode(r'^"?\[(.+)\]:.+"?$'), string)
+    match_reference = re.search(ensure_unicode(r'^"?\[([^\[^\]]+)\]:.+"?$'), string)
     if match_reference:
         try:
             int(match_reference.groups()[0])
@@ -197,7 +196,6 @@ class GithubMarkdownHandler(OrderedCompilerMixin, Handler):
         template = content.expandtabs(4)
         pattern = re.compile(ensure_unicode(r'^ +$'), re.M)
         content = pattern.sub('', template)
-
         template = content
         stringset = []
 
