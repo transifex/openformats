@@ -3,7 +3,6 @@ en:
   pluralized_string:
     one: One ȧɠǿ
     other: Other ȧɠǿ
-
   another normal string: normal string
 
   empty_pluralized_string:
@@ -15,11 +14,9 @@ en:
     one: 'this is a test'
     other: "this is a double quote test"
 
-
   pluralized_string_with_extra_keys:
     one: One
     other: Other
-
   non_pluralized_string_with_extra_keys:
     extra_key: random value
     one: One
