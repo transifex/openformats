@@ -173,10 +173,13 @@ class I18nYamlHandler(YamlHandler):
         except re.error:
             pass
         # Apply the indentation to the beginning of each plural rule
-        return u''.join([
+        joined = u''.join([
             u"{indentation}{line}".format(indentation=indentation, line=line)
             for line in plurals
         ])
+        # Remove trailing newlines since there is already one after each
+        # pluralized string on the template
+        return joined.strip('\n')
 
     def _parse_pluralized_leaf_node(self, node, parent_key, style=[],
                                     pluralized=False):
