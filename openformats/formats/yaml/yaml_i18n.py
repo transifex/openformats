@@ -154,14 +154,19 @@ class I18nYamlHandler(YamlHandler):
         # plural rules
         indentation_levels = len(string.key.split('.')) + self.extra_indent
         indent = " " * indentation_levels * self.indent
-        plural_entry = self._indent_plurals(plurals, indent)
+        plural_entry = self._indent_plurals(plurals, indent, flow='flow' in string.flags)
 
         # Hash replacement in template is already indented in the template
         # so for the first line we need to keep on one level of indentation
-        return plural_entry[(len(indent)-self.indent):]
+        if 'flow' in string.flags:
+            return plural_entry[(len(indent)):]
+        else:
+            return plural_entry[(len(indent) - self.indent):]
 
-    def _indent_plurals(self, plurals, indentation):
-        """Apply the correct indentation to a set of plural rules."""
+    def _indent_plurals(self, plurals, indentation, flow=False):
+        """Apply the correct indentation to a set of plural rules.
+        Slightly different rules for when handling plurals in regular yaml
+        syntax vs when handling in flow syntax"""
         # First apply the indentation to the literal values that start in a new
         # line. We need to search for newline characters followed by a number
         # of spaces.
@@ -174,9 +179,13 @@ class I18nYamlHandler(YamlHandler):
             pass
         # Apply the indentation to the beginning of each plural rule
         joined = u''.join([
-            u"{indentation}{line}".format(indentation=indentation, line=line)
-            for line in plurals
+            u"{indentation}{line}".format(indentation=indentation,
+                                          line=line[:-1] + ',' + line[-1:] if flow and i != len(plurals) else line)
+            for i, line in enumerate(plurals, start=1)
         ])
+        # strip trailing comma
+        if flow:
+            joined = joined[:-1]
         # Remove trailing newlines since there is already one after each
         # pluralized string on the template
         return joined.strip('\n')
@@ -201,6 +210,7 @@ class I18nYamlHandler(YamlHandler):
             A dictionary representing the parsed leaf node
         """
         value, styles = self._parse_pluralized_value(node.value)
+        start = self._find_pluralized_start_pos(node.value) if node.style =='flow' else node.start
         end = self._find_pluralized_end_pos(node.value)
         style.append(node.style or '')
         # Append the plural styles dictionary to the string's style using a
@@ -208,7 +218,7 @@ class I18nYamlHandler(YamlHandler):
         # the styles
         style.append(json.dumps(styles).replace(":", self.COLON_REPLACEMENT))
         return {
-            'start': node.start,
+            'start': start,
             'end': end,
             'key': parent_key,
             'value': value,
@@ -223,6 +233,23 @@ class I18nYamlHandler(YamlHandler):
         # End position for pluralized string should be the end position of
         # the last plural element and not the end position of the parent node.
         return max([entry.end for entry in six.itervalues(node)])
+
+    def _find_pluralized_start_pos(self, node):
+        """ Calculate start position of pluralized string """
+
+        # This is called on flow nodes so this means that we want to return
+        # the start of the top-most element in the flow list.
+        # For eg. if we have the structure:
+        # abc: {
+        #   bcd: 'efg'.
+        #   hij: 'klm'
+        # }
+        # we want to return exactly where 'bcd' starts,
+        # so that template generation picks up both the indentation and the {.
+        # So 1) we get the top-most element: bcd.
+        # 2) We get it's start position (where 'efg' starts).
+        # 3) We move back len('bcd") + len(' ') + len(':') from it.
+        return min([entry.start - len(name) - 2 for name, entry in six.iteritems(node)])
 
     def _parse_pluralized_value(self, node):
         """ Parses input value into an OpenString pluralized value
