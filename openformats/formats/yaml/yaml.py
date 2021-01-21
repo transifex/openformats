@@ -376,6 +376,8 @@ class YamlHandler(Handler):
             emitter.write_folded(string.string)
 
         translation = emitter.stream.getvalue() or string.string
+        if translation.startswith(">-") and not translation.endswith("\n"):
+            translation += "\n"
         emitter.stream.close()
         return translation
 
