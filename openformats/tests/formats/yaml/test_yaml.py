@@ -170,3 +170,70 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_parse_anchor_with_label_is_maintained_on_template(self):
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
         self.assertEqual("&another_anchor    " in remade_orig_content, True)
+
+    def full_run(self, source, translation, expected):
+        """ Parse source, replace first extracted string, recompile and compare
+            against expected output.
+        """
+
+        template, stringset = self.handler.parse(source)
+        stringset[0]._strings[5] = translation
+        self.assertEqual(self.handler.compile(template, stringset), expected)
+
+    def test_block_folding(self):
+        # a: >
+        #   b
+        # c:
+        #   d
+        source = '\n'.join(["a: >",
+                            "  b",
+                            "c:",
+                            "  d"]) + "\n"
+
+        # Translation same as extracted source string
+        self.full_run(source, "b\n", source)
+
+        # Translation without newline, compiler uses line folding
+        self.full_run(source,
+                      "b",
+                      '\n'.join(["a: >-",
+                                 "  b",
+                                 "c:",
+                                 "  d"]) + "\n")
+
+        # Translation with space, compiler uses line folding and appends space
+        self.full_run(source,
+                      "b ",
+                      '\n'.join(["a: >-",
+                                 "  b ",
+                                 "c:",
+                                 "  d"]) + "\n")
+
+    def test_line_folding(self):
+        # a: >-
+        #   b
+        # c:
+        #   d
+        source = '\n'.join(["a: >-",
+                            "  b",
+                            "c:",
+                            "  d"]) + "\n"
+
+        # Translation same as extracted source string
+        self.full_run(source, "b", source)
+
+        # Translation with newline, compiler uses block folding
+        self.full_run(source,
+                      "b\n",
+                      '\n'.join(["a: >",
+                                 "  b",
+                                 "c:",
+                                 "  d"]) + "\n")
+
+        # Translation with space, compiler uses line folding and appends space
+        self.full_run(source,
+                      "b ",
+                      '\n'.join(["a: >-",
+                                 "  b ",
+                                 "c:",
+                                 "  d"]) + "\n")
