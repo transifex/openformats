@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import unittest
-import io
-from openformats.formats.docx import DocxHandler, DocxFile
+
+from openformats.formats.docx import DocxFile, DocxHandler
 from openformats.strings import OpenString
 
 
 class DocxTestCase(unittest.TestCase):
     TESTFILE_BASE = 'openformats/tests/formats/docx/files'
 
-    def test_docx_file(self):   
+    def test_docx_file(self):
         path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
         with open(path, 'rb') as f:
             content = f.read()
@@ -42,16 +42,16 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(len(stringset), 1)
 
         openstring = stringset[0]
-        self.assertEqual(openstring.order, 1)
+        self.assertEqual(openstring.order, 0)
         self.assertEqual(
             openstring.string,
-            u'Hello world <tx href="https://www.transifex.com/">this is a link</tx>'
+            u'<tx>Hello world </tx><tx href="https://www.transifex.com/">this is a link</tx>'  # noqa
         )
         self.assertEqual(openstring.string, openstring.key)
 
-        translation = u'Καλημέρα κόσμε <tx href="https://el.transifex.com/">αυτός είναι ένας κρίκος</tx>'
+        translation = u'<tx>Καλημέρα κόσμε </tx><tx href="https://el.transifex.com/">αυτός είναι ένας κρίκος</tx>'  # noqa
         stringset = [
-            OpenString(openstring.key, translation,order=1)
+            OpenString(openstring.key, translation, order=1)
         ]
 
         content = handler.compile(template, stringset)
@@ -77,7 +77,7 @@ class DocxTestCase(unittest.TestCase):
         docx.set_document_rels(u'Modified Document Rels')
 
         openstring = stringset[0]
-        self.assertEqual(openstring.order, 1)
+        self.assertEqual(openstring.order, 0)
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
 
@@ -224,7 +224,7 @@ class DocxTestCase(unittest.TestCase):
 
         for extracted, expected in zip(stringset, translated_strings):
             self.assertEqual(extracted.string, u''.join(expected))
-        
+
         for text in expected_docx_source_text:
             self.assertFalse(text in docx.get_document())
 
@@ -297,7 +297,7 @@ class DocxTestCase(unittest.TestCase):
                 u'<tx>ten </tx>',
                 u'<tx>eleven</tx>',
                 u' twelve'
-            ],        
+            ],
         ]
 
         for extracted, expected in zip(source_stringset, expected_strings):
@@ -340,7 +340,8 @@ class DocxTestCase(unittest.TestCase):
 
         translated_stringset = []
         order = 1
-        for extracted, translation in zip(source_stringset, translated_strings):
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
             translated_stringset.append(
                 OpenString(extracted.key, u''.join(translation), order=order)
             )
@@ -385,7 +386,8 @@ class DocxTestCase(unittest.TestCase):
 
         translated_stringset = []
         order = 1
-        for extracted, translation in zip(source_stringset, translated_strings):
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
             translated_stringset.append(
                 OpenString(extracted.key, u''.join(translation), order=order)
             )
@@ -433,7 +435,8 @@ class DocxTestCase(unittest.TestCase):
 
         translated_stringset = []
         order = 1
-        for extracted, translation in zip(source_stringset  , translated_strings):
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
             translated_stringset.append(
                 OpenString(extracted.key, u''.join(translation), order=order)
             )
@@ -459,3 +462,88 @@ class DocxTestCase(unittest.TestCase):
 
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
+
+    def test_two_text_elements_file(self):
+        path = '{}/two_text_elements.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        handler = DocxHandler()
+        template, source_stringset = handler.parse(content)
+        content = handler.compile(template, source_stringset)
+
+        docx = DocxFile(content)
+
+        expected_strings = [
+            
+            u'<tx>Hello</tx><tx> world</tx>',
+            u'<tx>Goodbye </tx><tx>world</tx>',
+            u'<tx>This is a </tx><tx href="https://google.com/">link</tx>',
+            u'<tx>This is my picture </tx><tx> (rest of text goes here).</tx>',
+        ]
+
+        for extracted, expected in zip(source_stringset, expected_strings):
+            self.assertEqual(extracted.string, u''.join(expected))
+
+        docx = DocxFile(template)
+        expected_docx_source_text = [
+            u'Hello',
+            u' world',
+            u'Goodbye ',
+            u'world',
+            u'This is a ',
+            u'link',
+            u'This is my picture ',
+            u' (rest of text goes here).',
+        ]
+        for text in expected_docx_source_text:
+            self.assertTrue(text in docx.get_document())
+
+        for url in [u'https://google.com/']:
+            self.assertTrue(url in docx.get_document_rels())
+
+        translated_strings = [
+            u'<tx>Γεία</tx><tx> κόσμε</tx>',
+            u'<tx>Αντίο </tx><tx>κόσμε</tx>',
+            u'<tx>Αυτό είναι ένα </tx><tx href="https://transifex.com/">λίνκ</tx>',  # noqa
+            u'<tx>Και αυτή η εικόνα μου </tx><tx> (υπόλοιπο κείμενο).</tx>',
+        ]
+
+        translated_stringset = []
+        order = 1
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
+            translated_stringset.append(
+                OpenString(extracted.key, u''.join(translation), order=order)
+            )
+            order += 1
+
+        fixed_stringset = [
+            u'<tx>Γεία</tx><tx> κόσμε</tx>',
+            u'<tx>Αντίο </tx><tx>κόσμε</tx>',
+            u'<tx>Αυτό είναι ένα </tx><tx href="https://transifex.com/">λίνκ</tx>',  # noqa
+            u'<tx>Και αυτή η εικόνα μου </tx><tx> (υπόλοιπο κείμενο).</tx>',
+        ]
+
+        content = handler.compile(template, translated_stringset)
+        template, stringset = handler.parse(content)
+
+        for extracted, expected in zip(stringset, fixed_stringset):
+            self.assertEqual(extracted.string, u''.join(expected))
+
+        docx = DocxFile(template)
+        expected_docx_source_text = [
+            u'Γεία',
+            u' κόσμε',
+            u'Αντίο ',
+            u'κόσμε',
+            u'Αυτό είναι ένα ',
+            u'λίνκ',
+            u'Και αυτή η εικόνα μου ',
+            u' (υπόλοιπο κείμενο).',
+        ]
+        for text in expected_docx_source_text:
+            self.assertTrue(text in docx.get_document())
+
+        for url in [u'https://transifex.com/']:
+            self.assertTrue(url in docx.get_document_rels())

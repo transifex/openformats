@@ -1,3 +1,4 @@
+import itertools
 import os
 import tempfile
 import uuid
@@ -212,7 +213,7 @@ class DocxHandler(Handler):
         rels_soup = BeautifulSoup(docx.get_document_rels(), 'xml')
 
         stringset = []
-        order = 1
+        order = itertools.count()
         for paragraph in soup.find_all('w:p'):
             paragraph_text = []
             text_elements =  paragraph.find_all('w:t')
@@ -226,7 +227,7 @@ class DocxHandler(Handler):
             for index, text_element in enumerate(text_elements):
                 text = text_element.text
                 # skip text elements that contain no text
-                # and prepend leading whitespace to the next string 
+                # and prepend leading whitespace to the next string
                 if not text.strip():
                     leading_spaces += len(text) - len(text.strip())
                     continue
@@ -239,7 +240,9 @@ class DocxHandler(Handler):
                 )
 
                 if all([
-                    text_elements_count > 1,
+                    text_elements_count == 2,
+                    not hyperlink_url or hyperlink_url == open_hyperlink
+                ]) or all([
                     index > 0,
                     index < text_elements_count - 1,
                     not hyperlink_url or hyperlink_url == open_hyperlink
@@ -284,9 +287,8 @@ class DocxHandler(Handler):
             open_string = OpenString(
                 paragraph_text,
                 paragraph_text,
-                order=order
+                order=next(order)
             )
-            order+=1
 
             stringset.append(open_string)
             paragraph.attrs['txid'] = open_string.string_hash
