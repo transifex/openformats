@@ -1,15 +1,24 @@
-FROM debian:jessie
-RUN apt-get update \
-    && apt-get install -y apt-transport-https ca-certificates gcc \
-    && apt-get clean \
-    && rm -rf /var/cache/apt/*
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        python-pip python-dev libyaml-dev libxml2-dev \
-        libxslt1-dev python-lxml zlib1g-dev \
-    && apt-get clean && rm -rf /var/cache/apt/*
+# syntax = docker/dockerfile:1.0.2-experimental
+ARG PY_VERSION=2.7
 
-RUN pip install -U setuptools
+FROM python:${PY_VERSION}-slim-buster as builder
+
+
+ENV PKGS='\
+    # Packages required by pip
+    git openssh-client'
+
+COPY ./setup.cfg ./app/setup.cfg
+COPY ./setup.py ./app/setup.py
+COPY ./versioneer.py ./app/versioneer.py
+
+RUN apt-get update && apt-get install -y --no-install-recommends $PKGS && \
+    python ./app/setup.py egg_info && \
+    pip install --no-cache-dir -r openformats.egg-info/requires.txt  && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONDONTWRITEBYTECODE=1
+
 COPY requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
 
