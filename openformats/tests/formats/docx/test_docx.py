@@ -47,7 +47,7 @@ class DocxTestCase(unittest.TestCase):
             openstring.string,
             u'<tx>Hello world </tx><tx href="https://www.transifex.com/">this is a link</tx>'  # noqa
         )
-        self.assertEqual(openstring.string, openstring.key)
+        self.assertEqual(openstring.key, u"0")
 
         translation = u'<tx>Καλημέρα κόσμε </tx><tx href="https://el.transifex.com/">αυτός είναι ένας κρίκος</tx>'  # noqa
         stringset = [
@@ -79,7 +79,7 @@ class DocxTestCase(unittest.TestCase):
         openstring = stringset[0]
         self.assertEqual(openstring.order, 0)
         self.assertEqual(openstring.string, translation)
-        self.assertEqual(openstring.string, openstring.key)
+        self.assertEqual(openstring.key, u"0")
 
     def test_complex_file(self):
         path = '{}/complex.docx'.format(self.TESTFILE_BASE)

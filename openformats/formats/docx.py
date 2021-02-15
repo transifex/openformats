@@ -213,7 +213,7 @@ class DocxHandler(Handler):
         rels_soup = BeautifulSoup(docx.get_document_rels(), 'xml')
 
         stringset = []
-        order = itertools.count()
+        order_generator = itertools.count()
         for paragraph in soup.find_all('w:p'):
             paragraph_text = []
             text_elements =  paragraph.find_all('w:t')
@@ -284,10 +284,12 @@ class DocxHandler(Handler):
             if not paragraph_text.strip():
                 continue
 
+            order = next(order_generator)
+
             open_string = OpenString(
+                six.text_type(order),
                 paragraph_text,
-                paragraph_text,
-                order=next(order)
+                order=order
             )
 
             stringset.append(open_string)
