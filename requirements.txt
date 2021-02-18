@@ -5,7 +5,7 @@ polib==1.0.3
 pyparsing==2.2.0
 six
 lxml==4.6.2
-beautifulsoup4==4.9.0
+beautifulsoup4>=4.9.0,<=4.9.3
 
 # InDesign
 git+git://github.com/kbairak/ucflib@py3_compatibility
