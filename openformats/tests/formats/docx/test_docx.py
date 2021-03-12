@@ -8,6 +8,46 @@ from openformats.strings import OpenString
 class DocxTestCase(unittest.TestCase):
     TESTFILE_BASE = 'openformats/tests/formats/docx/files'
 
+    def test_broken_file(self):
+        path = '{}/missing_wr_parent.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        docx = DocxFile(content)
+
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 1)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'Foo bar baz'
+        )
+        self.assertEqual(openstring.string, openstring.key)
+
+        translation = u'Φου βαρ βαζ'
+        stringset = [
+            OpenString(openstring.key, translation, order=1)
+        ]
+
+        content = handler.compile(template, stringset)
+
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 1)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'Φου βαρ βαζ'
+        )
+
+
     def test_docx_file(self):
         path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
         with open(path, 'rb') as f:

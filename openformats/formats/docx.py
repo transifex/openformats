@@ -329,19 +329,6 @@ class DocxHandler(Handler):
             leading_spaces = 0
 
             for index, text_element in enumerate(text_elements):
-                hyperlink_url = self.get_hyperlink_url(
-                    text_element, rels_soup
-                )
-                # the text parts of the translation are less that the
-                # text parts of the document, so we will just remove
-                # any excessing part from the document
-                if len(translation_soup) == 0:
-                    if hyperlink_url:
-                        text_element.find_parent('w:hyperlink').decompose()
-                    else:
-                        text_element.find_parent('w:r').decompose()
-                    continue
-
                 text = six.text_type(text_element.text)
                 # detect text elements that contain no text
                 # and remove leading whitespace from the next string 
@@ -349,11 +336,24 @@ class DocxHandler(Handler):
                     leading_spaces = len(text) - len(text.strip())
                     continue
                 else:
+                    hyperlink_url = self.get_hyperlink_url(
+                        text_element, rels_soup
+                    )
+                    # the text parts of the translation are less that the
+                    # text parts of the document, so we will just remove
+                    # any excessing part from the document
+                    if len(translation_soup) == 0:
+                        if hyperlink_url:
+                            text_element.find_parent('w:hyperlink').decompose()
+                        else:
+                            text_element.decompose()
+                        continue
                     translation_part = translation_soup.pop(0)
                     translation = six.text_type(translation_part)
                     if not translation[:leading_spaces].strip():
                         translation = translation[leading_spaces:]
                     leading_spaces = 0
+
                 
                 # the text parts of the translation are more that the
                 # text parts of the document, so we will compress the 
