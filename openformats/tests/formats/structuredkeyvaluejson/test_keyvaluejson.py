@@ -59,6 +59,24 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[0].__dict__, openstring.__dict__)
         self.assertEqual(compiled, source)
 
+    def test_escaped_character_in_key(self):
+        first_level_key = "a\/b"
+        source = '{"%s": {"c": {"string": "%s"}}}' % (first_level_key, self.random_string)
+        openstring = OpenString(
+            "{}.c".format(self.handler._escape_key(first_level_key)), 
+            self.random_string, order=0
+        )
+        random_hash = openstring.template_replacement
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [openstring])
+
+        self.assertEqual(template,
+                         '{"a\/b": {"c": {"string": "%s"}}}' % random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, openstring.__dict__)
+        self.assertEqual(compiled, source)
+
     def test_embedded_dicts(self):
         source = '{"a": {"b": {"string": "%s"}}}' % self.random_string
         openstring = OpenString("a.b", self.random_string, order=0)
@@ -217,19 +235,19 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # Test various cases of messed-up braces
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have {file_count file.} other {You have {file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files.string"'
+            'Invalid format of pluralized entry with key: "total_files"'
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have file_count} file.} other {You have {file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files.string"'
+            'Invalid format of pluralized entry with key: "total_files"'
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have {file_count} file. other {You have {file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files.string"'
+            'Invalid format of pluralized entry with key: "total_files"'
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have {file_count} file}. other {You have file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files.string"'
+            'Invalid format of pluralized entry with key: "total_files"'
         )
 
     def test_invalid_plural_rules(self):
@@ -238,15 +256,15 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # Anything else, including their TX int equivalents are invalid.
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, 1 {file} 5 {{file_count} files} }" }}',  # noqa
-            'Invalid plural rule(s): "1, 5" in pluralized entry with key: total_files.string'  # noqa
+            'Invalid plural rule(s): "1, 5" in pluralized entry with key: total_files'  # noqa
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, once {file} mother {{file_count} files} }" }}',  # noqa
-            'Invalid plural rule(s): "once, mother" in pluralized entry with key: total_files.string'  # noqa
+            'Invalid plural rule(s): "once, mother" in pluralized entry with key: total_files'  # noqa
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, =3 {file} other {{file_count} files} }" }}',  # noqa
-            'Invalid plural rule(s): "=3" in pluralized entry with key: total_files.string'  # noqa
+            'Invalid plural rule(s): "=3" in pluralized entry with key: total_files'  # noqa
         )
 
     def test_irrelevant_whitespace_ignored(self):

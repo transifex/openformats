@@ -80,21 +80,41 @@ class JsonHandler(Handler):
                                      format(key, self.transcriber.line_number))
                 self.existing_keys.add(key)
 
-                if isinstance(value, (six.binary_type, six.text_type)):
-                    if not value.strip():
-                        continue
+                if self.name == "STRUCTURED_JSON":
+                    try:
+                        (string_value, _), = value.find_children(self.STRING_KEY)
+                    except:
+                        # Ignore other types of values like lists
+                        pass
+                    else:
+                        if string_value:
+                            if isinstance(string_value, (six.binary_type,
+                                                         six.text_type)):
+                                if string_value.strip():
+                                    openstring = self._create_openstring(
+                                        key, value)
 
-                    openstring = self._create_openstring(key, value,
-                                                         value_position)
-                    if openstring:
-                        self.stringset.append(openstring)
+                                    if openstring:
+                                        self.stringset.append(openstring)
 
-                elif isinstance(value, DumbJson):
-                    self._extract(value, key)
-
+                        elif isinstance(value, DumbJson):
+                            self._extract(value, key)
                 else:
-                    # Ignore other JSON types (bools, nulls, numbers)
-                    pass
+                    if isinstance(value, (six.binary_type, six.text_type)):
+                        if not value.strip():
+                            continue
+
+                        openstring = self._create_openstring(key, value,
+                                                             value_position)
+                        if openstring:
+                            self.stringset.append(openstring)
+
+                    elif isinstance(value, DumbJson):
+                        self._extract(value, key)
+
+                    else:
+                        # Ignore other JSON types (bools, nulls, numbers)
+                        pass
 
         elif parsed.type == list:
             for index, (item, item_position) in enumerate(parsed):
@@ -468,42 +488,67 @@ class StructuredJsonHandler(JsonHandler):
     STRUCTURE_FIELDS = {CONTEXT_KEY, DEVELOPER_COMMENT_KEY,
                         CHARACTER_LIMIT_KEY}
 
-    def _create_pluralized_string(self, icu_string, value_position):
+    def _create_openstring(self, key, payload_dict):
+        """Return a new OpenString based on the given key and payload_dict
+        and update the transcriber accordingly based on the provided position.
+
+
+        :param str key: the string key
+        :param DumbJson payload_dict: the string and metadata
+        :return: an OpenString or None
+        """
+        # First attempt to parse this as a special node,
+        # e.g. a pluralized string.
+        # If it cannot be parsed that way (returns None), parse it like
+        # a regular string.
+        parser = ICUParser(allow_numeric_plural_values=False)
+        (string_value, _), = payload_dict.find_children(self.STRING_KEY)
+        icu_string = parser.parse(key, string_value)
+        if icu_string:
+            return self._create_pluralized_string(icu_string, payload_dict)
+
+        return self._create_regular_string(
+            key, payload_dict
+        )
+
+    def _create_pluralized_string(self, icu_string, payload_dict):
         """Create a pluralized string based on the given information.
 
         Also updates the transcriber accordingly.
 
         :param ICUString icu_string: The ICUString object that will generate
             the pluralized string
+        "param DumbJson payload_dict: the string and metadata
         :return: an OpenString object
         :rtype: OpenString
         """
-        icu_string.key = self._parse_key(icu_string.key)
-        # Don't create strings for metadata fields
-        if not icu_string.key:
-            return None
+        (_, string_position), = payload_dict.find_children(self.STRING_KEY)
+        payload_dict = json.loads(
+            payload_dict.source[payload_dict.start:payload_dict.end+1])
+        comment_value = payload_dict.get(self.DEVELOPER_COMMENT_KEY)
+        limit_value = payload_dict.get(self.CHARACTER_LIMIT_KEY)
+        context_value = payload_dict.get(self.CONTEXT_KEY)
 
-        structure = self._get_string_structure(icu_string.key)
         openstring = OpenString(
             icu_string.key,
             icu_string.strings_by_rule,
             pluralized=icu_string.pluralized,
             order=next(self._order),
-            developer_comment=structure[self.DEVELOPER_COMMENT_KEY],
-            character_limit=structure[self.CHARACTER_LIMIT_KEY],
-            context=structure[self.CONTEXT_KEY]
+            developer_comment=comment_value or '',
+            character_limit=limit_value,
+            context=context_value or ''
         )
 
         current_pos = icu_string.current_position
         string_to_replace = icu_string.string_to_replace
 
-        self.transcriber.copy_until(value_position + current_pos)
+        self.transcriber.copy_until(string_position + current_pos)
         self.transcriber.add(openstring.template_replacement)
         self.transcriber.skip(len(string_to_replace))
 
         return openstring
 
-    def _create_regular_string(self, key, value, value_position):
+    def _create_regular_string(self, key, payload_dict):
         """
         Return a new OpenString based on the given key and value
         and update the transcriber accordingly.
@@ -512,22 +557,22 @@ class StructuredJsonHandler(JsonHandler):
         :param value: the translation string
         :return: an OpenString or None
         """
-        key = self._parse_key(key)
+        (string_value, string_position), = payload_dict.find_children(self.STRING_KEY)
+        payload_dict = json.loads(
+            payload_dict.source[payload_dict.start:payload_dict.end+1])
+        comment_value = payload_dict.get(self.DEVELOPER_COMMENT_KEY)
+        limit_value = payload_dict.get(self.CHARACTER_LIMIT_KEY)
+        context_value = payload_dict.get(self.CONTEXT_KEY)
 
-        # Don't create strings for metadata fields
-        if not key:
-            return None
-
-        structure = self._get_string_structure(key)
         openstring = OpenString(
-            key, value, order=next(self._order),
-            developer_comment=structure[self.DEVELOPER_COMMENT_KEY],
-            character_limit=structure[self.CHARACTER_LIMIT_KEY],
-            context=structure[self.CONTEXT_KEY]
+            key, string_value, order=next(self._order),
+            developer_comment=comment_value or '',
+            character_limit=limit_value,
+            context=context_value or ''
         )
-        self.transcriber.copy_until(value_position)
+        self.transcriber.copy_until(string_position)
         self.transcriber.add(openstring.template_replacement)
-        self.transcriber.skip(len(value))
+        self.transcriber.skip(len(string_value))
 
         return openstring
 
