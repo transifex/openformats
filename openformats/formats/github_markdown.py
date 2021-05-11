@@ -55,12 +55,6 @@ def string_handler(token, template):
     if match_header_line:
         return string.replace(match_header_line.group(), '')
 
-    # Extract Text from `[Text](link)` or `"[Text](link)"` lines
-    match_link = re.search(ensure_unicode(r'^"?\[(.+)\]\(.+\)"?$'), string)
-    if match_link:
-        # Get content between brackets
-        return match_link.groups()[0]
-
     # Extract Text from `[Text]: link` or `"[Text]: link"` lines
     match_reference = re.search(ensure_unicode(r'^"?\[([^\[^\]]+)\]:.+"?$'), string)
     if match_reference:
