@@ -61,16 +61,6 @@ def string_handler(token, template):
         # Get content between brackets
         return match_link.groups()[0]
 
-    # Extract Text from `[Text]: link` or `"[Text]: link"` lines
-    match_reference = re.search(ensure_unicode(r'^"?\[([^\[^\]]+)\]:.+"?$'), string)
-    if match_reference:
-        try:
-            int(match_reference.groups()[0])
-        except ValueError:
-            # Get content between brackets if it's not an integer number
-            return match_reference.groups()[0]
-        return
-
     # exclude numeric values from stringset
     try:
         float(string)
