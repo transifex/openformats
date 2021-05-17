@@ -153,8 +153,8 @@ el:This is a old version of the {{ site.data.variable.product }} documentation.
 
 ### el:Whole line as links in as list
 
-- "[el:Basic writing and formatting syntax](/articles/basic-writing-and-formatting-syntax)"
-- [el:Working with advanced formatting](/articles/working-with-advanced-formatting)
+- el:"[Basic writing and formatting syntax](/articles/basic-writing-and-formatting-syntax)"
+- el:[Working with advanced formatting](/articles/working-with-advanced-formatting)
 
 ### el:Whole line as links
 

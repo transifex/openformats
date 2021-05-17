@@ -148,8 +148,8 @@ aa5072eebea6f4364b4444a8a0f0f868_tr
 
 ### 33aa6de370798fadf155bbc16f7540c7_tr
 
-- "[709c93c4918ef02a126bec2a7044dca2_tr](/articles/basic-writing-and-formatting-syntax)"
-- [e4429365fc4b359487f20dc8957bdc97_tr](/articles/working-with-advanced-formatting)
+- 709c93c4918ef02a126bec2a7044dca2_tr
+- e4429365fc4b359487f20dc8957bdc97_tr
 
 ### a55e54225390bca0cdaa0c1d0a8d07d4_tr
 
