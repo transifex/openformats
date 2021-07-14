@@ -1,4 +1,5 @@
 import itertools
+import re
 import os
 import tempfile
 import uuid
@@ -170,6 +171,11 @@ class DocxHandler(Handler):
     EXTRACTS_RAW = False
     name = "DOCX"
 
+    LT_PATTERN = r'\<(?!tx|/tx)'
+    LT_PATTERN = (LT_PATTERN.decode("utf8")
+                  if isinstance(LT_PATTERN, six.binary_type)
+                  else LT_PATTERN)
+
     @classmethod
     def get_hyperlink_url(cls, element, document_rels):
         run_parent = element.find_parent('w:r').parent
@@ -323,9 +329,14 @@ class DocxHandler(Handler):
 
             translation = stringset[txid].string
 
+            # Do escaping: BeautifulSoup doesn't like unescaped '&' or '<' in
+            # its input. We do expect some '<tx>' and `</tx>` so we only escape
+            # '<' if it's not part of '<tx>'
+            translation = translation.replace(u"&", u"&amp;")
+            translation = re.sub(self.LT_PATTERN, u"&lt;", translation)
+
             translation_soup = BeautifulSoup(
-                u'<wrapper>{}</wrapper>'.
-                format(translation.replace("&", "&amp;")), 'xml'
+                u'<wrapper>{}</wrapper>'.format(translation), 'xml',
             ).find_all(text=True)
 
             leading_spaces = 0

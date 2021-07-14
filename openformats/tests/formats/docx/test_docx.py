@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import unittest
 
 from openformats.formats.docx import DocxFile, DocxHandler
@@ -616,6 +617,54 @@ class DocxTestCase(unittest.TestCase):
         self.assertFalse("ampersand" in docx.get_document())
         self.assertTrue("THIS IS AN" in docx.get_document())
         self.assertTrue("AMPERSAND" in docx.get_document())
+
+        # Parse compiled file
+        template, stringset = handler.parse(content)
+
+        # Make sure compiled file has the correct translation
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string, translation)
+        self.assertEqual(openstring.string, openstring.key)
+
+    def test_lt_pattern(self):
+        for original, escaped in (("ab", "ab"),
+                                  ("a<b", "a&lt;b"),
+                                  ("a<tx>b", "a<tx>b"),
+                                  ("a<tx>b<c</tx>", "a<tx>b&lt;c</tx>")):
+            self.assertEqual(re.sub(DocxHandler.LT_PATTERN, '&lt;', original),
+                             escaped)
+
+    def test_lt(self):
+        # Parse original file
+        path = '{}/with_lt.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        # Make sure extracted data is OK
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string,
+                         u'This is a < lessthan')
+        self.assertEqual(openstring.string, openstring.key)
+
+        # Compile with altered translation
+        translation = U'THIS IS AN < LESSTHAN'
+        stringset = [
+            OpenString(openstring.key, translation, order=0)
+        ]
+        content = handler.compile(template, stringset)
+
+        # Make sure compiled file has altered data
+        docx = DocxFile(content)
+        self.assertFalse("This is a" in docx.get_document())
+        self.assertFalse("lessthan" in docx.get_document())
+        self.assertTrue("THIS IS A" in docx.get_document())
+        self.assertTrue("LESSTHAN" in docx.get_document())
 
         # Parse compiled file
         template, stringset = handler.parse(content)
