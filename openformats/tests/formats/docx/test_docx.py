@@ -586,3 +586,43 @@ class DocxTestCase(unittest.TestCase):
 
         for url in [u'https://transifex.com/']:
             self.assertTrue(url in docx.get_document_rels())
+
+    def test_ampersand(self):
+        # Parse original file
+        path = '{}/with_ampersand.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        # Make sure extracted data is OK
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string,
+                         u'This is an & ampersand')
+        self.assertEqual(openstring.string, openstring.key)
+
+        # Compile with altered translation
+        translation = U'THIS IS AN & AMPERSAND'
+        stringset = [
+            OpenString(openstring.key, translation, order=0)
+        ]
+        content = handler.compile(template, stringset)
+
+        # Make sure compiled file has altered data
+        docx = DocxFile(content)
+        self.assertFalse("This is an" in docx.get_document())
+        self.assertFalse("ampersand" in docx.get_document())
+        self.assertTrue("THIS IS AN" in docx.get_document())
+        self.assertTrue("AMPERSAND" in docx.get_document())
+
+        # Parse compiled file
+        template, stringset = handler.parse(content)
+
+        # Make sure compiled file has the correct translation
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string, translation)
+        self.assertEqual(openstring.string, openstring.key)

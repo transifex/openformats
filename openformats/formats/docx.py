@@ -324,7 +324,8 @@ class DocxHandler(Handler):
             translation = stringset[txid].string
 
             translation_soup = BeautifulSoup(
-                u'<wrapper>{}</wrapper>'.format(translation), 'xml'
+                u'<wrapper>{}</wrapper>'.
+                format(translation.replace("&", "&amp;")), 'xml'
             ).find_all(text=True)
 
             leading_spaces = 0
