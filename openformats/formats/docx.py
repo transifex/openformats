@@ -4,7 +4,6 @@ import tempfile
 import uuid
 import six
 import io
-import re
 import shutil
 
 from bs4 import BeautifulSoup
@@ -16,7 +15,7 @@ from openformats.handlers import Handler
 
 class DocxFile(object):
     """
-    A class used to wrap and expose the internals of a .docx file 
+    A class used to wrap and expose the internals of a .docx file
 
     A docx file is a zipped file that when unzipped,
     generates a similar file/folder structure:
@@ -77,7 +76,8 @@ class DocxFile(object):
     ```
     <Relationships>
         ...
-        <Relationship Id="rId6" Target="https://www.transifex.com/" TargetMode="External"/>
+        <Relationship Id="rId6" Target="https://www.transifex.com/"
+                      TargetMode="External"/>
         ...
     </Relationships>
     ```
@@ -103,11 +103,12 @@ class DocxFile(object):
         with io.open(base_rels_path, 'r') as f:
             base_rels = f.read()
 
-        document_relative_path = next(
-            relationship for relationship in BeautifulSoup(base_rels, 'xml').find_all(
-                attrs={'Target': True}
-            ) if relationship.attrs.get('Type').endswith('/officeDocument')
-        ).attrs['Target']
+        document_relative_path = next((
+            relationship
+            for relationship in (BeautifulSoup(base_rels, 'xml').
+                                 find_all(attrs={'Target': True}))
+            if relationship.attrs.get('Type').endswith('/officeDocument')
+        )).attrs['Target']
 
         self.__document_path = '{}/{}'.format(
             self.__tmp_folder, document_relative_path
@@ -197,7 +198,7 @@ class DocxHandler(Handler):
         """
         We will segment the text by paragraph `<w:p>` as this
         is defined in the docx structure.
-        
+
         For all the text `<w:t>` inside a paragraph,
         we use tag separators `<tx>`, in order to denote
         text style changes (normal->bold, bold->italic, 10px->14px etc)
@@ -216,7 +217,7 @@ class DocxHandler(Handler):
         order = itertools.count()
         for paragraph in soup.find_all('w:p'):
             paragraph_text = []
-            text_elements =  paragraph.find_all('w:t')
+            text_elements = paragraph.find_all('w:t')
             if not text_elements:
                 continue
 
@@ -308,7 +309,7 @@ class DocxHandler(Handler):
         rels_soup = BeautifulSoup(docx.get_document_rels(), 'xml')
 
         for paragraph in soup.find_all('w:p'):
-            text_elements =  paragraph.find_all('w:t')
+            text_elements = paragraph.find_all('w:t')
             if not text_elements:
                 continue
 
@@ -331,7 +332,7 @@ class DocxHandler(Handler):
             for index, text_element in enumerate(text_elements):
                 text = six.text_type(text_element.text)
                 # detect text elements that contain no text
-                # and remove leading whitespace from the next string 
+                # and remove leading whitespace from the next string
                 if not text.strip():
                     leading_spaces = len(text) - len(text.strip())
                     continue
@@ -354,17 +355,16 @@ class DocxHandler(Handler):
                         translation = translation[leading_spaces:]
                     leading_spaces = 0
 
-                
                 # the text parts of the translation are more that the
-                # text parts of the document, so we will compress the 
+                # text parts of the document, so we will compress the
                 # remaining translation parts into one string
-                if index == len(text_elements) - 1 and len(translation_soup) > 0:
+                if (index == len(text_elements) - 1 and
+                        len(translation_soup) > 0):
                     translation = "".join(
                         [translation] +
                         [six.text_type(t) for t in translation_soup]
                     )
 
-               
                 if hyperlink_url:
                     # attempt to find a parent containing `href` attribute
                     # in order to extract the potential modified url.
@@ -376,7 +376,7 @@ class DocxHandler(Handler):
                     )
                 text_element.clear()
                 text_element.insert(0, translation)
-        
+
         docx.set_document(six.text_type(soup))
         docx.set_document_rels(six.text_type(rels_soup))
 

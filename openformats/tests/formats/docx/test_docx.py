@@ -13,7 +13,7 @@ class DocxTestCase(unittest.TestCase):
         with open(path, 'rb') as f:
             content = f.read()
 
-        docx = DocxFile(content)
+        DocxFile(content)  # Make sure no errors happen during init
 
         handler = DocxHandler()
         template, stringset = handler.parse(content)
@@ -46,7 +46,6 @@ class DocxTestCase(unittest.TestCase):
             openstring.string,
             u'Φου βαρ βαζ'
         )
-
 
     def test_docx_file(self):
         path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
@@ -515,7 +514,7 @@ class DocxTestCase(unittest.TestCase):
         docx = DocxFile(content)
 
         expected_strings = [
-            
+
             u'<tx>Hello</tx><tx> world</tx>',
             u'<tx>Goodbye </tx><tx>world</tx>',
             u'<tx>This is a </tx><tx href="https://google.com/">link</tx>',
