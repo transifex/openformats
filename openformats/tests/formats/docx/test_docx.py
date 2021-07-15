@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
 import unittest
 
 from openformats.formats.docx import DocxFile, DocxHandler
@@ -628,13 +627,12 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
 
-    def test_lt_pattern(self):
+    def test_escape_xml(self):
         for original, escaped in (("ab", "ab"),
                                   ("a<b", "a&lt;b"),
                                   ("a<tx>b", "a<tx>b"),
                                   ("a<tx>b<c</tx>", "a<tx>b&lt;c</tx>")):
-            self.assertEqual(re.sub(DocxHandler.LT_PATTERN, '&lt;', original),
-                             escaped)
+            self.assertEqual(DocxHandler._escape_xml(original), escaped)
 
     def test_lt(self):
         # Parse original file
@@ -653,7 +651,7 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, openstring.key)
 
         # Compile with altered translation
-        translation = U'THIS IS AN < LESSTHAN'
+        translation = U'THIS IS A < LESSTHAN'
         stringset = [
             OpenString(openstring.key, translation, order=0)
         ]

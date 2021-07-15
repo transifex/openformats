@@ -1,17 +1,15 @@
+import io
 import itertools
-import re
 import os
+import shutil
 import tempfile
 import uuid
+from zipfile import ZIP_DEFLATED, ZipFile
+
 import six
-import io
-import shutil
-
 from bs4 import BeautifulSoup
-from zipfile import ZipFile, ZIP_DEFLATED
-
-from openformats.strings import OpenString
 from openformats.handlers import Handler
+from openformats.strings import OpenString
 
 
 class DocxFile(object):
@@ -171,11 +169,6 @@ class DocxHandler(Handler):
     EXTRACTS_RAW = False
     name = "DOCX"
 
-    LT_PATTERN = r'\<(?!tx|/tx)'
-    LT_PATTERN = (LT_PATTERN.decode("utf8")
-                  if isinstance(LT_PATTERN, six.binary_type)
-                  else LT_PATTERN)
-
     @classmethod
     def get_hyperlink_url(cls, element, document_rels):
         run_parent = element.find_parent('w:r').parent
@@ -328,12 +321,7 @@ class DocxHandler(Handler):
                 continue
 
             translation = stringset[txid].string
-
-            # Do escaping: BeautifulSoup doesn't like unescaped '&' or '<' in
-            # its input. We do expect some '<tx>' and `</tx>` so we only escape
-            # '<' if it's not part of '<tx>'
-            translation = translation.replace(u"&", u"&amp;")
-            translation = re.sub(self.LT_PATTERN, u"&lt;", translation)
+            translation = self._escape_xml(translation)
 
             translation_soup = BeautifulSoup(
                 u'<wrapper>{}</wrapper>'.format(translation), 'xml',
@@ -395,3 +383,17 @@ class DocxHandler(Handler):
         result = docx.compress()
         docx.delete()
         return result
+
+    @staticmethod
+    def _escape_xml(translation):
+        """ Do escaping: BeautifulSoup doesn't like unescaped '&' or '<' in its
+            input. We do expect some '<tx>' and `</tx>` so we first replace
+            these tags to placeholders, do the escaping and restore them.
+        """
+        return translation.\
+            replace(u"<tx", u"__TX__OPENING__TAG__").\
+            replace(u"</tx>", u"__TX__CLOSING__TAG__").\
+            replace(u"&", "&amp;").\
+            replace(u"<", "&lt;").\
+            replace(u"__TX__OPENING__TAG__", u"<tx").\
+            replace(u"__TX__CLOSING__TAG__", u"</tx>")
