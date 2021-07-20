@@ -13,7 +13,7 @@ class DocxTestCase(unittest.TestCase):
         with open(path, 'rb') as f:
             content = f.read()
 
-        docx = DocxFile(content)
+        DocxFile(content)  # Make sure no errors happen during init
 
         handler = DocxHandler()
         template, stringset = handler.parse(content)
@@ -46,7 +46,6 @@ class DocxTestCase(unittest.TestCase):
             openstring.string,
             u'Φου βαρ βαζ'
         )
-
 
     def test_docx_file(self):
         path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
@@ -515,7 +514,7 @@ class DocxTestCase(unittest.TestCase):
         docx = DocxFile(content)
 
         expected_strings = [
-            
+
             u'<tx>Hello</tx><tx> world</tx>',
             u'<tx>Goodbye </tx><tx>world</tx>',
             u'<tx>This is a </tx><tx href="https://google.com/">link</tx>',
@@ -587,3 +586,90 @@ class DocxTestCase(unittest.TestCase):
 
         for url in [u'https://transifex.com/']:
             self.assertTrue(url in docx.get_document_rels())
+
+    def test_ampersand(self):
+        # Parse original file
+        path = '{}/with_ampersand.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        # Make sure extracted data is OK
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string,
+                         u'This is an & ampersand')
+        self.assertEqual(openstring.string, openstring.key)
+
+        # Compile with altered translation
+        translation = U'THIS IS AN & AMPERSAND'
+        stringset = [
+            OpenString(openstring.key, translation, order=0)
+        ]
+        content = handler.compile(template, stringset)
+
+        # Make sure compiled file has altered data
+        docx = DocxFile(content)
+        self.assertFalse("This is an" in docx.get_document())
+        self.assertFalse("ampersand" in docx.get_document())
+        self.assertTrue("THIS IS AN" in docx.get_document())
+        self.assertTrue("AMPERSAND" in docx.get_document())
+
+        # Parse compiled file
+        template, stringset = handler.parse(content)
+
+        # Make sure compiled file has the correct translation
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string, translation)
+        self.assertEqual(openstring.string, openstring.key)
+
+    def test_escape_xml(self):
+        for original, escaped in (("ab", "ab"),
+                                  ("a<b", "a&lt;b"),
+                                  ("a<tx>b", "a<tx>b"),
+                                  ("a<tx>b<c</tx>", "a<tx>b&lt;c</tx>")):
+            self.assertEqual(DocxHandler._escape_xml(original), escaped)
+
+    def test_lt(self):
+        # Parse original file
+        path = '{}/with_lt.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        # Make sure extracted data is OK
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string,
+                         u'This is a < lessthan')
+        self.assertEqual(openstring.string, openstring.key)
+
+        # Compile with altered translation
+        translation = U'THIS IS A < LESSTHAN'
+        stringset = [
+            OpenString(openstring.key, translation, order=0)
+        ]
+        content = handler.compile(template, stringset)
+
+        # Make sure compiled file has altered data
+        docx = DocxFile(content)
+        self.assertFalse("This is a" in docx.get_document())
+        self.assertFalse("lessthan" in docx.get_document())
+        self.assertTrue("THIS IS A" in docx.get_document())
+        self.assertTrue("LESSTHAN" in docx.get_document())
+
+        # Parse compiled file
+        template, stringset = handler.parse(content)
+
+        # Make sure compiled file has the correct translation
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string, translation)
+        self.assertEqual(openstring.string, openstring.key)
