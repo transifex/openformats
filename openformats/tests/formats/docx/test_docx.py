@@ -361,15 +361,15 @@ class DocxTestCase(unittest.TestCase):
         for url in [u'https://www.transifex.com/']:
             self.assertTrue(url in docx.get_document_rels())
 
-        # missing href is kept as original
+        # missing href is removed
         translated_strings = [
             [
                 u'ένα δύο ',
-                u'<tx>τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u'<tx> εννεά </tx>',
                 u'<tx>δέκα </tx>',
                 u'<tx>έντεκα</tx>',
@@ -389,11 +389,11 @@ class DocxTestCase(unittest.TestCase):
         fixed_stringset = [
             [
                 u'ένα δύο ',
-                u'<tx href="https://www.transifex.com/">τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u'<tx> εννεά </tx>',
                 u'<tx>δέκα </tx>',
                 u'<tx>έντεκα</tx>',
@@ -407,15 +407,65 @@ class DocxTestCase(unittest.TestCase):
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
 
+        # reorder href is added
+        translated_strings = [
+            [
+                u'ένα δύο ',
+                u'<tx>τρία </tx>',
+                u'<tx>τέσσερα</tx>',
+                u'<tx> πέντε </tx>',
+                u'<tx>έξι</tx>',
+                u'<tx> επτά οχτώ</tx>',
+                u'<tx> εννεά </tx>',
+                u'<tx>δέκα </tx>',
+                u'<tx href="https://www.transifex.gr/">έντεκα</tx>',
+                u' δώδεκα'
+            ],
+        ]
+
+        translated_stringset = []
+        order = 1
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
+            translated_stringset.append(
+                OpenString(extracted.key, u''.join(translation), order=order)
+            )
+            order += 1
+
+        fixed_stringset = [
+            [
+                u'ένα δύο ',
+                u'<tx>τρία </tx>',
+                u'<tx>τέσσερα</tx>',
+                u'<tx> πέντε </tx>',
+                u'<tx>έξι</tx>',
+                u'<tx> επτά οχτώ</tx>',
+                u'<tx> εννεά </tx>',
+                u'<tx>δέκα </tx>',
+                u'<tx href="https://www.transifex.gr/">έντεκα</tx>',
+                u' δώδεκα'
+            ],
+        ]
+
+        content = handler.compile(template, translated_stringset)
+        _, stringset = handler.parse(content)
+
+        for extracted, expected in zip(stringset, fixed_stringset):
+            self.assertEqual(extracted.string, u''.join(expected))
+
+        docx = DocxFile(content)
+        for url in [u'https://www.transifex.gr/']:
+            self.assertTrue(url in docx.get_document_rels())
+
         # missing tags removes elements from docx
         translated_strings = [
             [
                 u'ένα δύο ',
-                u'<tx>τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u' εννεά ',
                 u'δέκα ',
                 u'έντεκα',
@@ -435,11 +485,11 @@ class DocxTestCase(unittest.TestCase):
         fixed_stringset = [
             [
                 u'ένα δύο ',
-                u'<tx href="https://www.transifex.com/">τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u' εννεά ',
                 u'δέκα ',
                 u'έντεκα',
