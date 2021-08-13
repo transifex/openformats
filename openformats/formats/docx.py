@@ -1,6 +1,7 @@
 import io
 import itertools
 import os
+import re
 import shutil
 import tempfile
 import uuid
@@ -193,6 +194,29 @@ class DocxHandler(Handler):
             if rel and rel.attrs['TargetMode'] == 'External':
                 rel.attrs['Target'] = url
 
+    @classmethod
+    def create_hyperlink_url(cls, element, document_rels, url):
+        max_rid = max([
+            int(re.findall(r'\d+', e["Id"])[0])
+            for e in document_rels.find_all(attrs={"Id": True})
+        ])
+
+        rid = "rId{}".format(max_rid+1)
+        hyperlink_rel = document_rels.new_tag(
+            "Relationship",
+            TargetMode="External",
+            Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",  # noqa
+            Target=url,
+            Id=rid
+        )
+        document_rels.Relationships.append(hyperlink_rel)
+        hyperlink = document_rels.new_tag(
+            "w:hyperlink",
+            **{"r:id": rid}
+        )
+        contents = element.find_parent('w:r').replace_with(hyperlink)
+        hyperlink.append(contents)
+
     def parse(self, content, **kwargs):
         """
         We will segment the text by paragraph `<w:p>` as this
@@ -365,15 +389,28 @@ class DocxHandler(Handler):
                         [six.text_type(t) for t in translation_soup]
                     )
 
-                if hyperlink_url:
-                    # attempt to find a parent containing `href` attribute
-                    # in order to extract the potential modified url.
+                # attempt to find a parent containing `href` attribute
+                # in order to extract the potential hyperlink url.
+                translation_hyperlink_url = getattr(
+                    translation_part.find_parent(attrs={'href': True}
+                ), 'attrs', {}).get('href', None)
+
+                # Edit in place hyperlink url
+                if hyperlink_url and translation_hyperlink_url:
                     self.set_hyperlink_url(
-                        text_element, rels_soup,
-                        getattr(translation_part.find_parent(
-                            attrs={'href': True}
-                        ), 'attrs', {}).get('href', hyperlink_url)
+                        text_element, rels_soup, translation_hyperlink_url
                     )
+
+                # remove hyperlink from source docx
+                if hyperlink_url and not translation_hyperlink_url:
+                    text_element.parent.parent.unwrap()
+
+                # create a new hyperlink
+                if not hyperlink_url and translation_hyperlink_url:
+                    self.create_hyperlink_url(
+                        text_element, rels_soup, translation_hyperlink_url
+                    )
+
                 text_element.clear()
                 text_element.insert(0, translation)
 
