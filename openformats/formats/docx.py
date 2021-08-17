@@ -5,10 +5,12 @@ import re
 import shutil
 import tempfile
 import uuid
+from collections import defaultdict
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import six
 from bs4 import BeautifulSoup
+from copy import deepcopy
 from openformats.handlers import Handler
 from openformats.strings import OpenString
 
@@ -353,6 +355,9 @@ class DocxHandler(Handler):
 
             leading_spaces = 0
 
+            added_hl_text_elements = defaultdict(list)
+            deleted_hl_text_elements = defaultdict(list)
+
             for index, text_element in enumerate(text_elements):
                 text = six.text_type(text_element.text)
                 # detect text elements that contain no text
@@ -404,15 +409,54 @@ class DocxHandler(Handler):
                 # remove hyperlink from source docx
                 if hyperlink_url and not translation_hyperlink_url:
                     text_element.parent.parent.unwrap()
+                    deleted_hl_text_elements[hyperlink_url].append(
+                        text_element)
 
                 # create a new hyperlink
                 if not hyperlink_url and translation_hyperlink_url:
                     self.create_hyperlink_url(
                         text_element, rels_soup, translation_hyperlink_url
                     )
+                    added_hl_text_elements[translation_hyperlink_url].append(
+                        text_element)
 
                 text_element.clear()
                 text_element.insert(0, translation)
+
+            def _modify_text_element_rpr_tag_contents(te, contents):
+                rpr = te.parent.rPr
+                color = [c for c in contents if c.name == 'color']
+                underline = [c for c in contents if c.name == 'u']
+
+                if rpr.color:
+                    rpr.color.extract()
+                if color:
+                    rpr.append(color[0])
+                if rpr.u:
+                    rpr.u.extract()
+                if underline:
+                    rpr.append(underline[0])
+
+            if len(added_hl_text_elements) == len(deleted_hl_text_elements):
+                for added_url, deleted_url in zip(
+                    added_hl_text_elements.keys(),
+                    deleted_hl_text_elements.keys()
+                ):
+                    added_rpr = [
+                        te.parent.rPr for te in added_hl_text_elements[added_url]
+                    ][0]
+                    added_rpr_copy = deepcopy(added_rpr)
+                    deleted_rpr = [
+                        te.parent.rPr for te in \
+                            deleted_hl_text_elements[deleted_url]
+                    ][0]
+
+                    for te in added_hl_text_elements[added_url]:
+                        _modify_text_element_rpr_tag_contents(
+                            te, deleted_rpr.contents)
+                    for te in deleted_hl_text_elements[deleted_url]:
+                        _modify_text_element_rpr_tag_contents(
+                            te, added_rpr_copy.contents)
 
         docx.set_document(six.text_type(soup))
         docx.set_document_rels(six.text_type(rels_soup))
