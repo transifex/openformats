@@ -223,10 +223,13 @@ class PoHandler(Handler):
         elif is_empty:
             if not self.only_values:
                 self.only_keys = True
-                string = entry.msgid if not pluralized else {
-                    0: entry.msgid,
-                    1: entry.msgid_plural
-                }
+                if len(entry.msgstr_plural) == 1:
+                    string = {0: entry.msgid}
+                else:
+                    string = entry.msgid if not pluralized else {
+                        0: entry.msgid,
+                        1: entry.msgid_plural
+                    }
             else:
                 raise ParseError(
                     u"The entry with msgid `{}` includes an empty msgstr. "
