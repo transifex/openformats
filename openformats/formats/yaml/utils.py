@@ -81,15 +81,19 @@ class TxYamlLoader(yaml.SafeLoader):
         if anchor is None:
             return super(TxYamlLoader, self).compose_scalar_node(anchor)
         else:
-           node = super(TxYamlLoader, self).compose_scalar_node(anchor)
-           anchor_value = self.stream[
-               node.start_mark.index:node.end_mark.index
-            ].split(' ', 1)[1]
-           leading_spaces = len(anchor_value) - len(anchor_value.lstrip(' '))
+            node = super(TxYamlLoader, self).compose_scalar_node(anchor)
+            if node.tag == u'tag:yaml.org,2002:null':
+                # 'key: &anchor' should be interpreted as 'key:', ie the value
+                # should be ignored
+                return node
+            anchor_value = self.stream[
+                node.start_mark.index:node.end_mark.index
+             ].split(' ', 1)[1]
+            leading_spaces = len(anchor_value) - len(anchor_value.lstrip(' '))
 
-           node.start_mark.index = node.end_mark.index - len(anchor_value) \
-               + leading_spaces
-           return node
+            node.start_mark.index = node.end_mark.index - len(anchor_value) \
+                + leading_spaces
+            return node
 
     def _is_custom_tag(self, tag):
         """

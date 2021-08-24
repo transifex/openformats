@@ -237,3 +237,21 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
                                  "  b ",
                                  "c:",
                                  "  d"]) + "\n")
+
+    def test_parse_empty_anchor(self):
+        source = (u"key1: value1\n"
+                  u"key2: &anchor2 value2\n"
+                  u"key3: &anchor3")
+        template, stringset = self.handler.parse(source)
+
+        self.assertEqual(len(stringset), 2)
+        self.assertEqual(stringset[0].string, u"value1")
+        self.assertEqual(stringset[1].string, u"value2")
+
+        expected_template = (u"key1: {}\n"
+                             u"key2: &anchor2 {}\n"
+                             u"key3: &anchor3".
+                             format(stringset[0].template_replacement,
+                                    stringset[1].template_replacement))
+        self.assertEqual(expected_template, template)
+        self.assertEqual(self.handler.compile(template, stringset), source)
