@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+from bs4 import BeautifulSoup
+
 from openformats.formats.docx import DocxFile, DocxHandler
 from openformats.strings import OpenString
 
@@ -119,6 +121,52 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.order, 0)
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
+
+    def test_hyperlink_reorder(self):
+        path = '{}/special_cases_2.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        handler = DocxHandler()
+        template, source_stringset = handler.parse(content)
+        content = handler.compile(template, source_stringset)
+
+        docx = DocxFile(template)
+        soup = BeautifulSoup(docx.get_document(), 'xml')
+        paragraph = soup.find_all('w:p')[0]
+        text_elements_bf_reorder = paragraph.find_all('w:t')
+        # reorder href rPr is swapped
+        translated_strings = [
+            [
+                u'ένα δύο ',
+                u'<tx>τρία </tx>',
+                u'<tx href="https://www.transifex.com/"> τέσσερα </tx>',
+                u'πέντε',
+            ],
+        ]
+
+        translated_stringset = []
+        order = 1
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
+            translated_stringset.append(
+                OpenString(extracted.key, u''.join(translation), order=order)
+            )
+            order += 1
+        content = handler.compile(template, translated_stringset)
+        _, stringset = handler.parse(content)
+
+        docx = DocxFile(content)
+        soup = BeautifulSoup(docx.get_document(), 'xml')
+        paragraph = soup.find_all('w:p')[0]
+        text_elements = paragraph.find_all('w:t')
+
+        self.assertEqual(text_elements[3].parent.rPr.color, text_elements_bf_reorder[1].parent.rPr.color)
+        self.assertEqual(text_elements[3].parent.rPr.u, text_elements_bf_reorder[1].parent.rPr.u)
+        self.assertEqual(text_elements[1].parent.rPr.color, None)
+        self.assertEqual(text_elements[1].parent.rPr.u, None)
+
+
 
     def test_complex_file(self):
         path = '{}/complex.docx'.format(self.TESTFILE_BASE)
@@ -361,15 +409,15 @@ class DocxTestCase(unittest.TestCase):
         for url in [u'https://www.transifex.com/']:
             self.assertTrue(url in docx.get_document_rels())
 
-        # missing href is kept as original
+        # missing href is removed
         translated_strings = [
             [
                 u'ένα δύο ',
-                u'<tx>τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u'<tx> εννεά </tx>',
                 u'<tx>δέκα </tx>',
                 u'<tx>έντεκα</tx>',
@@ -389,11 +437,11 @@ class DocxTestCase(unittest.TestCase):
         fixed_stringset = [
             [
                 u'ένα δύο ',
-                u'<tx href="https://www.transifex.com/">τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u'<tx> εννεά </tx>',
                 u'<tx>δέκα </tx>',
                 u'<tx>έντεκα</tx>',
@@ -407,15 +455,65 @@ class DocxTestCase(unittest.TestCase):
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
 
+        # reorder href is added
+        translated_strings = [
+            [
+                u'ένα δύο ',
+                u'<tx>τρία </tx>',
+                u'<tx>τέσσερα</tx>',
+                u'<tx> πέντε </tx>',
+                u'<tx>έξι</tx>',
+                u'<tx> επτά οχτώ</tx>',
+                u'<tx> εννεά </tx>',
+                u'<tx>δέκα </tx>',
+                u'<tx href="https://www.transifex.gr/">έντεκα</tx>',
+                u' δώδεκα'
+            ],
+        ]
+
+        translated_stringset = []
+        order = 1
+        for extracted, translation in zip(source_stringset,
+                                          translated_strings):
+            translated_stringset.append(
+                OpenString(extracted.key, u''.join(translation), order=order)
+            )
+            order += 1
+
+        fixed_stringset = [
+            [
+                u'ένα δύο ',
+                u'<tx>τρία </tx>',
+                u'<tx>τέσσερα</tx>',
+                u'<tx> πέντε </tx>',
+                u'<tx>έξι</tx>',
+                u'<tx> επτά οχτώ</tx>',
+                u'<tx> εννεά </tx>',
+                u'<tx>δέκα </tx>',
+                u'<tx href="https://www.transifex.gr/">έντεκα</tx>',
+                u' δώδεκα'
+            ],
+        ]
+
+        content = handler.compile(template, translated_stringset)
+        _, stringset = handler.parse(content)
+
+        for extracted, expected in zip(stringset, fixed_stringset):
+            self.assertEqual(extracted.string, u''.join(expected))
+
+        docx = DocxFile(content)
+        for url in [u'https://www.transifex.gr/']:
+            self.assertTrue(url in docx.get_document_rels())
+
         # missing tags removes elements from docx
         translated_strings = [
             [
                 u'ένα δύο ',
-                u'<tx>τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u' εννεά ',
                 u'δέκα ',
                 u'έντεκα',
@@ -435,11 +533,11 @@ class DocxTestCase(unittest.TestCase):
         fixed_stringset = [
             [
                 u'ένα δύο ',
-                u'<tx href="https://www.transifex.com/">τρία ',
+                u'<tx>τρία </tx>',
                 u'<tx>τέσσερα</tx>',
                 u'<tx> πέντε </tx>',
                 u'<tx>έξι</tx>',
-                u'<tx> επτά οχτώ</tx></tx>',
+                u'<tx> επτά οχτώ</tx>',
                 u' εννεά ',
                 u'δέκα ',
                 u'έντεκα',
