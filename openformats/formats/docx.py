@@ -427,6 +427,7 @@ class DocxHandler(Handler):
                 rpr = te.parent.rPr
                 color = [c for c in contents if c.name == 'color']
                 underline = [c for c in contents if c.name == 'u']
+                rstyle = [c for c in contents if c.name == 'rStyle']
 
                 if rpr.color:
                     rpr.color.extract()
@@ -436,6 +437,10 @@ class DocxHandler(Handler):
                     rpr.u.extract()
                 if underline:
                     rpr.append(underline[0])
+                if rpr.rStyle:
+                    rpr.rStyle.extract()
+                if rstyle:
+                    rpr.append(rstyle[0])
 
             if len(added_hl_text_elements) == len(deleted_hl_text_elements):
                 for added_url, deleted_url in zip(
