@@ -229,3 +229,36 @@ class InDesignTestCase(unittest.TestCase):
         handler.stringset = [regular, with_amp, with_amp_escaped, many_amps]
         compiled_story = handler._compile_story(template)
         self.assertEqual(compiled_story, expected_compiled_story)
+
+    def test_compile_story_with_lts(self):
+        regular = OpenString('0', u"hello world", order=0)
+        with_lt = OpenString('1', u"hello <world", order=1)
+        with_lt_escaped = OpenString('2', u"hello &lt;world", order=2)
+        with_mixed_lts = OpenString('3', u"hello &lt;<world", order=3)
+
+        base_template = u"""
+            <Story>
+                <Content>{regular}</Content>
+                <Content>{with_lt}</Content>
+                <Content>{with_lt_escaped}</Content>
+                <Content>{with_mixed_lts}</Content>
+            </Story>
+        """
+
+        template = base_template.format(
+            regular=regular.template_replacement,
+            with_lt=with_lt.template_replacement,
+            with_lt_escaped=with_lt_escaped.template_replacement,
+            with_mixed_lts=with_mixed_lts.template_replacement,
+        )
+        expected_compiled_story = base_template.format(
+            regular=u"hello world",
+            with_lt=u"hello &lt;world",
+            with_lt_escaped=u"hello &lt;world",
+            with_mixed_lts=u"hello &lt;&lt;world",
+        )
+
+        handler = self.HANDLER_CLASS()
+        handler.stringset = [regular, with_lt, with_lt_escaped, with_mixed_lts]
+        compiled_story = handler._compile_story(template)
+        self.assertEqual(compiled_story, expected_compiled_story)

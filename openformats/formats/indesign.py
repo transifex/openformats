@@ -212,7 +212,8 @@ class InDesignHandler(Handler):
                 break
             else:
                 transcriber.copy_until(hash_position)
-                transcriber.add(self._escape_amps(current_string.string))
+                transcriber.add(self._escape_special_chars(
+                    current_string.string))
                 transcriber.skip(len(current_string.template_replacement))
 
         # Update the XML file to contain the template strings
@@ -222,6 +223,11 @@ class InDesignHandler(Handler):
         # them with an empty string
         compiled_story = hash_regex.sub(u'', compiled_story)
         return compiled_story
+
+    def _escape_special_chars(self, string):
+        string = self._escape_amps(string)
+        string = self._escape_lt(string)
+        return string
 
     @staticmethod
     def _escape_amps(string):
@@ -256,6 +262,40 @@ class InDesignHandler(Handler):
         for position in target_positions:
             transcriber.copy_until(position)
             transcriber.add('&amp;')
+            transcriber.skip(1)
+        transcriber.copy_to_end()
+        return transcriber.get_destination()
+
+    @staticmethod
+    def _escape_lt(string):
+        """Escape `<` character (&lt;).
+
+        If a valid XML escape sequence is found, it is left as it is.
+        Otherwise, any occurrences of `<` are replaced with `&lt;`.
+        E.g.:
+
+            "hello world"         -> "hello world"
+            "hello <world"        -> "hello &lt;world"
+            "hello &lt;world"     -> "hello &lt;world"
+        """
+        # Find "lonely" `<` positions by finding all `<` positions
+        # and subtracting the positions of `<` that are part of
+        # valid XML escape sequences (based on
+        # https://mayart.de/download/Indesign-IDML/special-idml-chars.pdf)
+        all_lt_positions = {match.span()[0]
+                            for match in re.finditer(r'<', string)}
+        escaped_lt_positions = {
+            match.span()[0]
+            for match in re.finditer(
+                r'<(\?ACE 18\?|\?ACE 19\?|\?ACE 3\?|\?ACE 8\?|\?ACE 7\?|Br\/)>',
+                string)}
+        target_positions = sorted(all_lt_positions - escaped_lt_positions)
+
+        # Use Transcriber to replace lonely ampersands with '&amp;'
+        transcriber = Transcriber(string)
+        for position in target_positions:
+            transcriber.copy_until(position)
+            transcriber.add('&lt;')
             transcriber.skip(1)
         transcriber.copy_to_end()
         return transcriber.get_destination()
