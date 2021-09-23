@@ -70,6 +70,7 @@ class OpenString(object):
         'flags': "",
         'fuzzy': False,
         'obsolete': False,
+        'tags': None
     }
 
     def __init__(self, key, string_or_strings, **kwargs):
