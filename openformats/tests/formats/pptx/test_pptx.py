@@ -505,7 +505,7 @@ class PptxTestCase(unittest.TestCase):
         handler = PptxHandler()
         template, stringset = handler.parse(content)
 
-        self.assertEqual(len(stringset), 1)
+        self.assertEqual(len(stringset), 2)
 
         openstring = stringset[0]
         self.assertEqual(openstring.order, 0)
@@ -514,8 +514,17 @@ class PptxTestCase(unittest.TestCase):
             ''.join([
                 u'This<tx> slide has only notes and </tx>',
                 u'<tx href="http://www.transifex.com">hyperlinks</tx>'
-                u'<tx>.</tx>',
-                u'<tx>Another </tx>',
+                u'.'
+            ])
+        )
+        self.assertEqual(openstring.tags, ['notes'])
+
+        openstring = stringset[1]
+        self.assertEqual(openstring.order, 1)
+        self.assertEqual(
+            openstring.string,
+            ''.join([
+                u'Another ',
                 u'<tx>sentence</tx> below'
             ])
         )
@@ -524,9 +533,10 @@ class PptxTestCase(unittest.TestCase):
         translated_strings = [
             [
                 u'Αυτό<tx> το slide έχει μόνο notes και </tx>',
-                u'<tx href="http://el.transifex.com">συνδέσμους</tx>'
-                u'<tx>.</tx>',
-                u'<tx>Άλλη μια </tx>',
+                u'<tx href="http://el.transifex.com">συνδέσμους</tx>.'
+            ],
+            [
+                u'Άλλη μια ',
                 u'<tx>πρόταση</tx> από κάτω'
             ]
         ]
@@ -542,7 +552,7 @@ class PptxTestCase(unittest.TestCase):
         content = handler.compile(template, translated_stringset)
         template, stringset = handler.parse(content)
 
-        self.assertEqual(len(stringset), 1)
+        self.assertEqual(len(stringset), 2)
 
         openstring = stringset[0]
         self.assertEqual(openstring.order, 0)
@@ -550,9 +560,16 @@ class PptxTestCase(unittest.TestCase):
             openstring.string,
             ''.join([
                 u'Αυτό<tx> το slide έχει μόνο notes και </tx>',
-                u'<tx href="http://el.transifex.com">συνδέσμους</tx>'
-                u'<tx>.</tx>',
-                u'<tx>Άλλη μια </tx>',
+                u'<tx href="http://el.transifex.com">συνδέσμους</tx>.'
+            ])
+        )
+
+        openstring = stringset[1]
+        self.assertEqual(openstring.order, 1)
+        self.assertEqual(
+            openstring.string,
+            ''.join([
+                u'Άλλη μια ',
                 u'<tx>πρόταση</tx> από κάτω'
             ])
         )
