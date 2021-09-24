@@ -307,15 +307,16 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
             soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
 
-            for paragraph in soup.find_all('p:sp'):
-                open_string = self.parse_paragraph(paragraph, rels_soup)
-                if not open_string:
-                    continue
+            for parent in soup.find_all('p:sp'):
+                for paragraph in parent.find_all('a:p'):
+                    open_string = self.parse_paragraph(paragraph, rels_soup)
+                    if not open_string:
+                        continue
 
-                open_string.order = next(order)
-                if notes_slide:
-                    open_string.tags = ['notes']
-                stringset.append(open_string)
+                    open_string.order = next(order)
+                    if notes_slide:
+                        open_string.tags = ['notes']
+                    stringset.append(open_string)
 
             pptx.set_slide(slide, six.text_type(soup))
 
@@ -333,8 +334,9 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
             soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
 
-            for paragraph in soup.find_all('p:sp'):
-                self.compile_paragraph(paragraph, rels_soup, stringset)
+            for parent in soup.find_all('p:sp'):
+                for paragraph in parent.find_all('a:p'):
+                    self.compile_paragraph(paragraph, rels_soup, stringset)
 
             pptx.set_slide(slide, six.text_type(soup))
             pptx.set_slide_rels(slide, six.text_type(rels_soup))
