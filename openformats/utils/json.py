@@ -5,6 +5,8 @@ import re
 
 import six
 
+from openformats.utils.compat import ensure_unicode
+
 
 class DumbJson(object):
     """ A utility to help iterate over a JSON string. The main focuses are:
@@ -67,7 +69,7 @@ class DumbJson(object):
     TAB = u'\t'
 
     def __init__(self, source, start=0):
-        self.source = source
+        self.source = ensure_unicode(source)
         self._end = None
         starting_symbol, self.start = self._find_next('{[', start,
                                                       require_whitespace=True)

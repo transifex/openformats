@@ -2,6 +2,8 @@ import six
 
 from .utils.newlines import find_newline_type, force_newline_type
 
+from openformats.utils.compat import ensure_unicode
+
 
 class Transcriber(object):
     r"""
@@ -88,14 +90,14 @@ class Transcriber(object):
             self.source = force_newline_type(self.source, 'UNIX')
 
     def copy(self, offset):
-        chunk = self.source[self.ptr:self.ptr + offset]
+        chunk = ensure_unicode(self.source[self.ptr:self.ptr + offset])
         self.destination.append(chunk)
         self.ptr += offset
 
         self.newline_count += chunk.count('\n')
 
     def copy_until(self, end):
-        chunk = self.source[self.ptr:end]
+        chunk = ensure_unicode(self.source[self.ptr:end])
         self.destination.append(chunk)
         self.ptr = end
 
@@ -108,13 +110,13 @@ class Transcriber(object):
         self.destination.append(text)
 
     def skip(self, offset):
-        chunk = self.source[self.ptr:self.ptr + offset]
+        chunk = ensure_unicode(self.source[self.ptr:self.ptr + offset])
         self.newline_count += chunk.count('\n')
 
         self.ptr += offset
 
     def skip_until(self, end):
-        chunk = self.source[self.ptr:end]
+        chunk = ensure_unicode(self.source[self.ptr:end])
         self.newline_count += chunk.count('\n')
 
         self.ptr = end
@@ -243,6 +245,7 @@ class Transcriber(object):
         return self.newline_count + 1
 
     def get_destination(self, enforce_newline_type=None):
+        self.destination = [ensure_unicode(a) for a in self.destination]
         return "".join([self.edit_newlines(chunk, enforce_newline_type)
                         for chunk in self.destination
                         if chunk not in (self.SectionStart, self.SectionEnd,
