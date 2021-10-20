@@ -168,7 +168,7 @@ class OfficeOpenXmlHandler(object):
         ).find_all(text=True)
 
         leading_spaces = 0
-
+        empty_text_element = None
         added_hl_text_elements = defaultdict(list)
         deleted_hl_text_elements = defaultdict(list)
 
@@ -178,6 +178,7 @@ class OfficeOpenXmlHandler(object):
             # and remove leading whitespace from the next string
             if not text.strip():
                 leading_spaces = len(text) - len(text.strip())
+                empty_text_element = text_element
                 continue
             else:
                 hyperlink_url = cls.get_hyperlink_url(
@@ -193,6 +194,10 @@ class OfficeOpenXmlHandler(object):
                 translation = six.text_type(translation_part)
                 if not translation[:leading_spaces].strip():
                     translation = translation[leading_spaces:]
+                else:
+                    if empty_text_element:
+                        cls.remove_text_element(empty_text_element)
+
                 leading_spaces = 0
 
             # the text parts of the translation are more that the

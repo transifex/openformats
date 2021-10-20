@@ -122,6 +122,60 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
 
+    def test_space_control(self):
+        path = '{}/special_cases_2.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 1)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'one two <tx href="https://www.transifex.com/">three </tx><tx> four </tx>five'  # noqa
+        )
+        self.assertEqual(openstring.string, openstring.key)
+
+        translation = u'ενα δύο <tx href="https://www.transifex.com/">τρία </tx><tx> τέσσερα </tx>πέντε'  # noqa
+        stringset = [
+            OpenString(openstring.key, translation, order=1)
+        ]
+
+        content = handler.compile(template, stringset)
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 1)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'ενα δύο <tx href="https://www.transifex.com/">τρία </tx><tx> τέσσερα </tx>πέντε'
+        )
+        self.assertEqual(openstring.string, openstring.key)
+
+        translation = u'ενα δύο<tx href="https://www.transifex.com/">τρία</tx><tx>τέσσερα</tx>πέντε'  # noqa
+        stringset = [
+            OpenString(openstring.key, translation, order=1)
+        ]
+
+        content = handler.compile(template, stringset)
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 1)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'ενα δύο<tx href="https://www.transifex.com/">τρία</tx><tx>τέσσερα</tx>πέντε'
+        )
+        self.assertEqual(openstring.string, openstring.key)
+
     def test_hyperlink_reorder(self):
         path = '{}/special_cases_2.docx'.format(self.TESTFILE_BASE)
         with open(path, 'rb') as f:
@@ -165,8 +219,6 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(text_elements[3].parent.rPr.u, text_elements_bf_reorder[1].parent.rPr.u)
         self.assertEqual(text_elements[1].parent.rPr.color, None)
         self.assertEqual(text_elements[1].parent.rPr.u, None)
-
-
 
     def test_complex_file(self):
         path = '{}/complex.docx'.format(self.TESTFILE_BASE)
