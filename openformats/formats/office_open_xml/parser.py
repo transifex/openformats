@@ -197,6 +197,7 @@ class OfficeOpenXmlHandler(object):
                 else:
                     if empty_text_element:
                         cls.remove_text_element(empty_text_element)
+                        empty_text_element = None
 
                 leading_spaces = 0
 
