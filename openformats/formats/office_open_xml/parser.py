@@ -1,5 +1,5 @@
 import six
-from copy import deepcopy
+from copy import copy
 
 from openformats.strings import OpenString
 from bs4 import BeautifulSoup
@@ -41,16 +41,16 @@ class OfficeOpenXmlHandler(object):
                     deleted_format = deleted_hl_text_elements[deleted_url][index].parent.rPr
                 else:
                     deleted_format = deleted_hl_text_elements[deleted_url][-1].parent.rPr
-                deleted_format = deepcopy(deleted_format)
+                deleted_format = copy(deleted_format)
                 replacements[e] = deleted_format
             for index, e in enumerate(deleted_hl_text_elements[deleted_url]):
                 if 0 <= index < len(added_hl_text_elements[added_url]):
                     added_format = added_hl_text_elements[added_url][index].parent.rPr
                 else:
                     added_format = added_hl_text_elements[added_url][-1].parent.rPr
-                added_format = deepcopy(added_format)
+                added_format = copy(added_format)
                 replacements[e] = added_format
-            
+
             for text_element, format in six.iteritems(replacements):
                 text_element.parent.rPr.replaceWith(format)
 
@@ -144,7 +144,7 @@ class OfficeOpenXmlHandler(object):
             paragraph_text,
         )
         paragraph.attrs['txid'] = open_string.string_hash
-        
+
         return open_string
 
     def compile_paragraph(cls, paragraph, rels_soup, stringset):
@@ -248,4 +248,4 @@ class OfficeOpenXmlHandler(object):
 
         for url, text_elements in six.iteritems(added_hl_text_elements):
             for text_element in text_elements:
-                cls.create_hyperlink_url(text_element, rels_soup, url) 
+                cls.create_hyperlink_url(text_element, rels_soup, url)
