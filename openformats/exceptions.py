@@ -8,3 +8,7 @@ class ParseError(OpenformatsError):
 
 class RuleError(OpenformatsError):
     pass
+
+
+class MissingParentError(OpenformatsError):
+    pass
