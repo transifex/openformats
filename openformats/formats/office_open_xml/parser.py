@@ -1,6 +1,7 @@
 import six
 from copy import copy
 
+from openformats.exceptions import MissingParentError
 from openformats.strings import OpenString
 from bs4 import BeautifulSoup
 from collections import defaultdict
@@ -90,9 +91,12 @@ class OfficeOpenXmlHandler(object):
                 text = u"".join([u" "*leading_spaces, text])
                 leading_spaces = 0
 
-            hyperlink_url = cls.get_hyperlink_url(
-                text_element, rels_soup
-            )
+            try:
+                hyperlink_url = cls.get_hyperlink_url(
+                    text_element, rels_soup
+                )
+            except MissingParentError:
+                continue
 
             if all([
                 text_elements_count == 2,
@@ -214,7 +218,7 @@ class OfficeOpenXmlHandler(object):
             # in order to extract the potential hyperlink url.
             translation_hyperlink_url = getattr(
                 translation_part.find_parent(attrs={'href': True}
-            ), 'attrs', {}).get('href', None)
+                                             ), 'attrs', {}).get('href', None)
 
             # Edit in place hyperlink url
             if hyperlink_url and translation_hyperlink_url:
@@ -234,7 +238,6 @@ class OfficeOpenXmlHandler(object):
 
             text_element.clear()
             text_element.insert(0, translation)
-
 
         if len(added_hl_text_elements) == len(deleted_hl_text_elements):
             cls.swap_hyperlink_elements(

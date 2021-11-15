@@ -325,24 +325,30 @@ class PptxTestCase(unittest.TestCase):
         paragraph = soup.find_all('p:sp')[0]
         text_elements = paragraph.find_all('a:t')
 
-        self.assertEqual(text_elements[3].parent.rPr, text_elements_one_before[1].parent.rPr)
-        self.assertEqual(text_elements[1].parent.rPr, text_elements_one_before[3].parent.rPr)
+        self.assertEqual(text_elements[3].parent.rPr,
+                         text_elements_one_before[1].parent.rPr)
+        self.assertEqual(text_elements[1].parent.rPr,
+                         text_elements_one_before[3].parent.rPr)
 
         paragraph = soup.find_all('p:sp')[1]
         text_elements = paragraph.find_all('a:t')
 
-        self.assertEqual(text_elements[0].parent.rPr, text_elements_two_before[4].parent.rPr)
+        self.assertEqual(text_elements[0].parent.rPr,
+                         text_elements_two_before[4].parent.rPr)
         self.assertEqual(
             re.sub(r'rId\w+', 'rId', six.text_type(text_elements[0].parent.rPr)),
-            re.sub(r'rId\w+', 'rId', six.text_type(text_elements_two_before[4].parent.rPr))
+            re.sub(r'rId\w+', 'rId',
+                   six.text_type(text_elements_two_before[4].parent.rPr))
         )
         self.assertEqual(
             re.sub(r'rId\w+', 'rId', six.text_type(text_elements[1].parent.rPr)),
-            re.sub(r'rId\w+', 'rId', six.text_type(text_elements_two_before[6].parent.rPr))
+            re.sub(r'rId\w+', 'rId',
+                   six.text_type(text_elements_two_before[6].parent.rPr))
         )
         self.assertEqual(
             re.sub(r'rId\w+', 'rId', six.text_type(text_elements[2].parent.rPr)),
-            re.sub(r'rId\w+', 'rId', six.text_type(text_elements_two_before[6].parent.rPr))
+            re.sub(r'rId\w+', 'rId',
+                   six.text_type(text_elements_two_before[6].parent.rPr))
         )
 
     def test_tags_not_matching(self):
@@ -573,3 +579,18 @@ class PptxTestCase(unittest.TestCase):
                 u'<tx>πρόταση</tx> από κάτω'
             ])
         )
+
+    def test_pptx_file_with_autofield(self):
+        """Test pptx file that contains automatically updated field
+        can be compiled normally
+        """
+        path = '{}/autofield.pptx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        pptx = PptxFile(content)
+
+        self.assertTrue(u'/ppt/slides/slide1.xml' in pptx.get_slides())
+        slide = u'/ppt/slides/slide1.xml'
+        for text in [u'Title', u'text']:
+            self.assertTrue(text in pptx.get_slide(slide))

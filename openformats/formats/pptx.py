@@ -10,6 +10,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import six
 from bs4 import BeautifulSoup
 from openformats.handlers import Handler
+from openformats.exceptions import MissingParentError
 from openformats.formats.office_open_xml.parser import OfficeOpenXmlHandler
 
 
@@ -83,6 +84,7 @@ class PptxFile(object):
     </Relationships>
     ```
     """
+
     def __init__(self, content):
         self.__tmp_folder = "{}/{}".format(
             tempfile.gettempdir(), uuid.uuid4().hex
@@ -187,7 +189,7 @@ class PptxFile(object):
     def get_slide_rels(self, slide):
         if self.__slides[slide]['rels']['content'] is None:
             with io.open(self.__slides[slide]['rels']['path'], 'r') as f:
-                self.__slides[slide]['rels']['content']= f.read()
+                self.__slides[slide]['rels']['content'] = f.read()
 
         return self.__slides[slide]['rels']['content']
 
@@ -224,6 +226,9 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
     @classmethod
     def get_hyperlink_url(cls, element, document_rels):
         parent = element.find_parent('a:r')
+
+        if not parent:
+            raise MissingParentError
 
         hyperlinks = parent.find_all('a:hlinkClick', limit=1)
         if hyperlinks:
@@ -323,7 +328,7 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
         template = pptx.compress()
         pptx.delete()
         return template, stringset
-    
+
     def compile(self, template, stringset, **kwargs):
         stringset = {
             string.string_hash: string for string in stringset
