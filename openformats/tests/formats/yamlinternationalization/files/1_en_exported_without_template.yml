@@ -56,3 +56,6 @@ en:
     - value
   alias_key:
     - "another true value"
+  anchor_mapping:
+    one: one
+    other: other

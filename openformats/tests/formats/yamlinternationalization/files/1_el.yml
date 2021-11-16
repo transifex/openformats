@@ -96,3 +96,7 @@ en:
   alias_key:
     - *an_anchor
     - "el:another true value"
+
+  anchor_mapping: &another_anchor
+    one: el:one
+    other: el:other
