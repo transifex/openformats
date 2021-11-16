@@ -100,3 +100,7 @@ en:
   alias_key:
     - *an_anchor
     - "another true value"
+
+  anchor_mapping: &another_anchor
+    one: one
+    other: other

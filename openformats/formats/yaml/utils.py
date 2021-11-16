@@ -73,6 +73,46 @@ class TxYamlLoader(yaml.SafeLoader):
             )
         return super(TxYamlLoader, self).compose_node(parent, index)
 
+    def compose_mapping_node(self, anchor):
+        """
+        Override mapping node composition in order to move
+        start mark from anchor to first key.
+
+        Copied for https://github.com/yaml/pyyaml/blob/master/lib/yaml/composer.py  # noqa
+        """
+        if anchor is None:
+            return super(TxYamlLoader, self).compose_mapping_node(anchor)
+        else:
+            start_event = self.get_event()
+            tag = start_event.tag
+            if tag is None or tag == '!':
+                tag = self.resolve(
+                    yaml.MappingNode, None, start_event.implicit
+                )
+            node = yaml.MappingNode(tag, [],
+                    start_event.start_mark, None,
+                    flow_style=start_event.flow_style)
+            if anchor is not None:
+                self.anchors[anchor] = node
+
+            index = -1
+            start_mark = start_event.start_mark
+            while not self.check_event(yaml.events.MappingEndEvent):
+                item_key = self.compose_node(node, None)
+                key_start_mark = item_key.start_mark
+
+                if index == -1 or key_start_mark.index < index :
+                    index = key_start_mark.index
+                    start_mark = key_start_mark
+
+                item_value = self.compose_node(node, item_key)
+                node.value.append((item_key, item_value))
+
+            end_event = self.get_event()
+            node.end_mark = end_event.end_mark
+            node.start_mark = start_mark
+            return node
+
     def compose_scalar_node(self, anchor):
         """
             Override parent compose_scalar_node method to maintain
@@ -88,7 +128,7 @@ class TxYamlLoader(yaml.SafeLoader):
                 return node
             anchor_value = self.stream[
                 node.start_mark.index:node.end_mark.index
-             ].split(' ', 1)[1]
+            ].split(' ', 1)[1]
             leading_spaces = len(anchor_value) - len(anchor_value.lstrip(' '))
 
             node.start_mark.index = node.end_mark.index - len(anchor_value) \
@@ -167,10 +207,10 @@ class TxYamlLoader(yaml.SafeLoader):
                     start = (start -
                              (value_node.start_mark.column -
                               key_node.start_mark.column))
+
                     # re calculate end position taking into account
                     # comments after a block node (seq or mapping)
                     end = self._calculate_block_end_pos(start, end)
-
             elif (isinstance(value, six.binary_type) or
                   isinstance(value, six.text_type)):
                 style = value_node.style

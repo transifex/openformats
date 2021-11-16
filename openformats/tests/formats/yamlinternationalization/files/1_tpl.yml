@@ -87,3 +87,6 @@ en:
   alias_key:
     - *an_anchor
     - ddc3cfcedcf1686d9e3ba6b99a0d091b_tr
+
+  anchor_mapping: &another_anchor
+  798cf4a4e275a90e80b0aac837f06793_pl
