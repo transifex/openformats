@@ -439,3 +439,147 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 translations_by_rule[rule_int],
                 stringset[0].string[rule_int]
             )
+
+    def test_list_in_children_left_untouched(self):
+        source = '{"a": {"string":"%s", "developer_comment": "developer_comment",' \
+                 '"character_limit": 150, "context": "context"}, "b": [1, "a", "b"]}' % self.pluralized_string
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEqual(compiled, source)
+
+    def test_compile_when_root_is_list(self):
+        source = '[{"a": {"string":"%s", "developer_comment": "developer_comment",' \
+                 '"character_limit": 150, "context": "context"}, "b": [1, "a", "b"]}]' % self.pluralized_string
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset)
+        self.assertEqual(compiled, source)
+
+    def test_template_with_existing_values(self):
+        source = """
+        {
+            "a": {
+                "character_limit":150, 
+                "string":"%s",
+                "developer_comment": "i am a developer",
+                "context": "contexttt"
+            }
+        }
+        """ % self.random_string
+
+        expected_compilation = """
+        {
+            "a": {
+                "character_limit":49, 
+                "string":"%s",
+                "developer_comment": "comment_changed",
+                "context": "context_changed"
+            }
+        }
+        """ % self.random_string
+
+        template, stringset = self.handler.parse(source)
+
+        with_updated_char_limit = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].strings,
+                context="context_changed",
+                developer_comment="comment_changed",
+                character_limit=49,
+            )
+        ]
+
+        compiled = self.handler.compile(template, with_updated_char_limit)
+        self.assertEqual(compiled, expected_compilation)
+
+    def test_template_with_values_defined_after_template(self):
+        source = """
+        {
+            "a": {
+                "string": "%s"
+            }
+        }
+        """ % self.random_string
+
+        expected_compilation = """
+        {
+            "a": {
+                "string": "%s",
+                "context": "the_context",
+                "character_limit": 49,
+                "developer_comment": "the_comment"
+            }
+        }
+        """ % self.random_string
+        template, stringset = self.handler.parse(source)
+
+        updated_strings = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].strings,
+                context="the_context",
+                developer_comment="the_comment",
+                character_limit=49,
+            )
+        ]
+
+        compiled = self.handler.compile(template, updated_strings)
+        self.assertEqual(compiled, expected_compilation)
+
+    def test_template_with_values_removed_after_template(self):
+        source = """
+        {
+            "a": {
+                "string":"%s",
+                "developer_comment":"i am a developer",
+                "character_limit":150,
+                "context":"contexttt"
+            }
+        }
+        """ % self.random_string
+
+        expected_compilation = """
+        {
+            "a": {
+                "string":"%s",
+                "developer_comment":"",
+                "character_limit":null,
+                "context":""
+            }
+        }
+        """ % self.random_string
+        template, stringset = self.handler.parse(source)
+
+        updated_strings = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].strings,
+                context='',
+                developer_comment='',
+                character_limit=None,
+            )
+        ]
+
+        compiled = self.handler.compile(template, updated_strings)
+        self.assertEqual(compiled, expected_compilation)
+
+    def test_template_separators(self):
+        source = '{"a": {\n    "string": "%s"}}' % self.random_string
+        expected_compilation = '{"a": {\n    "string": "%s",\n    "character_limit": 153}}' % self.random_string
+        template, stringset = self.handler.parse(source)
+
+        with_updated_char_limit = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].strings,
+                context=stringset[0].context,
+                developer_comment=stringset[0].developer_comment,
+                character_limit=153,
+            )
+        ]
+
+        compiled = self.handler.compile(template, with_updated_char_limit)
+        self.assertEqual(compiled, expected_compilation)
+
