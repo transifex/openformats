@@ -503,8 +503,8 @@ class StructuredJsonHandler(JsonHandler):
             self.transcriber.add(u"{}".format(value))
         else:
             self.transcriber.add(u"null")
-        self.transcriber.skip(len(str(template_value)))
-        self.transcriber.copy_until(value_position + len(str(template_value)) + 1)
+        self.transcriber.skip(len(u"{}".format(template_value)))
+        self.transcriber.copy_until(value_position + len(u"{}".format(template_value)) + 1)
 
     def _compile_recursively(self, current_part):
         if isinstance(current_part, DumbJson):
@@ -552,7 +552,7 @@ class StructuredJsonHandler(JsonHandler):
                                 string_replacement = translation.string
                             self._compile_value(string_replacement, value, value_position)
                         elif not isinstance(value, DumbJson):
-                            self.transcriber.copy_until(value_position + len(str(value)) + 1)
+                            self.transcriber.copy_until(value_position + len(u"{}".format(value)) + 1)
 
                     extra_elements = []
                     if not context_added and translation and translation.context:

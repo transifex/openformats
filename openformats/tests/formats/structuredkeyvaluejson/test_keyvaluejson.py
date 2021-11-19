@@ -583,3 +583,36 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, with_updated_char_limit)
         self.assertEqual(compiled, expected_compilation)
 
+    def test_unicode(self):
+        source = u"""
+        {
+            "a": {
+                "string": "%s",
+                "something_else": "\xa0"
+            }
+        }
+        """ % self.random_string
+
+        expected_compilation = u"""
+        {
+            "a": {
+                "string": "\xa0",
+                "something_else": "\xa0"
+            }
+        }
+        """
+        template, stringset = self.handler.parse(source)
+
+        with_updated_char_limit = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=u"\xa0",
+                context=stringset[0].context,
+                developer_comment=stringset[0].developer_comment,
+                character_limit=stringset[0].character_limit,
+            )
+        ]
+
+        compiled = self.handler.compile(template, with_updated_char_limit)
+        self.assertEqual(compiled, expected_compilation)
+
