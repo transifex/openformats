@@ -53,7 +53,14 @@ class OfficeOpenXmlHandler(object):
                 replacements[e] = added_format
 
             for text_element, format in six.iteritems(replacements):
-                text_element.parent.rPr.replaceWith(format)
+                if text_element.parent.rPr:
+                    if format:
+                        text_element.parent.rPr.replaceWith(format)
+                    else:
+                        text_element.parent.rPr.extract()
+                else:
+                    if format:
+                        text_element.insert_before(format)
 
     @staticmethod
     def _escape_xml(translation):
@@ -164,82 +171,84 @@ class OfficeOpenXmlHandler(object):
         if stringset.get(txid, None) is None:
             return
 
-        translation = stringset[txid].string
-        translation = cls._escape_xml(translation)
+        translation_string = stringset[txid].string
+        escaped_translation_string = cls._escape_xml(translation_string)
 
         translation_soup = BeautifulSoup(
-            u'<wrapper>{}</wrapper>'.format(translation), 'xml',
+            u'<wrapper>{}</wrapper>'.format(escaped_translation_string), 'xml',
         ).find_all(text=True)
 
-        leading_spaces = 0
-        empty_text_element = None
         added_hl_text_elements = defaultdict(list)
         deleted_hl_text_elements = defaultdict(list)
+        empty_text_element = None
+        elements_for_removal = []
+        last_element = None
 
+        leading_spaces = 0
+
+        # First of all try to replace each element translation
+        # this is the happiest path
         for index, text_element in enumerate(text_elements):
             text = six.text_type(text_element.text)
+
             # detect text elements that contain no text
             # and remove leading whitespace from the next string
             if not text.strip():
                 leading_spaces = len(text) - len(text.strip())
                 empty_text_element = text_element
                 continue
+
+            last_element = text_element
+
+            hyperlink_url = cls.get_hyperlink_url(text_element, rels_soup)
+
+            # the text parts of the translation are less that the
+            # text parts of the document, so we will just remove
+            # any exceeding part from the document
+            if len(translation_soup) == 0:
+                elements_for_removal.append(text_element)
+                continue
             else:
-                hyperlink_url = cls.get_hyperlink_url(
-                    text_element, rels_soup
-                )
-                # the text parts of the translation are less that the
-                # text parts of the document, so we will just remove
-                # any excessing part from the document
-                if len(translation_soup) == 0:
-                    cls.remove_text_element(text_element)
-                    continue
                 translation_part = translation_soup.pop(0)
                 translation = six.text_type(translation_part)
+                translation_hyperlink_url = cls.get_translation_hyperlink(translation_part)
+
                 if not translation[:leading_spaces].strip():
                     translation = translation[leading_spaces:]
+                    leading_spaces = 0
                 else:
                     if empty_text_element:
-                        cls.remove_text_element(empty_text_element)
+                        elements_for_removal.append(empty_text_element)
                         empty_text_element = None
 
-                leading_spaces = 0
-
-            # the text parts of the translation are more that the
-            # text parts of the document, so we will compress the
-            # remaining translation parts into one string
-            if (index == len(text_elements) - 1 and len(translation_soup) > 0):
-                translation = "".join(
-                    [translation] +
-                    [six.text_type(t) for t in translation_soup]
-                )
-
-            # attempt to find a parent containing `href` attribute
-            # in order to extract the potential hyperlink url.
-            translation_hyperlink_url = getattr(
-                translation_part.find_parent(attrs={'href': True}
-                                             ), 'attrs', {}).get('href', None)
+                text_element.clear()
+                text_element.insert(0, translation)
 
             # Edit in place hyperlink url
             if hyperlink_url and translation_hyperlink_url:
                 cls.set_hyperlink_url(
                     text_element, rels_soup, translation_hyperlink_url
                 )
+            else:
+                if hyperlink_url:
+                    deleted_hl_text_elements[hyperlink_url]\
+                        .append(text_element)
+                elif translation_hyperlink_url:
+                    added_hl_text_elements[translation_hyperlink_url]\
+                        .append(text_element)
 
-            # remove hyperlink from source docx
-            if hyperlink_url and not translation_hyperlink_url:
-                deleted_hl_text_elements[hyperlink_url].append(text_element)
+        # the text parts of the translation are more that the
+        # text parts of the document, so we will compress the
+        # remaining translation parts into one string
+        if len(translation_soup) > 0:
+            translation = last_element.contents[0] + \
+                          "".join([six.text_type(t) for t in translation_soup]
+            )
+            last_element.clear()
+            last_element.insert(0, translation)
 
-            # create a new hyperlink
-            if not hyperlink_url and translation_hyperlink_url:
-                added_hl_text_elements[translation_hyperlink_url].append(
-                    text_element
-                )
-
-            text_element.clear()
-            text_element.insert(0, translation)
-
-        if len(added_hl_text_elements) == len(deleted_hl_text_elements):
+        if len(added_hl_text_elements) == len(deleted_hl_text_elements)\
+                and len(added_hl_text_elements) > 0:
             cls.swap_hyperlink_elements(
                 added_hl_text_elements,
                 deleted_hl_text_elements
@@ -252,3 +261,11 @@ class OfficeOpenXmlHandler(object):
         for url, text_elements in six.iteritems(added_hl_text_elements):
             for text_element in text_elements:
                 cls.create_hyperlink_url(text_element, rels_soup, url)
+
+        for element in elements_for_removal:
+            cls.remove_text_element(element)
+
+    def get_translation_hyperlink(self, translation_part):
+        return getattr(
+            translation_part.find_parent(attrs={'href': True}
+                                         ), 'attrs', {}).get('href', None)
