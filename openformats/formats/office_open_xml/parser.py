@@ -29,6 +29,10 @@ class OfficeOpenXmlHandler(object):
         raise NotImplementedError
 
     @classmethod
+    def set_rtl_orientation(cls, paragraph):
+        raise NotImplementedError
+
+    @classmethod
     def swap_hyperlink_elements(
         cls, added_hl_text_elements, deleted_hl_text_elements
     ):
@@ -158,7 +162,7 @@ class OfficeOpenXmlHandler(object):
 
         return open_string
 
-    def compile_paragraph(cls, paragraph, rels_soup, stringset):
+    def compile_paragraph(cls, paragraph, rels_soup, stringset, is_rtl=False):
         text_elements = paragraph.find_all(cls.TEXT_ELEMENT_TAG)
         if not text_elements:
             return
@@ -188,6 +192,9 @@ class OfficeOpenXmlHandler(object):
 
         # First of all try to replace each element translation
         # this is the happiest path
+        if is_rtl:
+            cls.set_rtl_orientation(paragraph)
+
         for index, text_element in enumerate(text_elements):
             text = six.text_type(text_element.text)
 

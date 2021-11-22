@@ -288,6 +288,14 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
     def remove_text_element(cls, text_element):
         text_element.decompose()
 
+    @classmethod
+    def set_rtl_orientation(cls, paragraph):
+        ppr_tags = paragraph.find_all("a:pPr")
+        for ppr_tag in ppr_tags:
+            ppr_tag["rtl"] = "1"
+            if ppr_tag.get("algn") == "l":
+                ppr_tag["algn"] = "r"
+
     def parse(self, content, **kwargs):
         """
         We will segment the text by paragraph `<w:p>` as this
@@ -334,14 +342,16 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
             string.string_hash: string for string in stringset
         }
         pptx = PptxFile(template)
-
+        is_rtl = kwargs.get('is_rtl', False)
         for slide in pptx.get_slides():
             soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
 
             for parent in soup.find_all('p:sp'):
                 for paragraph in parent.find_all('a:p'):
-                    self.compile_paragraph(paragraph, rels_soup, stringset)
+                    self.compile_paragraph(
+                        paragraph, rels_soup, stringset, is_rtl=is_rtl
+                    )
 
             pptx.set_slide(slide, six.text_type(soup))
             pptx.set_slide_rels(slide, six.text_type(rels_soup))

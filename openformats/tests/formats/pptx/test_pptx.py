@@ -594,3 +594,46 @@ class PptxTestCase(unittest.TestCase):
         slide = u'/ppt/slides/slide1.xml'
         for text in [u'Title', u'text']:
             self.assertTrue(text in pptx.get_slide(slide))
+
+    def test_rtl(self):
+        path = '{}/rtl.pptx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        slide = u'/ppt/slides/slide1.xml'
+
+        pptx = PptxFile(content)
+        soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
+        l_algn = []
+        r_algn = []
+        ctr_algn = []
+        just_algn = []
+        for index, pPr in enumerate(soup.find_all("a:pPr")):
+            self.assertTrue(pPr["algn"] in ["just", "r", "l", "ctr"])
+            if pPr["algn"] == "l":
+                l_algn.append(index)
+            if pPr["algn"] == "r":
+                r_algn.append(index)
+            if pPr["algn"] == "ctr":
+                ctr_algn.append(index)
+            if pPr["algn"] == "just":
+                just_algn.append(index)
+
+        handler = PptxHandler()
+        template, stringset = handler.parse(content)
+
+        content = handler.compile(template, stringset, is_rtl=True)
+
+        pptx = PptxFile(content)
+        soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
+        for index, pPr in enumerate(soup.find_all("a:pPr")):
+            self.assertEqual(pPr["rtl"], "1")
+            self.assertTrue(pPr["algn"] in ["just", "r", "ctr"])
+            if index in l_algn:
+                self.assertEqual(pPr["algn"], "r")
+            if index in r_algn:
+                self.assertEqual(pPr["algn"], "r")
+            if index in ctr_algn:
+                self.assertEqual(pPr["algn"], "ctr")
+            if index in just_algn:
+                self.assertEqual(pPr["algn"], "just")
