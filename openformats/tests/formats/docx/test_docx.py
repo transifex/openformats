@@ -10,16 +10,35 @@ from openformats.strings import OpenString
 class DocxTestCase(unittest.TestCase):
     TESTFILE_BASE = 'openformats/tests/formats/docx/files'
 
-    def test_broken_file(self):
-        path = '{}/missing_wr_parent.docx'.format(self.TESTFILE_BASE)
+    def setUp(self):
+        self.handler = DocxHandler()
+
+    def get_content(self, filename):
+        path = '{}/{}'.format(self.TESTFILE_BASE, filename)
         with open(path, 'rb') as f:
             content = f.read()
+        return content
 
-        DocxFile(content)  # Make sure no errors happen during init
+    def verify_stringset(self, actual_stringset, expected_strings):
+        self.assertEqual(len(actual_stringset), len(expected_strings))
+        for actual_openstring, expected_string in zip(actual_stringset, expected_strings):
+            self.assertEqual(actual_openstring.string, expected_string)
 
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+    def prepare_stringset(self, sources, translations_strings):
+        self.assertEqual(len(sources), len(translations_strings))
+        openstrings = []
 
+        order = 1
+        for source, translation in zip(sources, translations_strings):
+            openstrings.append(
+                OpenString(source.key, translation, order=order)
+            )
+            order += 1
+        return openstrings
+
+    def test_broken_file(self):
+        content = self.get_content('missing_wr_parent.docx')
+        template, stringset = self.handler.parse(content)
         self.assertEqual(len(stringset), 1)
 
         openstring = stringset[0]
@@ -35,10 +54,9 @@ class DocxTestCase(unittest.TestCase):
             OpenString(openstring.key, translation, order=1)
         ]
 
-        content = handler.compile(template, stringset)
+        content = self.handler.compile(template, stringset)
 
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+        template, stringset = self.handler.parse(content)
 
         self.assertEqual(len(stringset), 1)
 
@@ -50,9 +68,7 @@ class DocxTestCase(unittest.TestCase):
         )
 
     def test_docx_file(self):
-        path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
+        content = self.get_content('hello_world.docx')
 
         docx = DocxFile(content)
 
@@ -73,12 +89,8 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(docx.get_document_rels(), u'Modified Document Rels')
 
     def test_simple_file(self):
-        path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
-
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+        content = self.get_content('hello_world.docx')
+        template, stringset = self.handler.parse(content)
 
         self.assertEqual(len(stringset), 1)
 
@@ -95,8 +107,8 @@ class DocxTestCase(unittest.TestCase):
             OpenString(openstring.key, translation, order=1)
         ]
 
-        content = handler.compile(template, stringset)
-        template, stringset = handler.parse(content)
+        content = self.handler.compile(template, stringset)
+        template, stringset = self.handler.parse(content)
 
         self.assertEqual(len(stringset), 1)
 
@@ -123,12 +135,9 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, openstring.key)
 
     def test_space_control(self):
-        path = '{}/special_cases_2.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
+        content = self.get_content('special_cases_2.docx')
 
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+        template, stringset = self.handler.parse(content)
 
         self.assertEqual(len(stringset), 1)
 
@@ -145,8 +154,8 @@ class DocxTestCase(unittest.TestCase):
             OpenString(openstring.key, translation, order=1)
         ]
 
-        content = handler.compile(template, stringset)
-        template, stringset = handler.parse(content)
+        content = self.handler.compile(template, stringset)
+        template, stringset = self.handler.parse(content)
 
         self.assertEqual(len(stringset), 1)
 
@@ -163,8 +172,8 @@ class DocxTestCase(unittest.TestCase):
             OpenString(openstring.key, translation, order=1)
         ]
 
-        content = handler.compile(template, stringset)
-        template, stringset = handler.parse(content)
+        content = self.handler.compile(template, stringset)
+        template, stringset = self.handler.parse(content)
 
         self.assertEqual(len(stringset), 1)
 
@@ -177,13 +186,10 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, openstring.key)
 
     def test_hyperlink_reorder(self):
-        path = '{}/special_cases_2.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
+        content = self.get_content('special_cases_2.docx')
 
-        handler = DocxHandler()
-        template, source_stringset = handler.parse(content)
-        content = handler.compile(template, source_stringset)
+        template, source_stringset = self.handler.parse(content)
+        content = self.handler.compile(template, source_stringset)
 
         docx = DocxFile(template)
         soup = BeautifulSoup(docx.get_document(), 'xml')
@@ -207,8 +213,8 @@ class DocxTestCase(unittest.TestCase):
                 OpenString(extracted.key, u''.join(translation), order=order)
             )
             order += 1
-        content = handler.compile(template, translated_stringset)
-        _, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        _, stringset = self.handler.parse(content)
 
         docx = DocxFile(content)
         soup = BeautifulSoup(docx.get_document(), 'xml')
@@ -220,13 +226,71 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(text_elements[1].parent.rPr.color, None)
         self.assertEqual(text_elements[1].parent.rPr.u, None)
 
-    def test_complex_file(self):
-        path = '{}/complex.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
+    def test_more_extreme_cases(self):
+        # Test Original
+        content = self.get_content('special_cases_3.docx')
+        original_template, original_stringset = self.handler.parse(content)
+        self.verify_stringset(
+            original_stringset,
+            [
+                u'Ena <tx>arxeio</tx> me perierges periptwseis',
+                u'Kai<tx> ehw kai ena hyperlink </tx><tx href="http://www.google.com/">edw</tx><tx> kai </tx><tx href="http://www.google.gr/">edw</tx>',
+                u'Alla edw <tx>exw</tx> ena keno sto telos ',
+                u'Kai<tx> edw</tx><tx> den exw </tx><tx>hyperlink</tx> katholou.'
+            ]
+        )
 
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+        # Test spaces at the end and less elements
+        translated_stringset = self.prepare_stringset(
+            original_stringset,
+            [
+                u'One <tx>file</tx> with extreme cases',
+                u'And<tx> i have a hyperlink </tx><tx href="http://www.google.com/">here</tx><tx> and </tx><tx href="http://www.google.gr/">here</tx> ',
+                u'But here <tx>I have </tx> <tx>a space at the end</tx> and more ',
+                u'And<tx> here</tx> <tx>I have no </tx><tx>hyperlink</tx> at all.'
+            ]
+        )
+
+        content = self.handler.compile(original_template, translated_stringset)
+        template, stringset = self.handler.parse(content)
+
+        self.verify_stringset(
+            stringset,
+            [
+                u'One <tx>file</tx> with extreme cases',
+                u'And<tx> i have a hyperlink </tx><tx href="http://www.google.com/">here</tx><tx> and </tx><tx href="http://www.google.gr/">here </tx>',
+                u'But here <tx>I have </tx> a space at the end and more ',
+                u'And<tx> here</tx><tx> I have no </tx>hyperlink at all.'
+            ]
+        )
+
+        # Test swapping with no format
+        translated_stringset = self.prepare_stringset(
+            stringset,
+            [
+                u'One <tx>file</tx> with extreme cases',
+                u'And<tx href="http://www.google.com/"> hyperlink </tx><tx> was moved </tx> <tx href="http://www.google.gr/">here</tx> <tx>now </tx> ',
+                u'But here <tx>I have </tx> <tx>a space at the end</> and more ',
+                u'And <tx>here</tx><tx>I have </tx><tx href="www.google.com">hyperlink</tx>'
+            ]
+        )
+
+        content = self.handler.compile(template, translated_stringset)
+        _, stringset = self.handler.parse(content)
+
+        self.verify_stringset(
+            stringset,
+            [
+                u'One <tx>file</tx> with extreme cases',
+                u'And<tx href="http://www.google.com/"> hyperlink </tx><tx> was moved </tx><tx href="http://www.google.gr/"> here now  </tx>',
+                u'But here <tx>I have </tx> a space at the end</> and more ',
+                u'And <tx>here</tx><tx>I have </tx><tx href="www.google.com">hyperlink</tx>'
+            ]
+        )
+
+    def test_complex_file(self):
+        content = self.get_content('complex.docx')
+        template, stringset = self.handler.parse(content)
 
         expected_strings = [
             u'a Title',
@@ -356,8 +420,8 @@ class DocxTestCase(unittest.TestCase):
             )
             order += 1
 
-        content = handler.compile(template, translated_stringset)
-        template, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        template, stringset = self.handler.parse(content)
 
         docx = DocxFile(content)
 
@@ -414,15 +478,8 @@ class DocxTestCase(unittest.TestCase):
             self.assertTrue(url in docx.get_document_rels())
 
     def test_special_cases_file(self):
-        path = '{}/special_cases.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
-
-        handler = DocxHandler()
-        template, source_stringset = handler.parse(content)
-        content = handler.compile(template, source_stringset)
-
-        docx = DocxFile(content)
+        content = self.get_content('special_cases.docx')
+        template, source_stringset = self.handler.parse(content)
 
         expected_strings = [
             [
@@ -501,8 +558,8 @@ class DocxTestCase(unittest.TestCase):
             ],
         ]
 
-        content = handler.compile(template, translated_stringset)
-        _, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        _, stringset = self.handler.parse(content)
 
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
@@ -547,8 +604,8 @@ class DocxTestCase(unittest.TestCase):
             ],
         ]
 
-        content = handler.compile(template, translated_stringset)
-        _, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        _, stringset = self.handler.parse(content)
 
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
@@ -597,8 +654,8 @@ class DocxTestCase(unittest.TestCase):
             ],
         ]
 
-        content = handler.compile(template, translated_stringset)
-        _, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        _, stringset = self.handler.parse(content)
 
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
@@ -646,25 +703,17 @@ class DocxTestCase(unittest.TestCase):
             ],
         ]
 
-        content = handler.compile(template, translated_stringset)
-        _, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        _, stringset = self.handler.parse(content)
 
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
 
     def test_two_text_elements_file(self):
-        path = '{}/two_text_elements.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
-
-        handler = DocxHandler()
-        template, source_stringset = handler.parse(content)
-        content = handler.compile(template, source_stringset)
-
-        docx = DocxFile(content)
+        content = self.get_content('two_text_elements.docx')
+        template, source_stringset = self.handler.parse(content)
 
         expected_strings = [
-
             u'<tx>Hello</tx><tx> world</tx>',
             u'<tx>Goodbye </tx><tx>world</tx>',
             u'<tx>This is a </tx><tx href="https://google.com/">link</tx>',
@@ -714,8 +763,8 @@ class DocxTestCase(unittest.TestCase):
             u'<tx>Και αυτή η εικόνα μου </tx><tx> (υπόλοιπο κείμενο).</tx>',
         ]
 
-        content = handler.compile(template, translated_stringset)
-        template, stringset = handler.parse(content)
+        content = self.handler.compile(template, translated_stringset)
+        template, stringset = self.handler.parse(content)
 
         for extracted, expected in zip(stringset, fixed_stringset):
             self.assertEqual(extracted.string, u''.join(expected))
@@ -738,12 +787,8 @@ class DocxTestCase(unittest.TestCase):
             self.assertTrue(url in docx.get_document_rels())
 
     def test_ampersand(self):
-        # Parse original file
-        path = '{}/with_ampersand.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+        content = self.get_content('with_ampersand.docx')
+        template, stringset = self.handler.parse(content)
 
         # Make sure extracted data is OK
         self.assertEqual(len(stringset), 1)
@@ -758,7 +803,7 @@ class DocxTestCase(unittest.TestCase):
         stringset = [
             OpenString(openstring.key, translation, order=0)
         ]
-        content = handler.compile(template, stringset)
+        content = self.handler.compile(template, stringset)
 
         # Make sure compiled file has altered data
         docx = DocxFile(content)
@@ -768,7 +813,7 @@ class DocxTestCase(unittest.TestCase):
         self.assertTrue("AMPERSAND" in docx.get_document())
 
         # Parse compiled file
-        template, stringset = handler.parse(content)
+        template, stringset = self.handler.parse(content)
 
         # Make sure compiled file has the correct translation
         self.assertEqual(len(stringset), 1)
@@ -786,11 +831,8 @@ class DocxTestCase(unittest.TestCase):
 
     def test_lt(self):
         # Parse original file
-        path = '{}/with_lt.docx'.format(self.TESTFILE_BASE)
-        with open(path, 'rb') as f:
-            content = f.read()
-        handler = DocxHandler()
-        template, stringset = handler.parse(content)
+        content = self.get_content('with_lt.docx')
+        template, stringset = self.handler.parse(content)
 
         # Make sure extracted data is OK
         self.assertEqual(len(stringset), 1)
@@ -805,7 +847,7 @@ class DocxTestCase(unittest.TestCase):
         stringset = [
             OpenString(openstring.key, translation, order=0)
         ]
-        content = handler.compile(template, stringset)
+        content = self.handler.compile(template, stringset)
 
         # Make sure compiled file has altered data
         docx = DocxFile(content)
@@ -815,7 +857,7 @@ class DocxTestCase(unittest.TestCase):
         self.assertTrue("LESSTHAN" in docx.get_document())
 
         # Parse compiled file
-        template, stringset = handler.parse(content)
+        template, stringset = self.handler.parse(content)
 
         # Make sure compiled file has the correct translation
         self.assertEqual(len(stringset), 1)
