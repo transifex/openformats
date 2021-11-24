@@ -173,7 +173,9 @@ class CustomizableXMLHandler(Handler):
         template = transcriber.get_destination()
         return template, stringset
 
-    def compile(self, template, stringset, is_source=True, language_info=None):
+    def compile(
+        self, template, stringset, is_source=True, language_info=None, **kwargs
+    ):
         """Compile the given `template` by replacing all hash placeholders
         with the translations found in `stringset`.
 

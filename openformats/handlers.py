@@ -74,7 +74,7 @@ class Handler(object):
 
         raise NotImplementedError('Abstract method')  # pragma: no cover
 
-    def compile(self, template, stringset):
+    def compile(self, template, stringset, **kwargs):
         """
         Parses the template, finds the hashes, replaces them with strings from
         the stringset and returns the compiled file. If a hash in the template

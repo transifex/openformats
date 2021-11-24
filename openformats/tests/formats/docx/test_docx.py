@@ -221,8 +221,10 @@ class DocxTestCase(unittest.TestCase):
         paragraph = soup.find_all('w:p')[0]
         text_elements = paragraph.find_all('w:t')
 
-        self.assertEqual(text_elements[3].parent.rPr.color, text_elements_bf_reorder[1].parent.rPr.color)
-        self.assertEqual(text_elements[3].parent.rPr.u, text_elements_bf_reorder[1].parent.rPr.u)
+        self.assertEqual(text_elements[3].parent.rPr.color,
+                         text_elements_bf_reorder[1].parent.rPr.color)
+        self.assertEqual(text_elements[3].parent.rPr.u,
+                         text_elements_bf_reorder[1].parent.rPr.u)
         self.assertEqual(text_elements[1].parent.rPr.color, None)
         self.assertEqual(text_elements[1].parent.rPr.u, None)
 
@@ -865,3 +867,33 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.order, 0)
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
+
+    def test_rtl(self):
+        path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+        handler = DocxHandler()
+        template, stringset = handler.parse(content)
+        openstring = stringset[0]
+
+        # Compile with altered translation
+        translation = u'<tx>Καλημέρα κόσμε </tx><tx href="https://el.transifex.com/">αυτός είναι ένας κρίκος</tx>'  # noqa
+        stringset = [
+            OpenString(openstring.key, translation, order=1)
+        ]
+
+        content = handler.compile(template, stringset, is_rtl=True)
+        docx = DocxFile(content)
+        soup = BeautifulSoup(docx.get_document(), 'xml')
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(len(soup.find_all("w:bidi")), 1)
+        for pPr in soup.find_all("w:pPr"):
+            self.assertEqual(len(pPr.findChildren("w:bidi")), 1)
+            for bidi in pPr.findChildren("w:bidi"):
+                self.assertEqual(bidi["w:val"], "1")
+
+        self.assertTrue(len(soup.find_all("w:rtl")), 1)
+        for rPr in soup.find_all("w:rPr"):
+            self.assertEqual(len(rPr.findChildren("w:rtl")), 1)
+            for rtl in rPr.findChildren("w:rtl"):
+                self.assertEqual(rtl["w:val"], "1")

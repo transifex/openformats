@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from openformats.handlers import Handler
 from openformats.formats.office_open_xml.parser import OfficeOpenXmlHandler
 
+
 class DocxFile(object):
     """
     A class used to wrap and expose the internals of a .docx file
@@ -81,6 +82,7 @@ class DocxFile(object):
     </Relationships>
     ```
     """
+
     def __init__(self, content):
         self.__tmp_folder = "{}/{}".format(
             tempfile.gettempdir(), uuid.uuid4().hex
@@ -230,6 +232,24 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
         else:
             text_element.decompose()
 
+    @classmethod
+    def set_rtl_orientation(cls, paragraph):
+        soup = BeautifulSoup("", "xml")
+        ppr_tags = paragraph.find_all("w:pPr")
+        for ppr_tag in ppr_tags:
+            if ppr_tag.bidi is not None:
+                ppr_tag.bidi.decompose()
+            bidi_tag = soup.new_tag("w:bidi", **{"w:val": "1"})
+            ppr_tag.append(bidi_tag)
+
+
+        rpr_tags = paragraph.find_all("w:rPr")
+        for rpr_tag in rpr_tags:
+            if rpr_tag.rtl is not None:
+                rpr_tag.rtl.decompose()
+            rtl = soup.new_tag("w:rtl", **{"w:val": "1"})
+            rpr_tag.append(rtl)
+
     def parse(self, content, **kwargs):
         """
         We will segment the text by paragraph `<w:p>` as this
@@ -272,9 +292,12 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
         docx = DocxFile(template)
         soup = BeautifulSoup(docx.get_document(), 'xml')
         rels_soup = BeautifulSoup(docx.get_document_rels(), 'xml')
+        is_rtl = kwargs.get('is_rtl', False)
 
         for paragraph in soup.find_all('w:p'):
-            self.compile_paragraph(paragraph, rels_soup, stringset)
+            self.compile_paragraph(
+                paragraph, rels_soup, stringset, is_rtl=is_rtl
+            )
 
         docx.set_document(six.text_type(soup))
         docx.set_document_rels(six.text_type(rels_soup))
