@@ -534,11 +534,11 @@ class StructuredJsonHandler(JsonHandler):
                         self.transcriber.copy_until(value_position)
                         if key == self.CONTEXT_KEY and translation:
                             context = translation.context
-                            self._compile_value(context, value, value_position)
+                            self._compile_value(self.escape(context), value, value_position)
                             context_added = True
                         elif key == self.DEVELOPER_COMMENT_KEY and translation:
                             developer_comment = translation.developer_comment
-                            self._compile_value(developer_comment, value, value_position)
+                            self._compile_value(self.escape(developer_comment), value, value_position)
                             developer_comments_added = True
                         elif key == self.CHARACTER_LIMIT_KEY and translation:
                             character_limit = translation.character_limit
@@ -557,13 +557,13 @@ class StructuredJsonHandler(JsonHandler):
                     extra_elements = []
                     if not context_added and translation and translation.context:
                         extra_elements.append(u"\"{}{}\"{}\"".format(
-                            "context", key_value_separator, translation.context))
+                            "context", key_value_separator, self.escape(translation.context)))
                     if not character_limit_added and translation and translation.character_limit:
                         extra_elements.append(u"\"{}{}{}".format(
                             "character_limit", key_value_separator, translation.character_limit))
                     if not developer_comments_added and translation and translation.developer_comment:
                         extra_elements.append(u"\"{}{}\"{}\"".format(
-                            "developer_comment", key_value_separator, translation.developer_comment))
+                            "developer_comment", key_value_separator, self.escape(translation.developer_comment)))
                     if extra_elements:
                         self.transcriber.add("," + line_separator + ("," + line_separator).join(extra_elements))
 
