@@ -236,12 +236,17 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
     def set_rtl_orientation(cls, paragraph):
         soup = BeautifulSoup("", "xml")
         ppr_tags = paragraph.find_all("w:pPr")
+
+        if len(ppr_tags) == 0:
+            pPr = soup.new_tag("w:pPr")
+            paragraph.append(pPr)
+            ppr_tags = [pPr]
+
         for ppr_tag in ppr_tags:
             if ppr_tag.bidi is not None:
                 ppr_tag.bidi.decompose()
             bidi_tag = soup.new_tag("w:bidi", **{"w:val": "1"})
             ppr_tag.append(bidi_tag)
-
 
         rpr_tags = paragraph.find_all("w:rPr")
         for rpr_tag in rpr_tags:
