@@ -256,31 +256,38 @@ class JsonHandler(Handler):
         at_least_one = False
 
         if isinstance(value, (six.binary_type, six.text_type)):
-            string = self._get_next_string()
-            string_exists = string is not None
+            if value != '':
+                string = self._get_next_string()
+                string_exists = string is not None
 
-            templ_replacement = string.template_replacement \
-                if string_exists else None
+                templ_replacement = string.template_replacement \
+                    if string_exists else None
 
-            # Pluralized string
-            if string_exists and string.pluralized \
-                    and templ_replacement in value:
-                at_least_one = True
-                self._insert_plural_string(
-                    value, value_position, string, is_real_stringset
-                )
+                # Pluralized string
+                if string_exists and string.pluralized \
+                        and templ_replacement in value:
+                    at_least_one = True
+                    self._insert_plural_string(
+                        value, value_position, string, is_real_stringset
+                    )
 
-            # Regular string
-            elif string_exists and value == templ_replacement:
+                # Regular string
+                elif string_exists and value == templ_replacement:
+                    at_least_one = True
+                    self._insert_regular_string(
+                        value, value_position, string.string
+                    )
+
+                else:
+                    # Anything else: just remove the current section
+                    self._copy_until_and_remove_section(
+                        value_position + len(value) + 1
+                    )
+            else:
+                # value is an empty string, add the key but don't update stringset_index
                 at_least_one = True
                 self._insert_regular_string(
-                    value, value_position, string, is_real_stringset
-                )
-
-            else:
-                # Anything else: just remove the current section
-                self._copy_until_and_remove_section(
-                    value_position + len(value) + 1
+                    value, value_position, '', False
                 )
 
         elif isinstance(value, DumbJson):
@@ -354,11 +361,12 @@ class JsonHandler(Handler):
         self.stringset_index += 1
 
     def _insert_regular_string(self, value, value_position, string,
-                               is_real_stringset):
+                               update_stringset_index=True):
         self.transcriber.copy_until(value_position)
-        self.transcriber.add(string.string)
+        self.transcriber.add(string)
         self.transcriber.skip(len(value))
-        self.stringset_index += 1
+        if update_stringset_index:
+            self.stringset_index += 1
 
     def _copy_until_and_remove_section(self, pos):
         """

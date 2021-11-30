@@ -48,6 +48,17 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         )
         self.assertEqual(len(stringset), 1)
 
+    def test_empty_string_returned_in_compile(self):
+        template, stringset = self.handler.parse('{"a": "%s", "b": ""}' %
+                                                 self.random_string)
+        compiled = self.handler.compile(template, [self.random_openstring])
+
+        self.assertEqual(template, '{"a": "%s", "b": ""}' % self.random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__,
+                         self.random_openstring.__dict__)
+        self.assertEqual(compiled, '{"a": "%s", "b": ""}' % self.random_string)
+
     def test_root_object_is_list(self):
         source = '["%s"]' % self.random_string
         random_openstring = OpenString('..0..', self.random_string, order=0)
