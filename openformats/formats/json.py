@@ -513,7 +513,7 @@ class StructuredJsonHandler(JsonHandler):
                     self._compile_recursively(value)
             if current_part.type == dict:
                 (value, _) = current_part.find_children(self.STRING_KEY)[0]
-                if value is None:
+                if not value:
                     for key, key_position, value, value_position in current_part:
                         self.transcriber.copy_until(key_position - 1)
                         self.transcriber.copy_until(value_position)

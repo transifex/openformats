@@ -666,3 +666,42 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = self.handler.compile(template, unescaped)
         self.maxDiff = None
         self.assertEqual(compiled, expected_compilation)
+
+    def test_empty_string(self):
+        source = u"""
+        {
+            "a": {
+                "string": ""
+            },
+            "b": {
+                "string": "x0x0",
+                "character_limit": 35
+            }
+        }
+        """
+
+        expected_compilation = u"""
+        {
+            "a": {
+                "string": ""
+            },
+            "b": {
+                "string": "x0x0",
+                "character_limit": 35
+            }
+        }
+        """
+        template, stringset = self.handler.parse(source)
+
+        expected = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].string,
+                context=stringset[0].context,
+                developer_comment=stringset[0].developer_comment,
+                character_limit=stringset[0].character_limit,
+            ),
+        ]
+
+        compiled = self.handler.compile(template, expected)
+        self.assertEqual(compiled, expected_compilation)
