@@ -395,6 +395,14 @@ def _unescape_generator(string):
                 yield u'u'
                 ptr += 2
                 continue
+            # Surrogates: https://unicode.org/faq/utf_bom.html#utf16-2
+            if 0xd800 <= ord(unescaped) <= 0xdfff:
+                unicode_escaped = string[ptr:ptr+12]
+                escaped = json.loads('"' + unicode_escaped + '"')
+                if len(escaped) == 1:
+                    yield escaped
+                    ptr += 12
+                    continue
             yield unescaped
             ptr += 6
 
