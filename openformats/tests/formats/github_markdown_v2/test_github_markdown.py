@@ -34,6 +34,13 @@ class GithubMarkdownV2TestCase(CommonFormatTestMixin, unittest.TestCase):
         content_with_spaces = self.handler.parse(content=u"# foo    bar")
         self.assertEqual(content_with_tab[0], content_with_spaces[0])
 
+    def test_parse_non_unicode(self):
+        """Test parse converts tabs to spaces"""
+        content_with_non_unicode_space = self.handler.parse(content=u"# foo\xa0bar")
+        content_with_normal_space = self.handler.parse(content=u"# foo bar")
+        self.assertEqual(
+            content_with_non_unicode_space[0], content_with_normal_space[0])
+
 
 class GithubMarkdownV2CustomTestCase(unittest.TestCase):
     """Tests some additional functionality of GithubMarkdownHandlerV2.

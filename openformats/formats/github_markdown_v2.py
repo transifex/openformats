@@ -3,7 +3,7 @@ from __future__ import absolute_import, unicode_literals
 import re
 
 import six
-
+import unicodedata
 from mistune import Markdown
 from yaml.reader import Reader
 
@@ -71,7 +71,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         # need to do the same in order to be able to match the substrings
         template = content.expandtabs(4)
         pattern = re.compile(ensure_unicode(r'^ +$'), re.M)
-        content = pattern.sub('', template)
+        content = unicodedata.normalize('NFKC', pattern.sub('', template))
 
         stringset = []
 
