@@ -82,8 +82,10 @@ class JsonHandler(Handler):
 
                 if self.name == "STRUCTURED_JSON":
                     try:
-                        (string_value, _), = value.find_children(self.STRING_KEY)
-                    except:
+                        (string_value, _), = value.find_children(
+                            self.STRING_KEY
+                        )
+                    except Exception:
                         # Ignore other types of values like lists
                         pass
                     else:
@@ -284,7 +286,8 @@ class JsonHandler(Handler):
                         value_position + len(value) + 1
                     )
             else:
-                # value is an empty string, add the key but don't update stringset_index
+                # value is an empty string, add the key but don't update
+                # stringset_index
                 at_least_one = True
                 self._insert_regular_string(
                     value, value_position, '', False
@@ -512,7 +515,9 @@ class StructuredJsonHandler(JsonHandler):
         else:
             self.transcriber.add(u"null")
         self.transcriber.skip(len(u"{}".format(template_value)))
-        self.transcriber.copy_until(value_position + len(u"{}".format(template_value)) + 1)
+        self.transcriber.copy_until(value_position +
+                                    len(u"{}".format(template_value)) +
+                                    1)
 
     def _compile_recursively(self, current_part):
         if isinstance(current_part, DumbJson):
@@ -522,7 +527,8 @@ class StructuredJsonHandler(JsonHandler):
             if current_part.type == dict:
                 (value, _) = current_part.find_children(self.STRING_KEY)[0]
                 if not value:
-                    for key, key_position, value, value_position in current_part:
+                    for (key, key_position, value,
+                         value_position) in current_part:
                         self.transcriber.copy_until(key_position - 1)
                         self.transcriber.copy_until(value_position)
                         self._compile_recursively(value)
@@ -534,46 +540,85 @@ class StructuredJsonHandler(JsonHandler):
 
                     line_separator = None
                     key_value_separator = None
-                    for key, key_position, value, value_position in current_part:
+                    for (key, key_position, value,
+                         value_position) in current_part:
                         prev_position_end = self.transcriber.ptr
-                        line_separator = current_part.source[prev_position_end+1:key_position-1]
-                        key_value_separator = current_part.source[key_position+len(key):value_position-1]
+                        line_separator = current_part.source[
+                            prev_position_end+1:key_position-1
+                        ]
+                        key_value_separator = current_part.source[
+                            key_position+len(key):value_position-1
+                        ]
                         self.transcriber.copy_until(key_position - 1)
                         self.transcriber.copy_until(value_position)
                         if key == self.CONTEXT_KEY and translation:
                             context = translation.context
-                            self._compile_value(self.escape(context), value, value_position)
+                            self._compile_value(self.escape(context),
+                                                value,
+                                                value_position)
                             context_added = True
                         elif key == self.DEVELOPER_COMMENT_KEY and translation:
                             developer_comment = translation.developer_comment
-                            self._compile_value(self.escape(developer_comment), value, value_position)
+                            self._compile_value(self.escape(developer_comment),
+                                                value,
+                                                value_position)
                             developer_comments_added = True
                         elif key == self.CHARACTER_LIMIT_KEY and translation:
                             character_limit = translation.character_limit
-                            self._compile_value(character_limit, value, value_position)
+                            self._compile_value(character_limit,
+                                                value,
+                                                value_position)
                             character_limit_added = True
                         elif key == self.STRING_KEY and translation:
                             if translation.pluralized:
-                                string_replacement = ICUCompiler().serialize_strings(translation.string, delimiter=' ')
-                                string_replacement = value.replace(translation.template_replacement, string_replacement)
+                                string_replacement = ICUCompiler().\
+                                    serialize_strings(translation.string,
+                                                      delimiter=' ')
+                                string_replacement = value.replace(
+                                    translation.template_replacement,
+                                    string_replacement,
+                                )
                             else:
                                 string_replacement = translation.string
-                            self._compile_value(string_replacement, value, value_position)
+                            self._compile_value(string_replacement,
+                                                value,
+                                                value_position)
                         elif not isinstance(value, DumbJson):
-                            self.transcriber.copy_until(value_position + len(u"{}".format(value)) + 1)
+                            self.transcriber.copy_until(
+                                value_position + len(u"{}".format(value)) + 1
+                            )
 
                     extra_elements = []
-                    if not context_added and translation and translation.context:
+                    if (not context_added and
+                            translation and
+                            translation.context):
                         extra_elements.append(u"\"{}{}\"{}\"".format(
-                            "context", key_value_separator, self.escape(translation.context)))
-                    if not character_limit_added and translation and translation.character_limit:
+                            "context",
+                            key_value_separator,
+                            self.escape(translation.context),
+                        ))
+                    if (not character_limit_added and
+                            translation and
+                            translation.character_limit):
                         extra_elements.append(u"\"{}{}{}".format(
-                            "character_limit", key_value_separator, translation.character_limit))
-                    if not developer_comments_added and translation and translation.developer_comment:
+                            "character_limit",
+                            key_value_separator,
+                            translation.character_limit,
+                        ))
+                    if (not developer_comments_added and
+                            translation and
+                            translation.developer_comment):
                         extra_elements.append(u"\"{}{}\"{}\"".format(
-                            "developer_comment", key_value_separator, self.escape(translation.developer_comment)))
+                            "developer_comment",
+                            key_value_separator,
+                            self.escape(translation.developer_comment),
+                        ))
                     if extra_elements:
-                        self.transcriber.add("," + line_separator + ("," + line_separator).join(extra_elements))
+                        self.transcriber.add(
+                            "," +
+                            line_separator +
+                            ("," + line_separator).join(extra_elements)
+                        )
 
     def _create_openstring(self, key, payload_dict):
         """Return a new OpenString based on the given key and payload_dict
@@ -644,7 +689,9 @@ class StructuredJsonHandler(JsonHandler):
         :param value: the translation string
         :return: an OpenString or None
         """
-        (string_value, string_position), = payload_dict.find_children(self.STRING_KEY)
+        (string_value, string_position), = payload_dict.find_children(
+            self.STRING_KEY
+        )
         payload_dict = json.loads(
             payload_dict.source[payload_dict.start:payload_dict.end+1])
         comment_value = payload_dict.get(self.DEVELOPER_COMMENT_KEY)
