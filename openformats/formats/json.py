@@ -306,7 +306,7 @@ class JsonHandler(Handler):
         return at_least_one
 
     def _insert_from_dict(self, parsed, is_real_stringset):
-        at_least_one = False
+        at_least_one = not bool(list(parsed))
 
         for key, key_position, value, value_position in parsed:
 
@@ -323,7 +323,7 @@ class JsonHandler(Handler):
         return at_least_one
 
     def _insert_from_list(self, parsed, is_real_stringset):
-        at_least_one = False
+        at_least_one = not bool(list(parsed))
 
         for value, value_position in parsed:
             self.transcriber.copy_until(value_position - 1)
