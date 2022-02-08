@@ -257,14 +257,23 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_skip_start_of_list(self):
         string1 = self.random_string
         string2 = generate_random_string()
-        openstring2 = OpenString('..1..', string2, order=1)
 
         source = '["%s", "%s"]' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring2])
+        compiled = self.handler.compile(template, [stringset[1]])
 
         self.assertEqual(compiled, '[ "%s"]' % string2)
+
+    def test_empty_dict_at_start_of_list(self):
+        string = self.random_string
+
+        source = '[{}, "%s"]' % string
+
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, stringset)
+
+        self.assertEqual(compiled, '[{}, "%s"]' % string)
 
     def test_skip_end_of_list(self):
         string1 = self.random_string
