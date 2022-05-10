@@ -151,11 +151,6 @@ class PptxFile(object):
                 }
             }
 
-    def sort_key(self, slide):
-        key = [int(c) for c in re.findall(r'(\d+)', slide)]
-        key.append(1 if self.is_notes_slide(slide) else 0)
-        return key
-
     def get_rels_path(self, slides_path):
         path = slides_path.split('/')
         path.insert(-1, '_rels')
@@ -164,10 +159,13 @@ class PptxFile(object):
         return path
 
     def get_slides(self):
-        slides = sorted(
-            list(six.iterkeys(self.__slides)),
-            key=self.sort_key
-        )
+        slides = []
+        main_slides = self._get_sorted_main_slides()
+        for main_slide in main_slides:
+            slides.append(main_slide)
+            related_note = self._get_note_slide_if_exists(main_slide)
+            if related_note:
+                slides.append(related_note)
         return slides
 
     def get_slide(self, slide):
@@ -215,6 +213,51 @@ class PptxFile(object):
 
     def delete(self):
         shutil.rmtree(self.__tmp_folder)
+
+    def _get_slide_number(self, slide):
+        """Extract the slide number
+
+        :param slide: A representation of a slide
+        :type slide: str
+        :return: The number of the slide (its ordering inside the file)
+        :rtype: int
+        """
+        return int(re.findall(r"(\d+)", slide)[0])
+
+    def _get_sorted_main_slides(self):
+        """Sort .pptx slides based on their numbering
+
+        :return: Sorted list of slides
+        :rtype: List[str]
+        """
+        main_slides = [
+            slide
+            for slide in six.iterkeys(self.__slides)
+            if not self.is_notes_slide(slide)
+        ]
+        return sorted(main_slides, key=self._get_slide_number)
+
+    def _get_note_slide_if_exists(self, slide):
+        """Retrieve note for a given slide
+
+        :param slide: A slide (e.g. `/ppt/slides/slide1.xml`)
+        :type slide: str
+        :return: The corresponding note (e.g. `/ppt/notesSlides/notesSlide1.xml`)
+            or `None`, if not exists
+        :rtype: Optinal[str]
+        """
+        rels_soup = BeautifulSoup(self.get_slide_rels(slide), "xml")
+        relationships = rels_soup.find_all("Relationship")
+        related_note_number = None
+        for relationship in relationships:
+            if "relationships/notesSlide" in relationship.get("Type"):
+                related_note_number = self._get_slide_number(relationship.get("Target"))
+                break
+        return (
+            "/ppt/notesSlides/notesSlide{}.xml".format(related_note_number)
+            if related_note_number
+            else None
+        )
 
 
 class PptxHandler(Handler, OfficeOpenXmlHandler):

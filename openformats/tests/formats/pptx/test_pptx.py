@@ -637,3 +637,31 @@ class PptxTestCase(unittest.TestCase):
                 self.assertEqual(pPr["algn"], "ctr")
             if index in just_algn:
                 self.assertEqual(pPr["algn"], "just")
+
+    def test_ordering_with_notes(self):
+        path = '{}/multi_with_notes.pptx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        pptx = PptxFile(content)
+        self.assertListEqual([
+            u'/ppt/slides/slide1.xml',
+            u'/ppt/slides/slide2.xml',
+            u'/ppt/notesSlides/notesSlide1.xml',
+            u'/ppt/slides/slide3.xml',
+            u'/ppt/slides/slide4.xml',
+            u'/ppt/notesSlides/notesSlide2.xml',
+            u'/ppt/slides/slide5.xml',
+            u'/ppt/notesSlides/notesSlide3.xml',
+            u'/ppt/slides/slide6.xml',
+            u'/ppt/notesSlides/notesSlide4.xml',
+            u'/ppt/slides/slide7.xml',
+            u'/ppt/notesSlides/notesSlide5.xml',
+            u'/ppt/slides/slide8.xml',
+            u'/ppt/notesSlides/notesSlide6.xml',
+            u'/ppt/slides/slide9.xml',
+            u'/ppt/notesSlides/notesSlide7.xml',
+            u'/ppt/slides/slide10.xml',
+            u'/ppt/notesSlides/notesSlide8.xml',
+            u'/ppt/slides/slide11.xml',
+        ], pptx.get_slides())
