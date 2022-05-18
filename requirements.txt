@@ -8,4 +8,4 @@ lxml==4.6.2
 beautifulsoup4==4.9.3
 
 # InDesign
-git+git://github.com/kbairak/ucflib@py3_compatibility
+git+https://github.com/kbairak/ucflib@py3_compatibility
