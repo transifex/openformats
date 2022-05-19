@@ -123,6 +123,13 @@ class GithubMarkdownV2CustomTestCase(unittest.TestCase):
         self.assertTrue(should_wrap)
         self.assertEqual(wrap_char, u'"')
 
+    def test_should_not_wrap_in_quotes_if_has_pipe_char(self):
+        openstring = OpenString('k', u'{} Something else'.format(GithubMarkdownHandlerV2.PIPE))
+        should_wrap, wrap_char = self.handler._should_wrap_in_quotes(
+            openstring
+        )
+        self.assertFalse(should_wrap)
+
     def test_wrap_in_quotes(self):
         """Make sure that the string is wrapped and that any existing quote chars
         are escaped."""

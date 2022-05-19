@@ -16,13 +16,14 @@ key2:
   - "text with a #hashtag in it"
   - li 5
 
-description: folded style text
+description: >
+folded style text
 custom_vars:
   var1: "text: some value"
-  var2: "literal
-style with \"quotes\"
+  var2: |
+literal
+style with "quotes"
 text
-"
 nested_key_outer:
   nested_key_inner:
     nested_value

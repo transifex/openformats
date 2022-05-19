@@ -35,6 +35,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     AT_SIGN = '@'  # reserved character in the YAML spec
     BRACKET_LEFT = '['
     BRACKET_RIGHT = ']'
+    PIPE = '|'
 
     # A string that looks like '\u0008'
     ESCAPED_UNICODE = re.compile(r'\\u[a-fA-F0-9]{4}')
@@ -238,9 +239,8 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         # this is to ensure that if the style is literal or folded
         # http://www.yaml.org/spec/1.2/spec.html#id2795688
         # a new line always follows the string
-        if (openstring.flags and openstring.flags[-1] in '|>'
-                and string[-1] != self.NEWLINE):
-            string = string + self.NEWLINE
+        if (openstring.flags and openstring.flags[-1] in '|>'):
+            string = openstring.flags[-1] + self.NEWLINE + string
 
         return string
 
@@ -280,6 +280,10 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             the character that should be used for wrapping
         :rtype: tuple (bool, str)
         """
+        # If pipe flag appears do not wrap it.
+        if self.PIPE in openstring.flags:
+            return False, openstring.flags
+
         # If single or double quote flags appear, wrap it.
         if openstring.flags in [self.DOUBLE_QUOTES, self.SINGLE_QUOTE]:
             return True, openstring.flags
