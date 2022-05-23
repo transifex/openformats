@@ -665,3 +665,140 @@ class PptxTestCase(unittest.TestCase):
             u'/ppt/notesSlides/notesSlide8.xml',
             u'/ppt/slides/slide11.xml',
         ], pptx.get_slides())
+
+    def test_pptx_graphic_framee(self):
+        path = '{}/graphicFrame_with_text.pptx'.format(self.TESTFILE_BASE)
+        with open(path, 'rb') as f:
+            content = f.read()
+
+        handler = PptxHandler()
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 8)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'Agenda for our visit'
+        )
+        openstring = stringset[1]
+        self.assertEqual(openstring.order, 1)
+        self.assertEqual(
+            openstring.string,
+            u'Introduction '
+        )
+
+        openstring = stringset[2]
+        self.assertEqual(openstring.order, 2)
+        self.assertEqual(
+            openstring.string,
+            u'Deep-dive into the business management product & competitive advantages'
+        )
+
+        openstring = stringset[3]
+        self.assertEqual(openstring.order, 3)
+        self.assertEqual(
+            openstring.string,
+            u'Our partner product & competitive advantage'
+        )
+
+        openstring = stringset[4]
+        self.assertEqual(openstring.order, 4)
+        self.assertEqual(
+            openstring.string,
+            u'Migration overview, our promise, and suggested approach'
+        )
+        openstring = stringset[5]
+        self.assertEqual(openstring.order, 5)
+        self.assertEqual(
+            openstring.string,
+            u'Our partner services'
+        )
+
+        openstring = stringset[6]
+        self.assertEqual(openstring.order, 6)
+        self.assertEqual(
+            openstring.string,
+            u'Product technical aspects of our solution '
+        )
+
+        openstring = stringset[7]
+        self.assertEqual(openstring.order, 7)
+        self.assertEqual(
+            openstring.string,
+            u'You are here!'
+        )
+
+        translated_strings = [
+            u'1',
+            u'2',
+            u'3',
+            u'4',
+            u'5',
+            u'6',
+            u'7',
+            u'8',
+        ]
+
+        translated_stringset = []
+        order = 1
+        for extracted, translation in zip(stringset, translated_strings):
+            translated_stringset.append(
+                OpenString(extracted.key, u''.join(translation), order=order)
+            )
+            order += 1
+
+        content = handler.compile(template, translated_stringset)
+        template, stringset = handler.parse(content)
+
+        self.assertEqual(len(stringset), 8)
+
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(
+            openstring.string,
+            u'1'
+        )
+        openstring = stringset[1]
+        self.assertEqual(openstring.order, 1)
+        self.assertEqual(
+            openstring.string,
+            u'2'
+        )
+        openstring = stringset[2]
+        self.assertEqual(openstring.order, 2)
+        self.assertEqual(
+            openstring.string,
+            u'3'
+        )
+        openstring = stringset[3]
+        self.assertEqual(openstring.order, 3)
+        self.assertEqual(
+            openstring.string,
+            u'4'
+        )
+        openstring = stringset[4]
+        self.assertEqual(openstring.order, 4)
+        self.assertEqual(
+            openstring.string,
+            u'5'
+        )
+        openstring = stringset[5]
+        self.assertEqual(openstring.order, 5)
+        self.assertEqual(
+            openstring.string,
+            u'6'
+        )
+        openstring = stringset[6]
+        self.assertEqual(openstring.order, 6)
+        self.assertEqual(
+            openstring.string,
+            u'7'
+        )
+        openstring = stringset[7]
+        self.assertEqual(openstring.order, 7)
+        self.assertEqual(
+            openstring.string,
+            u'8'
+        )
