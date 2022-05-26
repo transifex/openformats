@@ -363,7 +363,7 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
             soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
 
-            for parent in soup.find_all('p:sp'):
+            for parent in soup.find_all(['p:sp', 'p:graphicFrame']):
                 for paragraph in parent.find_all('a:p'):
                     open_string = self.parse_paragraph(paragraph, rels_soup)
                     if not open_string:
@@ -390,7 +390,7 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
             soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
 
-            for parent in soup.find_all('p:sp'):
+            for parent in soup.find_all(['p:sp', 'p:graphicFrame']):
                 for paragraph in parent.find_all('a:p'):
                     self.compile_paragraph(
                         paragraph, rels_soup, stringset, is_rtl=is_rtl
