@@ -511,7 +511,13 @@ class StructuredJsonHandler(JsonHandler):
 
     def _compile_value(self, value, template_value, value_position):
         if value is not None:
-            self.transcriber.add(u"{}".format(value))
+            if value == '' and template_value is None:
+                self.transcriber.add(u"null")
+            else:
+                if template_value is None:
+                    self.transcriber.add(u"\"{}\"".format(value))
+                else:
+                    self.transcriber.add(u"{}".format(value))
         else:
             self.transcriber.add(u"null")
         self.transcriber.skip(len(u"{}".format(template_value)))

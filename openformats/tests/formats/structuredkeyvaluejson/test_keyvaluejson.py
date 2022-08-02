@@ -705,3 +705,145 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         compiled = self.handler.compile(template, expected)
         self.assertEqual(compiled, expected_compilation)
+
+    def test_empty_values_with_null_template_value(self):
+        source = u"""
+        {
+            "a" : {
+                "developer_comment" : null,
+                "string" : "str",
+                "context" : null
+            }
+        }
+        """
+
+        expected_compilation = u"""
+        {
+            "a" : {
+                "developer_comment" : null,
+                "string" : "str",
+                "context" : null
+            }
+        }
+        """
+
+        template, stringset = self.handler.parse(source)
+
+        expected = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].string,
+                context="",
+                developer_comment="",
+                character_limit=stringset[0].character_limit,
+            ),
+        ]
+
+        compiled = self.handler.compile(template, expected)
+        self.assertEqual(compiled, expected_compilation)
+
+    def test_empty_values_with_empty_template_value(self):
+        source = u"""
+        {
+            "a" : {
+                "developer_comment" : "",
+                "string" : "str",
+                "context" : ""
+            }
+        }
+        """
+
+        expected_compilation = u"""
+        {
+            "a" : {
+                "developer_comment" : "",
+                "string" : "str",
+                "context" : ""
+            }
+        }
+        """
+
+        template, stringset = self.handler.parse(source)
+
+        expected = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].string,
+                context="",
+                developer_comment="",
+                character_limit=stringset[0].character_limit,
+            ),
+        ]
+
+        compiled = self.handler.compile(template, expected)
+        self.assertEqual(compiled, expected_compilation)
+
+    def test_non_empty_values_with_null_template_value(self):
+        source = u"""
+        {
+            "a" : {
+                "developer_comment" : null,
+                "string" : "str",
+                "context" : null
+            }
+        }
+        """
+
+        expected_compilation = u"""
+        {
+            "a" : {
+                "developer_comment" : "some_comment",
+                "string" : "str",
+                "context" : "some_context"
+            }
+        }
+        """
+
+        template, stringset = self.handler.parse(source)
+
+        expected = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].string,
+                context="some_context",
+                developer_comment="some_comment",
+                character_limit=stringset[0].character_limit,
+            ),
+        ]
+
+        compiled = self.handler.compile(template, expected)
+        self.assertEqual(compiled, expected_compilation)
+
+    def test_non_empty_values_with_non_existing_template_value(self):
+        source = u"""
+        {
+            "a" : {
+                "string" : "str"
+            }
+        }
+        """
+
+        expected_compilation = u"""
+        {
+            "a" : {
+                "string" : "str",
+                "context" : "some_context",
+                "developer_comment" : "some_comment"
+            }
+        }
+        """
+
+        template, stringset = self.handler.parse(source)
+
+        expected = [
+            OpenString(
+                key=stringset[0].key,
+                string_or_strings=stringset[0].string,
+                context="some_context",
+                developer_comment="some_comment",
+                character_limit=stringset[0].character_limit,
+            ),
+        ]
+
+        compiled = self.handler.compile(template, expected)
+        self.assertEqual(compiled, expected_compilation)
