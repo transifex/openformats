@@ -868,6 +868,43 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
 
+    def test_gt(self):
+        # Parse original file
+        content = self.get_content('with_gt.docx')
+        template, stringset = self.handler.parse(content)
+
+        # Make sure extracted data is OK
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string,
+                         u'This is a > greaterthan')
+        self.assertEqual(openstring.string, openstring.key)
+
+        # Compile with altered translation
+        translation = U'THIS IS A > GREATERTHAN'
+        stringset = [
+            OpenString(openstring.key, translation, order=0)
+        ]
+        content = self.handler.compile(template, stringset)
+
+        # Make sure compiled file has altered data
+        docx = DocxFile(content)
+        self.assertFalse("This is a" in docx.get_document())
+        self.assertFalse("greaterthan" in docx.get_document())
+        self.assertTrue("THIS IS A" in docx.get_document())
+        self.assertTrue("GREATERTHAN" in docx.get_document())
+
+        # Parse compiled file
+        template, stringset = self.handler.parse(content)
+
+        # Make sure compiled file has the correct translation
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string, translation)
+        self.assertEqual(openstring.string, openstring.key)
+
     def test_rtl(self):
         path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
         with open(path, 'rb') as f:

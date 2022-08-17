@@ -225,6 +225,9 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
 
     @classmethod
     def remove_text_element(cls, text_element):
+        if text_element.find_parent('w:r') is None:
+            return
+
         run_parent = text_element.find_parent('w:r').parent
 
         if run_parent.name == 'hyperlink':
