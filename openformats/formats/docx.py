@@ -226,7 +226,8 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
     @classmethod
     def remove_text_element(cls, text_element):
         if text_element.find_parent('w:r') is None:
-            return
+            import ipdb; ipdb.set_trace(context=15)
+            text_element.decompose()
 
         run_parent = text_element.find_parent('w:r').parent
 
