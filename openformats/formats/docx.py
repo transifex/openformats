@@ -225,16 +225,12 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
 
     @classmethod
     def remove_text_element(cls, text_element):
-        if text_element.find_parent('w:r') is None:
-            import ipdb; ipdb.set_trace(context=15)
-            text_element.decompose()
+        if text_element.find_parent('w:r') is not None:
+            run_parent = text_element.find_parent('w:r').parent
+            if run_parent.name == 'hyperlink':
+                return text_element.find_parent('w:hyperlink').decompose()
 
-        run_parent = text_element.find_parent('w:r').parent
-
-        if run_parent.name == 'hyperlink':
-            text_element.find_parent('w:hyperlink').decompose()
-        else:
-            text_element.decompose()
+        return text_element.decompose()
 
     @classmethod
     def set_rtl_orientation(cls, paragraph):
