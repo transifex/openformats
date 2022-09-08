@@ -868,6 +868,25 @@ class DocxTestCase(unittest.TestCase):
         self.assertEqual(openstring.string, translation)
         self.assertEqual(openstring.string, openstring.key)
 
+    def test_no_parent(self):
+        content = self.get_content('test_no_parent.docx')
+        template, stringset = self.handler.parse(content)
+        openstring = stringset[0]
+        translation = u'>'
+
+        stringset = [
+            OpenString(openstring.key, translation, order=1)
+        ]
+        content = self.handler.compile(template, stringset)
+        # Parse compiled file
+        template, stringset = self.handler.parse(content)
+        # Make sure compiled file has the correct translation
+        self.assertEqual(len(stringset), 1)
+        openstring = stringset[0]
+        self.assertEqual(openstring.order, 0)
+        self.assertEqual(openstring.string, translation)
+        self.assertEqual(openstring.string, openstring.key)
+
     def test_rtl(self):
         path = '{}/hello_world.docx'.format(self.TESTFILE_BASE)
         with open(path, 'rb') as f:
