@@ -1,5 +1,4 @@
-# syntax = docker/dockerfile:1.0.2-experimental
-ARG PY_VERSION=2.7
+ARG PY_VERSION=3.6
 
 FROM python:${PY_VERSION}-slim-buster as builder
 

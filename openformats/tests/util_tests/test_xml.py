@@ -72,7 +72,7 @@ class DumbXmlTestCase(unittest.TestCase):
                  ('<!---', "Comment not closed on line 1"),
                  ('<!--jafosijdfoas-', "Comment not closed on line 1"))
         for source, error_msg in cases:
-            with self.assertRaisesRegexp(DumbXmlSyntaxError,
+            with self.assertRaisesRegex(DumbXmlSyntaxError,
                                         r'^{}$'.format(re.escape(error_msg))):
                 dumb_xml = NewDumbXml(source)
                 dumb_xml.end  # should expand all properties eventually
@@ -177,7 +177,7 @@ class DumbXmlTestCase(unittest.TestCase):
             ('<a></a aosdjfio', "Invalid closing of tag 'a' on line 1"),
         )
         for source, error_msg in cases:
-            with self.assertRaisesRegexp(DumbXmlSyntaxError,
+            with self.assertRaisesRegex(DumbXmlSyntaxError,
                                         r'^{}$'.format(re.escape(error_msg))):
                 list(NewDumbXml(source))
 
