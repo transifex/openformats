@@ -258,7 +258,7 @@ class JsonHandler(Handler):
         at_least_one = False
 
         if isinstance(value, (six.binary_type, six.text_type)):
-            if value != '':
+            if value.strip():
                 string = self._get_next_string()
                 string_exists = string is not None
 
