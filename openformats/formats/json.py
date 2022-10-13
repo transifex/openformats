@@ -9,12 +9,12 @@ from itertools import count
 
 import six
 
-from ..exceptions import ParseError
-from ..handlers import Handler
-from ..strings import OpenString
-from ..transcribers import Transcriber
-from ..utils.icu import ICUCompiler, ICUParser
-from ..utils.json import DumbJson, escape, unescape
+from openformats.exceptions import ParseError
+from openformats.handlers import Handler
+from openformats.strings import OpenString
+from openformats.transcribers import Transcriber
+from openformats.utils.icu import ICUCompiler, ICUParser
+from openformats.utils.json import DumbJson, escape, unescape
 
 try:
     from StringIO import StringIO
@@ -509,7 +509,9 @@ class StructuredJsonHandler(JsonHandler):
         self.transcriber.copy_to_end()
         return self.transcriber.get_destination()
 
-    def _compile_value(self, value, template_value, value_position):
+    def _compile_value(self, value, template_value, value_position, skip=False):
+        value = template_value if skip else value
+
         if value is not None:
             if value == '' and template_value is None:
                 self.transcriber.add(u"null")
@@ -520,6 +522,7 @@ class StructuredJsonHandler(JsonHandler):
                     self.transcriber.add(u"{}".format(value))
         else:
             self.transcriber.add(u"null")
+
         self.transcriber.skip(len(u"{}".format(template_value)))
         self.transcriber.copy_until(value_position +
                                     len(u"{}".format(template_value)) +
@@ -539,7 +542,16 @@ class StructuredJsonHandler(JsonHandler):
                         self.transcriber.copy_until(value_position)
                         self._compile_recursively(value)
                 else:
-                    translation = next(self.translations, None)
+                    (value, _) = current_part.find_children(self.STRING_KEY)[0]
+                    if not value.strip():
+                        translation = OpenString(
+                            "", value
+                        )
+                        skip=True
+                    else:
+                        translation = next(self.translations, None)
+                        skip=False
+
                     context_added = False
                     character_limit_added = False
                     developer_comments_added = False
@@ -561,19 +573,22 @@ class StructuredJsonHandler(JsonHandler):
                             context = translation.context
                             self._compile_value(self.escape(context),
                                                 value,
-                                                value_position)
+                                                value_position,
+                                                skip=skip)
                             context_added = True
                         elif key == self.DEVELOPER_COMMENT_KEY and translation:
                             developer_comment = translation.developer_comment
                             self._compile_value(self.escape(developer_comment),
                                                 value,
-                                                value_position)
+                                                value_position,
+                                                skip=skip)
                             developer_comments_added = True
                         elif key == self.CHARACTER_LIMIT_KEY and translation:
                             character_limit = translation.character_limit
                             self._compile_value(character_limit,
                                                 value,
-                                                value_position)
+                                                value_position,
+                                                skip=skip)
                             character_limit_added = True
                         elif key == self.STRING_KEY and translation:
                             if translation.pluralized:

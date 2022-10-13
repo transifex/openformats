@@ -29,6 +29,16 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                                             self.random_string, order=0)
         self.random_hash = self.random_openstring.template_replacement
 
+    def test_broken(self):
+        stringset = [
+            OpenString("b", "foo_tr", order=0)
+        ]
+        string_hash = stringset[0].template_replacement
+        template, stringset = self.handler.parse('{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}') # noqa
+        compiled = self.handler.compile(template, stringset)
+        self.assertEqual(template, '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "%s"}}' % string_hash) # noqa
+        self.assertEqual(compiled, '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}') # noqa
+
     def test_simple(self):
         template, stringset = self.handler.parse('{"a": {"string":"%s"}}' %
                                                  self.random_string)
@@ -40,12 +50,12 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                          self.random_openstring.__dict__)
         self.assertEqual(compiled,
                          '{"a": {"string":"%s"}}' % self.random_string)
-    
+
     def test_dots_in_key(self):
         first_level_key = "a.b"
         source = '{"%s": {"c": {"string": "%s"}}}' % (first_level_key, self.random_string)
         openstring = OpenString(
-            "{}.c".format(self.handler._escape_key(first_level_key)), 
+            "{}.c".format(self.handler._escape_key(first_level_key)),
             self.random_string, order=0
         )
         random_hash = openstring.template_replacement
@@ -63,7 +73,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         first_level_key = "a\/b"
         source = '{"%s": {"c": {"string": "%s"}}}' % (first_level_key, self.random_string)
         openstring = OpenString(
-            "{}.c".format(self.handler._escape_key(first_level_key)), 
+            "{}.c".format(self.handler._escape_key(first_level_key)),
             self.random_string, order=0
         )
         random_hash = openstring.template_replacement
@@ -460,7 +470,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = """
         {
             "a": {
-                "character_limit":150, 
+                "character_limit":150,
                 "string":"%s",
                 "developer_comment": "i am a developer",
                 "context": "contexttt"
@@ -471,7 +481,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         expected_compilation = """
         {
             "a": {
-                "character_limit":49, 
+                "character_limit":49,
                 "string":"%s",
                 "developer_comment": "comment_changed",
                 "context": "context_changed"
