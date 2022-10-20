@@ -29,7 +29,17 @@ class FluentHandler(OrderedCompilerMixin, Handler):
             stringset.append(string)
             transcriber.copy_until(item.value.span.start)
             transcriber.add(string.template_replacement)
-            transcriber.skip(item.value.span.end - item.value.span.start)
+            transcriber.skip_until(item.value.span.end)
+            for attribute in item.attributes:
+                attribute_key = attribute.id.name
+                value = source[attribute.value.span.start : attribute.value.span.end]
+                string = OpenString(
+                    ".".join((key, attribute_key)), value, order=next(order)
+                )
+                stringset.append(string)
+                transcriber.copy_until(attribute.value.span.start)
+                transcriber.add(string.template_replacement)
+                transcriber.skip_until(attribute.value.span.end)
         transcriber.copy_to_end()
         return transcriber.get_destination(), stringset
 
