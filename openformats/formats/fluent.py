@@ -37,13 +37,13 @@ class FluentHandler(OrderedCompilerMixin, Handler):
     def unescape(string: str):
         lines = string.splitlines()
         if len(lines) > 1:
-            indent = re.search("^s*", lines[1]).end()
+            indent = re.search("^\s*", lines[1]).end()
             result = [lines[0].strip()]
             for line in lines[1:]:
                 if not line[:indent].isspace():
                     return string
                 result.append(line[indent:].strip())
-            return " ".join(lines)
+            return " ".join(result)
         else:
             return string
 
