@@ -14,6 +14,7 @@ tabs-close-warning =
 -sync-brand-name = Firefox Account
 
 sync-dialog-title = {-sync-brand-name}
+    .attribute = attribute value
 sync-headline-title =
     {-sync-brand-name}: The best way to bring
     your data always with you
