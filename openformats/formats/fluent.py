@@ -9,6 +9,7 @@ from ..handlers import Handler
 
 
 class FluentHandler(Handler):
+    # https://projectfluent.org/
     name = "FLUENT"
     extension = "ftl"
     EXTRACTS_RAW = True
