@@ -331,7 +331,7 @@ class YamlHandler(Handler):
         """
         return yaml_data
 
-    def _write_styled_literal(self, string):
+    def _write_styled_literal(self, string, template=None, hash_position=None):
         """ Produce a properly formatted YAML string
 
         Properly format translation string based on string's style
@@ -348,15 +348,14 @@ class YamlHandler(Handler):
 
         stream = StringIO()
         emitter = Emitter(stream, allow_unicode=True)
-        indent = self.indent * (len(string.key.split('.')) + self.extra_indent)
-        emitter.indent = indent
+        style = string.flags.split(':')[-1]
+        emitter.indent = self._calculate_indent(string, template, hash_position)
         # set best_width to `float(inf)` so that long strings are not broken
         # into multiple lines
         emitter.best_width = float('inf')
 
         analysis = emitter.analyze_scalar(string.string)
 
-        style = string.flags.split(':')[-1]
 
         if style == '"':
             emitter.write_double_quoted(string.string)
@@ -381,6 +380,31 @@ class YamlHandler(Handler):
         emitter.stream.close()
         return translation
 
+    def _string_key_levels(self, key):
+        return len(key.split('.'))
+
+    def _calculate_indent(self, string, template=None, hash_position=None):
+        default_indent = self.indent * (
+            self._string_key_levels(string.key) + self.extra_indent)
+        style = string.flags.split(':')[-1]
+        if style == '|':
+            assert (
+                isinstance(hash_position, int) and isinstance(template, six.text_type)
+            ), "A template and a position are needed to calculate indent"
+            levels =  self._string_key_levels(string.key)
+            key_prefix = string.key if levels <= 1 \
+                         else '.'.join(string.key.split('.')[0:levels-1])
+            last_line_break_pos = template.rfind('\n', 0, hash_position)
+            if last_line_break_pos and last_line_break_pos < hash_position:
+                indent_string = template[last_line_break_pos+1:hash_position]
+                # Consider as posible indent only if indent_string contains spaces
+                if re.search(r'^[ ]+-?[ ]+$', indent_string):
+                    possible_indent = len(template[last_line_break_pos+1:hash_position])
+                    if not key_prefix in self.key_indent_map:
+                        self.key_indent_map[key_prefix] = possible_indent
+            return self.key_indent_map.get(key_prefix, default_indent)
+        return default_indent
+
     def _compile_from_template(self, template, stringset, **kwargs):
         """ Compiles translation file from template
 
@@ -392,13 +416,14 @@ class YamlHandler(Handler):
         """
         transcriber = Transcriber(template)
         template = transcriber.source
+        self.key_indent_map = {}
 
         for string in stringset:
+            hash_position = template.index(string.template_replacement)
             if string.pluralized:
                 translation = self._compile_pluralized(string)
             else:
-                translation = self._write_styled_literal(string)
-            hash_position = template.index(string.template_replacement)
+                translation = self._write_styled_literal(string, template, hash_position)
             transcriber.copy_until(hash_position)
             # The context contains custom tags. If it exists, we must prepend
             # it and apply a space afterwards so it doesn't get merged with the

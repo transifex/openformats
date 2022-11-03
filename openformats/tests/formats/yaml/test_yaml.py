@@ -96,6 +96,7 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(self.handler._find_comment(content, start, end), '')
 
     def test_write_styled_literal(self):
+        self.handler.key_indent_map = {}
         string = OpenString('key', "a random string", flags="\"")
         self.assertEqual(self.handler._write_styled_literal(string),
                          "\"a random string\"")
@@ -108,10 +109,11 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(self.handler._write_styled_literal(string),
                          ">-\n  a random string\n")
 
-        string = OpenString('key', "a random string\nwith multiple lines\n",
+        string = OpenString('key.[0]', "a random string\nwith multiple lines\n",
                             flags="|")
-        self.assertEqual(self.handler._write_styled_literal(string),
-                         "|\n  a random string\n  with multiple lines\n")
+        template = '---\ntitle: 6391362253bdac99fff7bf50ff014be3_tr\nmdBody:\n\n  - 5b269595654e5f2059ec52043a54b454_tr'
+        self.assertEqual(self.handler._write_styled_literal(string, template, 60),
+                         "|\n    a random string\n    with multiple lines\n")
 
         string = OpenString('key', "a random string", flags="")
         self.assertEqual(self.handler._write_styled_literal(string),
