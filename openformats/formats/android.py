@@ -382,9 +382,9 @@ class AndroidHandler(Handler):
 
         # This is needed in case the first tag is skipped to retain
         # the file's formating
-        parsed_text_length = len(parsed.text) if parsed.text else 0
-        first_tag_position = parsed.text_position + parsed_text_length
-        self.transcriber.copy_until(first_tag_position)
+        if parsed.text and parsed.text_position:
+            first_tag_position = parsed.text_position + len(parsed.text)
+            self.transcriber.copy_until(first_tag_position)
 
         children_iterator = parsed.find_children(
             self.STRING,
