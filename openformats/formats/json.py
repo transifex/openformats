@@ -98,6 +98,11 @@ class JsonHandler(Handler):
 
                                     if openstring:
                                         self.stringset.append(openstring)
+                            else:
+                                # Need this for line number
+                                self.transcriber.copy_until(key_position)
+                                raise ParseError(u"Invalid string value in line {}".
+                                                format(self.transcriber.line_number))
 
                         elif isinstance(value, DumbJson):
                             self._extract(value, key)
@@ -140,6 +145,9 @@ class JsonHandler(Handler):
                     pass
         else:
             raise ParseError("Invalid JSON")
+
+        if not self.stringset and self.name == "STRUCTURED_JSON":
+            raise ParseError('No strings could be extracted')
 
     def _create_openstring(self, key, value, value_position):
         """Return a new OpenString based on the given key and value
@@ -559,7 +567,7 @@ class StructuredJsonHandler(JsonHandler):
                     line_separator = None
                     key_value_separator = None
                     for (key, key_position, value,
-                         value_position) in current_part:
+                        value_position) in current_part:
                         prev_position_end = self.transcriber.ptr
                         line_separator = current_part.source[
                             prev_position_end+1:key_position-1
@@ -594,7 +602,7 @@ class StructuredJsonHandler(JsonHandler):
                             if translation.pluralized:
                                 string_replacement = ICUCompiler().\
                                     serialize_strings(translation.string,
-                                                      delimiter=' ')
+                                                    delimiter=' ')
                                 string_replacement = value.replace(
                                     translation.template_replacement,
                                     string_replacement,

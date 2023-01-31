@@ -142,13 +142,9 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                        "No JSON object could be decoded"))
 
     def test_invalid_json_type(self):
-        template, stringset = self.handler.parse('[false]')
-        self.assertEqual(stringset, [])
-        self.assertEqual(template, '[false]')
+        self._test_parse_error('[false]', "No strings could be extracted")
 
-        template, stringset = self.handler.parse('{"false": false}')
-        self.assertEqual(stringset, [])
-        self.assertEqual(template, '{"false": false}')
+        self._test_parse_error('{"false": false}', "No strings could be extracted")
 
     def test_not_json_container(self):
         self._test_parse_error('"hello"',
@@ -166,6 +162,12 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
         self.assertEqual(compiled, source)
+
+    def test_invalid_structured_json_value(self):
+        self._test_parse_error(
+            '{"key": {"string": {"test": {"string": "test"}}}}',
+            "Invalid string value in line 1"
+        )
 
     def test_duplicate_keys(self):
         self._test_parse_error('{"a": {"string": "hello"}, "a": {"string": "hello"}}', # noqa
@@ -689,32 +691,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             }
         }
         """
-
-        expected_compilation = u"""
-        {
-            "a": {
-                "string": ""
-            },
-            "b": {
-                "string": "x0x0",
-                "character_limit": 35
-            }
-        }
-        """
-        template, stringset = self.handler.parse(source)
-
-        expected = [
-            OpenString(
-                key=stringset[0].key,
-                string_or_strings=stringset[0].string,
-                context=stringset[0].context,
-                developer_comment=stringset[0].developer_comment,
-                character_limit=stringset[0].character_limit,
-            ),
-        ]
-
-        compiled = self.handler.compile(template, expected)
-        self.assertEqual(compiled, expected_compilation)
+        self._test_parse_error(
+            source,
+            "No strings could be extracted"
+        )
 
     def test_empty_values_with_null_template_value(self):
         source = u"""
