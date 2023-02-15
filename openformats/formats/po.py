@@ -1,10 +1,9 @@
-import copy
 import itertools
 import re
-
-import six
+from copy import copy
 
 import polib
+import six
 
 from ..exceptions import ParseError
 from ..handlers import Handler
@@ -21,32 +20,217 @@ class PoHandler(Handler):
     name = "PO"
     extension = "po"
 
-    FUZZY_FLAG = 'fuzzy'
+    FUZZY_FLAG = "fuzzy"
     EXTRACTS_RAW = False
     SPECIFIER = re.compile(
-        '%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?'
-        '(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))'
+        r"%((?:(?P<ord>\d+)\$|\((?P<key>\w+)\))?(?P<fullvar>[+#\- 0]*(?:\d+)?"
+        r"(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))"
     )
 
-    def parse(self, content, is_source=False):
-        stringset = []
-        self.is_source = is_source
-        self.order_generator = itertools.count()
+    def parse(self, source, is_source=False):
         try:
-            po = polib.pofile(content)
+            po = polib.pofile(source)
         except Exception as e:
-            raise ParseError("Error while validating PO file syntax: {}".
-                             format(six.text_type(e)))
-        self.only_values = False
-        self.only_keys = False
-        self.new_po = copy.copy(po)
-        self.unique_keys = set()
-        for entry in po:
-            openstring = self._handle_entry(entry)
-            if openstring is not None:
-                stringset.append(openstring)
+            raise ParseError("Error while validating PO file syntax: {}".format(e))
+        existing_keys = set()
 
-        return self.new_po, stringset
+        # Do this in two passes, on the first pass we collect the data and
+        # check that for source files we don't have conflicting PO/POT
+        # semantics. In the second pass, we extract the strings and modify the
+        # PoFile into a template
+
+        string_data_list = []
+        string_types = set()  # choices: EMPTY, SPACES, NOT_EMPTY
+        for entry in po:
+            msgid = entry.msgid.replace("\\", "\\\\").replace(":", "\\:")
+            if not msgid:
+                raise ParseError("Found empty msgid.")
+            msgid_plural = entry.msgid_plural.replace("\\", "\\\\").replace(":", "\\:")
+
+            pluralized = bool(msgid_plural)
+            if pluralized:
+                if entry.msgstr.strip():
+                    raise ParseError(
+                        (
+                            "An unexpected msgstr was found on the pluralized entry "
+                            "with msgid '{}' and msgid_plural '{}'"
+                        ).format(entry.msgid, entry.msgid_plural)
+                    )
+                key = ":".join((msgid, msgid_plural))
+            else:
+                if any(entry.msgstr_plural.values()):
+                    raise ParseError(
+                        (
+                            "Found unexpected msgstr[*] on the non pluralized entry "
+                            "with msgid '{}'"
+                        ).format(entry.msgid)
+                    )
+                key = msgid
+
+            context = entry.msgctxt if entry.msgctxt is not None else ""
+            if (key, context) in existing_keys:
+                self._raise_duplicate_error(entry)
+            existing_keys.add((key, context))
+
+            string_data = {
+                "msgid": entry.msgid,
+                "msgid_plural": entry.msgid_plural,
+                "key": key,
+                "context": context,
+                "pluralized": pluralized,
+            }
+            string_data.update(self._get_metadata(entry))
+
+            if pluralized:
+                msgstrs = {
+                    int(key): value for key, value in entry.msgstr_plural.items()
+                }
+            else:
+                msgstrs = {5: entry.msgstr}
+
+            if any((string.strip() for string in msgstrs.values())):
+                string_type = "NOT_EMPTY"
+                if any((not string for string in msgstrs.values())):
+                    raise ParseError(
+                        (
+                            "Incomplete plural forms found on the entry with msgid "
+                            "'{}' and msgid_plural '{}'"
+                        ).format(entry.msgid, entry.msgid_plural)
+                    )
+            elif all((not string for string in msgstrs.values())):
+                string_type = "EMPTY"
+            else:
+                string_type = "SPACES"
+
+            if is_source:
+                # - If all entries are empty, then this is a POT file and we shouldn't
+                #   expect any entries to have a msgstr value.
+                # - If all entries are not empty, then this is a PO file and we should
+                #   expect all entries to have a msgstr value
+                # - msgstr values filled with space characters should be compatible with
+                #   both file types, ie
+                #   - if the rest of the msgstr values are empty, then msgstrs with
+                #     space characters are also considered empty
+                #   - if the rest of the msgstr values are not empty, then msgstrs with
+                #     space characters are also considered not empty
+                if string_type == "EMPTY" and "NOT_EMPTY" in string_types:
+                    raise ParseError(
+                        (
+                            "The entry with msgid '{}' includes an empty msgstr. "
+                            "Provide a value and try again"
+                        ).format(entry.msgid)
+                    )
+                elif string_type == "NOT_EMPTY" and "EMPTY" in string_types:
+                    raise ParseError(
+                        (
+                            "A non-empty msgstr was found on the entry with msgid "
+                            "'{}'. Remove and try again"
+                        ).format(entry.msgid)
+                    )
+            string_types.add(string_type)
+
+            string_data.update({"msgstrs": msgstrs, "string_type": string_type})
+            string_data_list.append(string_data)
+
+        file_type = "PO" if "NOT_EMPTY" in string_types else "POT"
+        stringset = []
+        order = itertools.count()
+        indexes_to_remove = []
+
+        for i, (string_data, entry) in enumerate(zip(string_data_list, po)):
+            if is_source:
+                if file_type == "POT":
+                    # This is a POT file, we must consider the msgids as strings
+                    if string_data["pluralized"]:
+                        string_values = {
+                            0: string_data["msgid"],
+                            1: string_data["msgid_plural"],
+                        }
+                    else:
+                        string_values = {5: string_data["msgid"]}
+                else:
+                    # This is a PO file, we must consider the msgstrs as strings
+                    string_values = string_data["msgstrs"]
+            else:
+                if string_data["string_type"] == "EMPTY":
+                    # Translation files are all assumed to be PO files. Empty entries
+                    # should be removed from the stringset
+                    indexes_to_remove.append(i)
+                    continue
+                string_values = string_data["msgstrs"]
+            openstring = OpenString(
+                string_data["key"],
+                string_values,
+                fuzzy=string_data["fuzzy"],
+                order=next(order) if not string_data["fuzzy"] else None,
+                context=string_data["context"],
+                pluralized=string_data["pluralized"],
+                flags=string_data["flags"],
+                occurrences=string_data["occurrences"],
+                developer_comment=string_data["developer_comment"],
+            )
+            stringset.append(openstring)
+            if string_data["fuzzy"]:
+                indexes_to_remove.append(i)
+            elif string_data["pluralized"]:
+                entry.msgstr_plural = {"0": openstring.template_replacement}
+            else:
+                entry.msgstr = openstring.template_replacement
+
+        self._smart_remove(po, indexes_to_remove)
+        return po, stringset
+
+    def _raise_duplicate_error(self, entry):
+        has_context = entry.msgctxt is not None
+        pluralized = bool(entry.msgid_plural)
+        if has_context:
+            if pluralized:
+                raise ParseError(
+                    (
+                        "A duplicate (msgid, msgid_plural) combination was detected "
+                        "({}, {}). Use a unique msgid, msgid_plural combination or a "
+                        "unique msgctxt to differentiate (the existing msgctxt '{}' is "
+                        "a duplicate one)"
+                    ).format(entry.msgid, entry.msgid_plural, entry.msgctxt)
+                )
+            else:
+                raise ParseError(
+                    (
+                        "A duplicate msgid was detected ({}). Use a unique msgid or a "
+                        "unique msgctxt to differentiate (the existing msgctxt '{}' is "
+                        "a duplicate one)"
+                    ).format(entry.msgid, entry.msgctxt)
+                )
+        else:
+            if pluralized:
+                raise ParseError(
+                    (
+                        "A duplicate (msgid, msgid_plural) combination was detected "
+                        "({}, {}). Use a unique msgid, msgid_plural combination or add "
+                        "a msgctxt to differentiate"
+                    ).format(entry.msgid, entry.msgid_plural)
+                )
+            else:
+                raise ParseError(
+                    (
+                        "A duplicate msgid was detected ({}). Use a unique msgid or "
+                        "add a msgctxt to differentiate"
+                    ).format(entry.msgid)
+                )
+
+    def _get_metadata(self, entry):
+        return {
+            "occurrences": ", ".join(
+                (
+                    ":".join((item for item in occurrence))
+                    for occurrence in entry.occurrences
+                )
+            )
+            or None,
+            "developer_comment": "\n".join((entry.comment, entry.tcomment)),
+            "flags": ", ".join(entry.flags),
+            "fuzzy": "fuzzy" in entry.flags,
+        }
 
     @staticmethod
     def pofile_to_str(po_file):
@@ -61,243 +245,17 @@ class PoHandler(Handler):
         in the compiled file.
         """
         result = []
-        headers = po_file.header.split('\n')
+        headers = po_file.header.split("\n")
         for header in headers:
-            if header[:1] in [',', ':']:
-                result.append('#%s' % header)
+            if header[:1] in [",", ":"]:
+                result.append("#%s" % header)
             else:
-                result.append('# %s' % header)
+                result.append("# %s" % header)
         result.append(six.text_type(po_file.metadata_as_entry()))
         for entry in po_file:
             result.append(six.text_type(entry))
 
-        return six.text_type('\n'.join(result))
-
-    def _handle_entry(self, entry):
-        """Handles a po file entry.
-        Will retrieve entry's information (pluralized, fuzzy) and create
-        an openstring with all relevant information.
-
-        :param entry: The po's file entry to handle.
-        :returns: An openstring if one was creates or None is the entry's
-                    string was None.
-
-        NOTE: In case of fuzzy entry or openstring == None it will remove
-        the entry from the compiled po.
-        """
-        entry_key, string, openstring_kwargs = self._get_string_data(entry)
-        if string is not None:
-            # Check fuzziness
-            if self.FUZZY_FLAG in entry.flags:
-                # If fuzzy create flag and remove from template
-                openstring_kwargs['fuzzy'] = True
-                self.new_po.remove(entry)
-            else:
-                openstring_kwargs['order'] = next(self.order_generator)
-            return self._create_openstring(
-                entry, entry_key, string, openstring_kwargs
-            )
-        self.new_po.remove(entry)
-        return None
-
-    def _get_string_data(self, entry):
-        """Retrieves the string and it's information from the entry.
-
-        :param entry: The po's file entry containing the string.
-        :returns: A 3-tuple with the key identifying the entry, the entry's
-                    string and a dictionary containing the strings data.
-        :raises: ParseError if a non pluralized entry contains pluralized
-                    string or if a pluralized entry contains a non pluralized
-                    string.
-        """
-        key, plural_key = self._get_keys(entry)
-        if plural_key:
-            if entry.msgstr.strip():
-                raise ParseError(
-                    u"An unexpected msgstr was found on the pluralized entry "
-                    u"with msgid `{}` and msgid_plural `{}`.".format(
-                        key, plural_key
-                    )
-                )
-            pluralized = True
-            entry_key = ':'.join([key, plural_key])
-        else:
-            if entry.msgstr_plural:
-                raise ParseError(
-                    u"Found unexpected msgstr[*] on the non pluralized entry "
-                    u"with msgid `{}`.".format(key)
-                )
-            pluralized = False
-            entry_key = key
-
-        self._validate_unique_key_and_context(
-            entry_key, pluralized, entry, context=entry.msgctxt
-        )
-
-        occurrences = self._format_occurrences(entry.occurrences)
-        entry_comments = self._format_comments(entry.comment, entry.tcomment)
-
-        openstring_kwargs = {
-            'context': entry.msgctxt if entry.msgctxt is not None else "",
-            'pluralized': pluralized,
-            'flags': ', '.join(entry.flags),
-            'occurrences': occurrences if occurrences else None,
-            'developer_comment': entry_comments,
-        }
-
-        string = self._get_string(entry, pluralized)
-        return entry_key, string, openstring_kwargs
-
-    def _get_keys(self, entry):
-        """Retrieves the keys identifying the entry.
-        Before returning the keys it escapes them to avoid hash collisions.
-
-        :param entry: The entry to retrieve the keys from.
-        :returns: A 2-tuple containing the key and the plural key.
-                    For non pluralized entries the plural key is an empty
-                    string.
-        """
-        # Get format keys to avoid collisions
-        key = entry.msgid.replace(
-            '\\', '\\\\'
-        ).replace(':', '\\:')
-        plural_key = entry.msgid_plural.replace(
-            '\\', '\\\\'
-        ).replace(':', '\\:')
-        if not key:
-            raise ParseError(u"Found empty msgid.")
-        return key, plural_key
-
-    def _validate_unique_key_and_context(self, key, pluralized, entry,
-                                         context=None):
-        """Validate that a key, context combination is unique across the file.
-        """
-        if (key, context) in self.unique_keys:
-            if not pluralized:
-                msg = (
-                    u"A duplicate msgid was detected ({}). Use a unique "
-                    u"msgid ".format(
-                        entry.msgid
-                    )
-                )
-            else:
-                msg = (
-                    u"A duplicate (msgid, msgid_plural) combination was "
-                    u"detected ({}, {}). Use a unique msgid, msgid_plural "
-                    u"combination ".format(
-                        entry.msgid, entry.msgid_plural
-                    )
-                )
-            if context is not None:
-                msg += (
-                    u"or a unique msgctxt to differentiate "
-                    u"(the existing msgctxt `{}` is a duplicate one)."
-                ).format(entry.msgctxt)
-            else:
-                msg += u"or add a msgctxt to differentiate."
-            raise ParseError(msg)
-        self.unique_keys.add((key, context))
-
-    def _get_string(self, entry, pluralized):
-        """Returns the string of the entry.
-        It starts by retrieving the msgstr attribute from the entry. If the
-        msgstr is empty it will fallback to the msgid.
-
-        :param entry: The entry to retrieve the string from.
-        :param pluralized: If True expect a pluralized string.
-        :returns: The string of the entry.
-        :raises: ParseError if inconsistency is found on the file. To be more
-                    verbose: Either all msgstr attributes are filled or none
-                    is.
-        """
-        if pluralized:
-            string = {int(k): v for k, v in six.iteritems(entry.msgstr_plural)}
-
-        else:
-            string = entry.msgstr
-
-        is_empty = self._validate_empty(entry, string, pluralized)
-
-        if is_empty and not self.is_source:
-            return None
-        elif is_empty:
-            if not self.only_values:
-                self.only_keys = True
-                if len(entry.msgstr_plural) == 1:
-                    string = {0: entry.msgid}
-                else:
-                    string = entry.msgid if not pluralized else {
-                        0: entry.msgid,
-                        1: entry.msgid_plural
-                    }
-            else:
-                raise ParseError(
-                    u"The entry with msgid `{}` includes an empty msgstr. "
-                    u"Provide a value and try again.".format(entry.msgid)
-                )
-        elif not self.only_keys:
-            self.only_values = True
-        else:
-            raise ParseError(
-                u"A non-empty msgstr was found on the entry with "
-                u"msgid `{}`. Remove and try again.".format(entry.msgid)
-            )
-        return string
-
-    def _validate_empty(self, entry, string, pluralized):
-        """Checks if a string is empty or not.
-        :param entry: The entry that contained the string.
-        :param string: The string to validate.
-        :param pluralized: If true the string is pluralized.
-
-        :returns: True is the string is empty else False.
-        :raises: ParseError if the string is pluralized and not all the plurals
-                    are filled (at least one is).
-        """
-        if not string:
-            return True
-        if pluralized:
-            # Find the plurals that have empty string
-            text_value_set = set(
-                value and value.strip() or ""
-                for value in six.itervalues(string)
-            )
-            if "" in text_value_set and len(text_value_set) != 1:
-                # If not all plurals have empty strings raise ParseError
-                msg = (
-                    u"Incomplete plural forms found on the entry with "
-                    u"msgid `{}` and msgid_plural `{}`.".format(
-                        entry.msgid, entry.msgid_plural
-                    )
-                )
-                raise ParseError(msg)
-            elif "" in text_value_set:
-                return True
-        elif string.strip() == "":
-            return True
-        return False
-
-    def _create_openstring(self, entry, entry_key, string, openstring_kwargs):
-        """Creates an openstring.
-        Will also place a hash at the msgstr attribute of the entry for the
-        template.
-
-        :param entry: The entry the openstring is created from.
-        :param entry_key: The key identifying the entry.
-        :param string: The string the entry contains.
-        :param openstring_kwargs: Extra information about the string.
-        :returns: The openstring.
-        """
-        openstring = OpenString(
-            entry_key,
-            string,
-            **openstring_kwargs
-        )
-        if not openstring_kwargs['pluralized']:
-            entry.msgstr = openstring.template_replacement
-        else:
-            entry.msgstr_plural = {'0': openstring.template_replacement}
-        return openstring
+        return six.text_type("\n".join(result))
 
     def compile(self, template, stringset, **kwargs):
         stringset = iter(stringset)
@@ -345,34 +303,32 @@ class PoHandler(Handler):
         :param entry: The entry to check.
         :param next_string: The openstring to compile.
         """
-        if entry.msgstr_plural.get('0') == next_string.template_replacement:
+        if entry.msgstr_plural.get("0") == next_string.template_replacement:
             entry.msgstr_plural = next_string.string
             return True
         return False
 
     def _smart_remove(self, po, indexes_to_remove):
+        """If you have a big list and go through it and selectively remove entries with
+        `.remove()`, it will get slow. This is because each call to `.remove()` will
+        search for that item in the list which will get increasingly expensive. Plus,
+        the list will have to be continuously shifted after each removal. It is
+        preferable to collect the indexes to be removed in a first pass and then use
+        `del` using the reversed list of indexes.
+
+        >>> # This is bad
+        >>> for item in copy(big_list):
+        ...     if some_condition(item):
+        ...         big_list.remove(item)
+
+        >>> # This is good
+        >>> indexes_to_remove = []
+        >>> for i, item in enumerate(big_list):
+        ...     if some_condition(item):
+        ...         indexes_to_remove.append(i)
+        >>> for i in reversed(indexes_to_remove):
+        ...     del big_list[i]
+        """
+
         for i in reversed(indexes_to_remove):
             del po[i]
-
-    @staticmethod
-    def _format_occurrences(occurrences):
-        """Format the occurrences and return them.
-
-        The occurrences is a list of 2-tuples that contain the file and the
-        line number.
-        """
-        return ', '.join([
-            ':'.join([
-                item for item in occurence
-            ]) for occurence in occurrences
-        ])
-
-    @staticmethod
-    def _format_comments(comment, tcomment):
-        """Formats the extracted and translator comments of the entry and
-        returns them.
-        """
-        return '\n'.join([
-            comment,
-            tcomment,
-        ])
