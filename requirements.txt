@@ -1,11 +1,12 @@
 PyYAML==5.4
-django==1.11.29
+Django==2.2.28
 mistune==0.7.3
 polib==1.0.3
 pyparsing==2.2.0
 six
 lxml==4.6.2
 beautifulsoup4==4.9.3
+fluent.syntax==0.18.1
 
 # InDesign
 git+https://github.com/kbairak/ucflib@py3_compatibility
