@@ -1,0 +1,11 @@
+# This is a comment for simple keys
+  simple key9: "double quoted value 6"
+  mdBody:
+      - |
+        this is another paragraph
+      - |
+        another string
+      - |
+        | third string
+  a:
+      b: four string

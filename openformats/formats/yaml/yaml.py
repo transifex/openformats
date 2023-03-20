@@ -348,7 +348,16 @@ class YamlHandler(Handler):
 
         stream = StringIO()
         emitter = Emitter(stream, allow_unicode=True)
-        indent = self.indent * (len(string.key.split('.')) + self.extra_indent)
+        array_index_regex = re.compile('\[\d+\]')
+        key_depth = len([entry for entry in string.key.split('.') if not \
+                array_index_regex.match(entry)])
+
+        style = string.flags.split(':')[-1]
+        last_key_element=string.key.split('.')[-1]
+        extra_indent=0
+        if style == "|" and array_index_regex.match(last_key_element):
+            extra_indent=2
+        indent = self.indent * (key_depth + self.extra_indent)+extra_indent
         emitter.indent = indent
         # set best_width to `float(inf)` so that long strings are not broken
         # into multiple lines
@@ -356,7 +365,7 @@ class YamlHandler(Handler):
 
         analysis = emitter.analyze_scalar(string.string)
 
-        style = string.flags.split(':')[-1]
+
 
         if style == '"':
             emitter.write_double_quoted(string.string)

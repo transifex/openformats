@@ -15,8 +15,10 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(YamlTestCase, self).__init__(*args, **kwargs)
         extra_files = ["1_en_exported.yml",
-                       "1_en_exported_without_template.yml"]
-
+                       "1_en_exported_without_template.yml",
+                       "2_en_exported.yml",
+                       "2_en.yml"]
+        self.maxDiff = None
         for fname in extra_files:
             filepath = path.join(self.TESTFILE_BASE, fname)
             with open(filepath, "r", encoding='utf-8') as myfile:
@@ -27,10 +29,21 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
         self.assertEqual(remade_orig_content, self.data["1_en_exported"])
 
+    def test_compile_with_pipeline_character(self):
+        """Test that import-export is the same as the original file."""
+
+        tmpl, strset = self.handler.parse(self.data["2_en"])
+        remade_orig_content = self.handler.compile(tmpl,
+                                                   strset)
+        self.assertEqual(remade_orig_content, self.data[
+            "2_en_exported"])
+
+
     def test_compile_without_template(self):
         """Test that import-export is the same as the original file."""
         self.handler.should_use_template = False
         remade_orig_content = self.handler.compile(self.tmpl, self.strset)
+
         self.assertEqual(remade_orig_content,
                          self.data["1_en_exported_without_template"])
 
