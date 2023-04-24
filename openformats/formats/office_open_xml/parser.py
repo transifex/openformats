@@ -110,7 +110,7 @@ class OfficeOpenXmlHandler(object):
                 continue
 
             if all([
-                text_elements_count == 2,
+                text_elements_count % 2 == 0,
                 not hyperlink_url or hyperlink_url == open_hyperlink
             ]) or all([
                 index > 0,
