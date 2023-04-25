@@ -297,9 +297,17 @@ class JsonHandler(Handler):
                 # value is an empty string, add the key but don't update
                 # stringset_index
                 at_least_one = True
-                self._insert_regular_string(
-                    value, value_position, '', False
-                )
+
+                if len(value) > 0:
+                    # Add whitespace back
+                    self._insert_regular_string(
+                        value, value_position, value, False
+                    )
+                else:
+                    at_least_one = True
+                    self._insert_regular_string(
+                        value, value_position, '', False
+                    )
 
         elif isinstance(value, DumbJson):
             items_still_left = self._insert(value, is_real_stringset)
