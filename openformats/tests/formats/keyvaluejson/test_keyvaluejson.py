@@ -199,6 +199,15 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
         self.assertEqual(compiled, '{"a": [null]}')
 
+    def test_respect_whitespace_only_strings(self):
+        source = '{"a": " "}'
+
+        template, _ = self.handler.parse(source)
+        compiled = self.handler.compile(template, [])
+
+        self.assertEqual(template, '{"a": " "}')
+        self.assertEqual(compiled, '{"a": " "}')
+
     def test_remove_all_strings_removed_from_dict_but_non_strings_exist(self):
         random_string = self.random_string
         random_openstring = self.random_openstring
