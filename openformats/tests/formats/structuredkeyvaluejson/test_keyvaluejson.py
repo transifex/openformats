@@ -679,14 +679,14 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(compiled, expected_compilation)
 
-    def test_empty_string(self):
+    def test_empty_strings(self):
         source = u"""
         {
             "a": {
                 "string": ""
             },
             "b": {
-                "string": "x0x0",
+                "string": "",
                 "character_limit": 35
             }
         }

@@ -61,6 +61,10 @@ class JsonHandler(Handler):
             raise ParseError(six.text_type(e))
         self._order = count()
         self._extract(parsed)
+
+        if not self.stringset and self.name == "STRUCTURED_JSON":
+            raise ParseError('No strings could be extracted')
+
         self.transcriber.copy_until(len(source))
 
         return self.transcriber.get_destination(), self.stringset
@@ -145,9 +149,6 @@ class JsonHandler(Handler):
                     pass
         else:
             raise ParseError("Invalid JSON")
-
-        if not self.stringset and self.name == "STRUCTURED_JSON":
-            raise ParseError('No strings could be extracted')
 
     def _create_openstring(self, key, value, value_position):
         """Return a new OpenString based on the given key and value
