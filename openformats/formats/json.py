@@ -567,7 +567,16 @@ class StructuredJsonHandler(JsonHandler):
                         skip=True
                     else:
                         translation = next(self.translations, None)
-                        skip=False
+                        # If for some reason iterator of translations returns None
+                        # create an empty OpenString and skip it to avoid displaying
+                        # the hash on template
+                        if translation is None:
+                            translation = OpenString(
+                                "", ""
+                            )
+                            skip=True
+                        else:
+                            skip=False
 
                     context_added = False
                     character_limit_added = False

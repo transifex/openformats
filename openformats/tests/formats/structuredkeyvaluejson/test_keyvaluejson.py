@@ -39,6 +39,16 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(template, '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "%s"}}' % string_hash) # noqa
         self.assertEqual(compiled, '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}') # noqa
 
+    def test_mismatch_of_strinset_and_template_strings(self):
+        template, stringset = self.handler.parse('{"a": {"string":"a"}, "b": {"string": "foo"}}') # noqa
+        stringset = [
+            OpenString("a", "a")
+        ]
+        compiled = self.handler.compile(template, stringset)
+        # The missing element of strigset should be displayed at compiled template
+        # as empty string
+        self.assertEqual(compiled, '{"a": {"string":"a"}, "b": {"string": ""}}') # noqa
+
     def test_simple(self):
         template, stringset = self.handler.parse('{"a": {"string":"%s"}}' %
                                                  self.random_string)
@@ -105,7 +115,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # The original JsonHandler, when compiling back from a template,
         # removes any strings that are not passed as an argument in the
         # compile() function. StructuredJsonHandler on the other hand, simply
-        # ignores those key-values and leave them as is in the template. This
+        # ignores those key-values and leave them as empty strings in the template. This
         # test ensures that this is the case.
         # For more information, see _copy_until_and_remove_section() in both
         # handlers.
@@ -130,7 +140,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
         self.assertEqual(
             compiled,
-            '{"a": {"string":"%s"}, "b": {"string":"%s"}}' % (string1, hash2)
+            '{"a": {"string":"%s"}, "b": {"string":""}}' % (string1)
         )
 
     def test_invalid_json(self):
