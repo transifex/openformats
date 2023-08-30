@@ -39,6 +39,11 @@ alias_key:
 foo: !test 'bar'
 bar: !xml "foo <xml>bar</xml>"
 hello: World
+context_string: !he:fd94;fd/la "context string"
+verbim_context_string: !contex%21t545qa "verbim context string"
+context_on_nested_map:
+  first: "context in nested map"
+  second: "context in nested map"
 σχόλιο: κείμενο
 emojis: \uD83D\uDC40 🏹🍍🍍 \U0001F418
 anchor_with_label:

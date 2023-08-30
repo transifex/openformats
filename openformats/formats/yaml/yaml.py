@@ -404,7 +404,8 @@ class YamlHandler(Handler):
             # it and apply a space afterwards so it doesn't get merged with the
             # string
             if string.context:
-                transcriber.add(string.context)
+                # add an exclamation mark to the context to make it a tag
+                transcriber.add('!' + string.context)
                 transcriber.add(' ')
             transcriber.add(translation)
             transcriber.skip(len(string.template_replacement))

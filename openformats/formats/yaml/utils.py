@@ -220,6 +220,8 @@ class TxYamlLoader(yaml.SafeLoader):
                 and self._is_custom_tag(value_node.tag)
             ):
                 tag = six.text_type(value_node.tag)
+                # remove the exclamation mark from the tag
+                tag = tag[1:] if tag.startswith('!') else tag
 
             value = Node(value, start, end, style, tag)
             pairs.append((key, value))
@@ -347,8 +349,9 @@ class YamlGenerator(object):
                         yaml_dict, keys, flags, se.string.get(rule), tag=None,
                     )
             else:
+                tag = '!' + se.context if se.context else se.context
                 self._insert_translation_in_dict(
-                    yaml_dict, keys, flags, se.string, tag=se.context,
+                    yaml_dict, keys, flags, se.string, tag=tag,
                 )
         return yaml_dict
 

@@ -144,7 +144,7 @@ class YamlTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(test_string.flags, '')
 
         content_string = strings[1]
-        self.assertEqual(content_string.context, '!tag')
+        self.assertEqual(content_string.context, 'tag')
         self.assertEqual(content_string.flags, "'")
 
     def test_parse_duplicate_keys(self):

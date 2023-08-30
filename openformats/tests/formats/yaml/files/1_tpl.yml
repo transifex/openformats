@@ -65,11 +65,18 @@ alias_key:
   - ddc3cfcedcf1686d9e3ba6b99a0d091b_tr
 
 # Custom tags
-foo:  3e4000f6f4cd8bb27db6fb82e1b50bb4_tr # Should treat as string and ignore leading spaces
-bar: 75ce597a505a4faf6369b66b885926c8_tr # Also a string
+foo:  023503fb466f78932b77209b6581156e_tr # Should treat as string and ignore leading spaces
+bar: fac8140a2ec031af14bc758e73f59017_tr # Also a string
 hello: b0ed9cf22c0a5186d1c5b483a910dd33_tr # Translatable
 number: !!int 123 # Should ignore
 bin: !!binary aGVsbG8= # Should ignore
+
+# Custom tags with numbers and symbols
+context_string: 629aded197db84c4d323cd3ed4cf0485_tr
+verbim_context_string: d37275706209cb19ee621ff3835522fe_tr
+context_on_nested_map:
+  first: 95175e30d6fbfe0f658e75919cd4982c_tr
+  second: dce391c231a7ad7fef9e6cc0ddcbf549_tr
 
 # Test with non-ASCII keys
 #σχόλιο
