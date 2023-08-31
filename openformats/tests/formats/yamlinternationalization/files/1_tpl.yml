@@ -90,3 +90,10 @@ en:
 
   anchor_mapping: &another_anchor
   798cf4a4e275a90e80b0aac837f06793_pl
+
+  # context
+  context_string: 1e31a39d57f088cfc6c2eb9585c0b467_tr
+  verbim_context_string: e147f6d42ae7e10950e4157fcce2e534_tr
+  context_on_nested_map:
+    first: bbb714442aca9ca3d3dbf18aa54811d6_tr
+    second: 8a7ebe3f36daee5d0aed8c11384db83d_tr

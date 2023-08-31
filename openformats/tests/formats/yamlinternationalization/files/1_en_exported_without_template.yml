@@ -59,3 +59,8 @@ en:
   anchor_mapping:
     one: one
     other: other
+  context_string: !he:fd94;fd/la "context string"
+  verbim_context_string: !contex%21t545qa "verbim context string"
+  context_on_nested_map:
+    first: "context in nested map"
+    second: "context in nested map"

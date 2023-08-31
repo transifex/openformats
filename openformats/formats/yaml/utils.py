@@ -148,9 +148,7 @@ class TxYamlLoader(yaml.SafeLoader):
         the built-in identifier. For example `tag:yaml.org,2002:str`, not
         `!!str`.
         """
-        return re.match(ensure_unicode(r'^[\![a-zA-Z_]*]*$'),
-                        tag,
-                        re.IGNORECASE)
+        return tag.startswith('!') and not tag.startswith('!!')
 
     def construct_mapping(self, node, deep=True):
         """
