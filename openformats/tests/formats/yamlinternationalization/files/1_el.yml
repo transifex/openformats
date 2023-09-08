@@ -102,8 +102,8 @@ en:
     other: el:other
 
   # context
-  context_string: !he:fd94;fd/la "el:context string"
-  verbim_context_string: !contex!t545qa "el:verbim context string"
+  context_string: !cs:fd-94_fd.dot. "el:context string"
+  verbim_context_string: !context:t5-46_qa "el:verbim context string"
   context_on_nested_map:
     first: !first_context:54KJFLA95KJ4 "el:context in nested map"
     second: !second_context:FDKJ40DK "el:context in nested map"

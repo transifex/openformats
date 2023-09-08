@@ -142,13 +142,21 @@ class TxYamlLoader(yaml.SafeLoader):
         Detect custom tags, like:
             `foo: !bar test`
             `foo: !xml "<bar>Bar</bar>"`
+
+        The name of the custom tag can have any of the following characters:
+        `a-z`, `A-Z`, `0-9`, `_`, `.`, `:`, `-`.
+        In any other case, we return `False`.
+
         Built-in types, indicated by a `!!` prefix, will not be matched. We
         can't preserve the information whether a built-in tag like `!!str` was
         used for a value since the PyYAML library will tag such entries with
         the built-in identifier. For example `tag:yaml.org,2002:str`, not
         `!!str`.
         """
-        return tag.startswith('!') and not tag.startswith('!!')
+
+        return re.match(ensure_unicode(r'^\![a-zA-Z0-9_:.\-]*$'),
+                        tag,
+                        re.IGNORECASE)
 
     def construct_mapping(self, node, deep=True):
         """

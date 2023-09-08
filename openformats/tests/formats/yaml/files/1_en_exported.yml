@@ -78,8 +78,8 @@ number: !!int 123 # Should ignore
 bin: !!binary aGVsbG8= # Should ignore
 
 # Custom tags with numbers and symbols
-context_string: !he:fd94;fd/la "context string"
-verbim_context_string: !contex!t545qa "verbim context string"
+context_string: !cs:fd-94_fd.dot. "context string"
+verbim_context_string: !context:t5-46_qa "verbim context string"
 context_on_nested_map:
   first: !first_context:54KJFLA95KJ4 "context in nested map"
   second: !second_context:FDKJ40DK "context in nested map"
