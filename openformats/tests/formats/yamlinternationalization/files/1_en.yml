@@ -104,3 +104,10 @@ en:
   anchor_mapping: &another_anchor
     one: one
     other: other
+
+  # context
+  context_string: !cs:fd-94_fd.dot. "context string"
+  verbim_context_string: !<!context:t5-46_qa> "verbim context string"
+  context_on_nested_map:
+    first: !first_context:54KJFLA95KJ4 "context in nested map"
+    second: !second_context:FDKJ40DK "context in nested map"

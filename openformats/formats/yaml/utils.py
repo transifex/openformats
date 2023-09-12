@@ -142,13 +142,19 @@ class TxYamlLoader(yaml.SafeLoader):
         Detect custom tags, like:
             `foo: !bar test`
             `foo: !xml "<bar>Bar</bar>"`
+
+        The name of the custom tag can have any of the following characters:
+        `a-z`, `A-Z`, `0-9`, `_`, `.`, `:`, `-`.
+        In any other case, we return `False`.
+
         Built-in types, indicated by a `!!` prefix, will not be matched. We
         can't preserve the information whether a built-in tag like `!!str` was
         used for a value since the PyYAML library will tag such entries with
         the built-in identifier. For example `tag:yaml.org,2002:str`, not
         `!!str`.
         """
-        return re.match(ensure_unicode(r'^[\![a-zA-Z_]*]*$'),
+
+        return re.match(ensure_unicode(r'^\![a-zA-Z0-9_:.\-]*$'),
                         tag,
                         re.IGNORECASE)
 
@@ -222,6 +228,8 @@ class TxYamlLoader(yaml.SafeLoader):
                 and self._is_custom_tag(value_node.tag)
             ):
                 tag = six.text_type(value_node.tag)
+                # remove the exclamation mark from the tag
+                tag = tag[1:] if tag.startswith('!') else tag
 
             value = Node(value, start, end, style, tag)
             pairs.append((key, value))
@@ -349,8 +357,9 @@ class YamlGenerator(object):
                         yaml_dict, keys, flags, se.string.get(rule), tag=None,
                     )
             else:
+                tag = '!' + se.context if se.context else se.context
                 self._insert_translation_in_dict(
-                    yaml_dict, keys, flags, se.string, tag=se.context,
+                    yaml_dict, keys, flags, se.string, tag=tag,
                 )
         return yaml_dict
 
