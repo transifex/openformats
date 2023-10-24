@@ -1,6 +1,6 @@
 PyYAML==5.4.1
 django==1.11.29
-mistune==0.7.3
+mistune==0.8.1
 polib==1.0.3
 pyparsing==2.2.0
 six
