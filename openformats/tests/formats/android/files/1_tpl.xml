@@ -3,6 +3,9 @@
     <!-- Testing simple string -->
     <string name="a_string">ac2562b9f825de04b7ae4736274b1e5f_tr</string>
 
+    <!-- Testing string with special characters -->
+    <string name="b_string">2cb7c4a9823431f0a9a4efc70603b465_tr</string>
+
     <!-- Testing with product attribute -->
     <string name="a_string" product="a_product">160db9c24b122af9e0f4218ad732d0ce_tr</string>
 
