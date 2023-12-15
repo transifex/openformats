@@ -6,14 +6,13 @@ version: 2
 jobs:
   build:
     docker:
-      - image: python:3.6
+      - image: python:3.9
     steps:
       - checkout
       - run:
           name: Install python-dev
           command: |
             apt-get update;
-            apt-get install -y python-dev
       - run:
           name: Install Tox
           command: pip install tox
