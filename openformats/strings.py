@@ -62,15 +62,15 @@ class OpenString(object):
     """
 
     DEFAULTS = {
-        'context': "",
-        'order': None,
-        'character_limit': None,
-        'occurrences': None,
-        'developer_comment': "",
-        'flags': "",
-        'fuzzy': False,
-        'obsolete': False,
-        'tags': None
+        "context": "",
+        "order": None,
+        "character_limit": None,
+        "occurrences": None,
+        "developer_comment": "",
+        "flags": "",
+        "fuzzy": False,
+        "obsolete": False,
+        "tags": None,
     }
 
     def __init__(self, key, string_or_strings, **kwargs):
@@ -78,8 +78,7 @@ class OpenString(object):
         if isinstance(string_or_strings, dict):
             self.pluralized = len(string_or_strings) > 1
             self._strings = {
-                key: value
-                for key, value in six.iteritems(string_or_strings)
+                key: value for key, value in six.iteritems(string_or_strings)
             }
         else:
             self.pluralized = False
@@ -88,8 +87,8 @@ class OpenString(object):
         for key, value in six.iteritems(self.DEFAULTS):
             setattr(self, key, kwargs.get(key, value))
 
-        if 'pluralized' in kwargs:
-            self.pluralized = kwargs['pluralized']
+        if "pluralized" in kwargs:
+            self.pluralized = kwargs["pluralized"]
 
         self._string_hash = None
 
@@ -99,10 +98,12 @@ class OpenString(object):
     def __repr__(self):
         return next(
             (
-                self._strings.get(i) for i in six.moves.xrange(5, -1, -1)
+                self._strings.get(i)
+                for i in six.moves.xrange(5, -1, -1)
                 if self._strings.get(i)
-            ), 'Invalid string'
-        ).encode('utf-8')
+            ),
+            "Invalid string",
+        ).encode("utf-8")
 
     @property
     def string(self):
@@ -116,8 +117,8 @@ class OpenString(object):
         return self._strings
 
     def _get_string_hash(self):
-        keys = [self.key, self.context or '']
-        return md5(':'.join(keys).encode('utf-8')).hexdigest()
+        keys = [self.key, self.context or ""]
+        return md5(":".join(keys).encode("utf-8")).hexdigest()
 
     @property
     def string_hash(self):
@@ -127,5 +128,8 @@ class OpenString(object):
 
     @property
     def template_replacement(self):
-        suffix = 'pl' if self.pluralized else 'tr'
+        suffix = "pl" if self.pluralized else "tr"
         return "{hash}_{suffix}".format(hash=self.string_hash, suffix=suffix)
+
+    def __str__(self):
+        return "{} - {}".format(self.string, self.string_hash)
