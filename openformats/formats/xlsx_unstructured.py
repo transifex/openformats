@@ -550,7 +550,7 @@ class XlsxUnstructuredHandler(Handler, OfficeOpenXmlHandler):
                         )
 
                         if not translation:
-                            t_string.decompose()
+                            t_string.string = ""
                             continue
                         t_string.string = translation
                 replace_string_to.attrs.pop("txid", None)
