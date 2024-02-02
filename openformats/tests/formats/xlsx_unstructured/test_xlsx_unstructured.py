@@ -317,7 +317,8 @@ class XlsxTestCase(unittest.TestCase):
         template, stringset = xlsx_handler.parse(compiled_file)
 
         self.assert_open_string(
-            stringset[6], {"string_hash": mock.ANY, "string": "no_tags"}
+            stringset[6],
+            {"string_hash": mock.ANY, "string": "<tx>no_tags</tx><tx></tx>"},
         )
 
     def test_extract_compile_hyperlink_formulas(self):

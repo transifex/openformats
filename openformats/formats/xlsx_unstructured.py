@@ -10,10 +10,21 @@ from uuid import uuid4
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from bs4 import BeautifulSoup
+from bs4.dammit import EntitySubstitution
+from bs4.formatter import XMLFormatter
 
 from openformats.formats.office_open_xml.parser import OfficeOpenXmlHandler
 from openformats.handlers import Handler
 from openformats.strings import OpenString
+
+
+class UnsortedAttributes(XMLFormatter):
+    def __init__(self, *args, **kwargs):
+        super(XMLFormatter, self).__init__(entity_substitution=lambda string: EntitySubstitution.substitute_xml(string).replace('"', '&quot;'))
+
+    def attributes(self, tag):
+        for k, v in tag.attrs.items():
+            yield k, v
 
 
 def get_rels_path(sheet_path):
@@ -141,7 +152,7 @@ class XlsxFile(object):
 
     def set_workbook_content(self, content):
         with open(self.get_workbook_path(), "w") as f:
-            f.write(content)
+            f.write(content.encode(formatter=UnsortedAttributes()).decode())
 
     def get_sheet_content(self, sheet):
         with open(self.get_sheet(sheet)["path"], "r") as f:
@@ -150,7 +161,7 @@ class XlsxFile(object):
 
     def set_sheet_content(self, sheet, content):
         with open(self.get_sheet(sheet)["path"], "w") as f:
-            f.write(content)
+            f.write(content.encode(formatter=UnsortedAttributes()).decode())
 
     def has_rels(self, sheet):
         return os.path.exists(self.get_sheet(sheet)["rels_path"])
@@ -162,7 +173,7 @@ class XlsxFile(object):
 
     def set_sheet_rels_content(self, sheet, content):
         with open(self.get_sheet(sheet)["rels_path"], "w") as f:
-            f.write(content)
+            f.write(content.encode(formatter=UnsortedAttributes()).decode())
 
     def get_shared_strings_content(self):
         with open(self.get_shared_strings_path(), "r") as f:
@@ -171,7 +182,7 @@ class XlsxFile(object):
 
     def set_shared_strings_content(self, content):
         with open(self.get_shared_strings_path(), "w") as f:
-            f.write(content)
+            f.write(content.encode(formatter=UnsortedAttributes()).decode())
 
     def delete(self):
         shutil.rmtree(self.__tmp_folder)
@@ -215,7 +226,7 @@ class XlsxUnstructuredHandler(Handler, OfficeOpenXmlHandler):
             )
             sheet.attrs['txid'] = open_string.string_hash
             sheet_names.append(open_string)
-        xlsx.set_workbook_content(str(wordbook_soup))
+        xlsx.set_workbook_content(wordbook_soup)
         return sheet_names
 
     def parse(self, content, **kwargs):
@@ -338,8 +349,8 @@ class XlsxUnstructuredHandler(Handler, OfficeOpenXmlHandler):
                     elif sheet_name not in extracted_strings[string]["sheets"]:
                         extracted_strings[string]["sheets"].append(sheet_name)
 
-            xlsx.set_sheet_content(sheet, str(sheet_soup))
-        xlsx.set_shared_strings_content(str(shared_strings_soup))
+            xlsx.set_sheet_content(sheet, sheet_soup)
+        xlsx.set_shared_strings_content(shared_strings_soup)
 
         all_strings = []
 
@@ -399,7 +410,7 @@ class XlsxUnstructuredHandler(Handler, OfficeOpenXmlHandler):
 
             sheet.attrs["name"] = open_string.string
             sheet.attrs.pop("txid", None)
-        xlsx.set_workbook_content(str(workbook_soup))
+        xlsx.set_workbook_content(workbook_soup)
 
 
     def compile(self, template, stringset, **kwargs):
@@ -539,14 +550,14 @@ class XlsxUnstructuredHandler(Handler, OfficeOpenXmlHandler):
                         )
 
                         if not translation:
-                            t_string.decompose()
+                            t_string.string = ""
                             continue
                         t_string.string = translation
                 replace_string_to.attrs.pop("txid", None)
-            xlsx.set_sheet_content(sheet, str(sheet_soup))
-            xlsx.set_shared_strings_content(str(shared_strings_soup))
+            xlsx.set_sheet_content(sheet, sheet_soup)
+            xlsx.set_shared_strings_content(shared_strings_soup)
             if xlsx.has_rels(sheet):
-                xlsx.set_sheet_rels_content(sheet, str(sheet_rels_soup))
+                xlsx.set_sheet_rels_content(sheet, sheet_rels_soup)
 
         result = xlsx.compress()
         xlsx.delete()
