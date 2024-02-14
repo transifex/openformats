@@ -3,9 +3,11 @@ import unittest
 from openformats.strings import OpenString
 
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.tests.utils.strings import (generate_random_string,
-                                             strip_leading_spaces,
-                                             bytes_to_string)
+from openformats.tests.utils.strings import (
+    generate_random_string,
+    strip_leading_spaces,
+    bytes_to_string,
+)
 
 from openformats.formats.android import AndroidHandler
 
@@ -24,20 +26,18 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         random_openstring = OpenString(random_key, random_string, order=0)
         random_hash = random_openstring.template_replacement
 
-        source_python_template = u'''
+        source_python_template = """
             <resources>
                 <string name="{key}">{string}</string>
             </resources>
-        '''
-        source = source_python_template.format(key=random_key,
-                                               string=random_string)
+        """
+        source = source_python_template.format(key=random_key, string=random_string)
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
         self.assertEqual(
-            template,
-            source_python_template.format(key=random_key, string=random_hash)
+            template, source_python_template.format(key=random_key, string=random_hash)
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
@@ -45,26 +45,26 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_string_array(self):
         random_name = generate_random_string()
-        random_key = '{}[0]'.format(random_name)
+        random_key = "{}[0]".format(random_name)
         random_string = generate_random_string()
         random_openstring = OpenString(random_key, random_string, order=0)
         random_hash = random_openstring.template_replacement
-        source_python_template = strip_leading_spaces(u'''
+        source_python_template = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="{key}">
                     <item>{string}</item>
                 </string-array>
             </resources>
-        ''')
-        source = source_python_template.format(key=random_name,
-                                               string=random_string)
+        """
+        )
+        source = source_python_template.format(key=random_name, string=random_string)
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
         self.assertEqual(
-            template,
-            source_python_template.format(key=random_name, string=random_hash)
+            template, source_python_template.format(key=random_name, string=random_hash)
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
@@ -74,33 +74,40 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         random_key = generate_random_string()
         random_singular = generate_random_string()
         random_plural = generate_random_string()
-        random_openstring = OpenString(random_key,
-                                       {1: random_singular, 5: random_plural},
-                                       order=0)
+        random_openstring = OpenString(
+            random_key, {1: random_singular, 5: random_plural}, order=0
+        )
         random_hash = random_openstring.template_replacement
 
-        source = strip_leading_spaces(u"""
+        source = strip_leading_spaces(
+            """
             <resources>
                 <plurals name="{key}">
                     <item quantity="one">{singular}</item>
                     <item quantity="other">{plural}</item>
                 </plurals>
             </resources>
-        """.format(key=random_key, singular=random_singular,
-                   plural=random_plural))
+        """.format(
+                key=random_key, singular=random_singular, plural=random_plural
+            )
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
 
         self.assertEqual(
             template,
-            strip_leading_spaces(u'''
+            strip_leading_spaces(
+                """
                 <resources>
                     <plurals name="{key}">
                         {hash_}
                     </plurals>
                 </resources>
-            '''.format(key=random_key, hash_=random_hash))
+            """.format(
+                    key=random_key, hash_=random_hash
+                )
+            ),
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
@@ -109,11 +116,15 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_no_translatable(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string name="{key}" translatable="false">{string}</string>
             </resources>
-        '''.format(key=random_key, string=random_string))
+        """.format(
+                key=random_key, string=random_string
+            )
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
@@ -123,7 +134,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, source)
 
     def test_order_is_kept(self):
-        source = '''
+        source = """
             <resources>
                 <string name="a">a</string>
                 <string-array name="b">
@@ -135,50 +146,56 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <item quantity="other">e</item>
                 </plurals>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
-        self.assertEqual([(string.key, string.order) for string in stringset],
-                         [('a', 0), ('b[0]', 1), ('b[1]', 2), ('c', 3)])
+        self.assertEqual(
+            [(string.key, string.order) for string in stringset],
+            [("a", 0), ("b[0]", 1), ("b[1]", 2), ("c", 3)],
+        )
 
     def test_string_inner_tags_are_collected(self):
-        source = '''
+        source = """
             <resources>
                 <string name="a">hello <b>world</b></string>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
         string = stringset[0]
-        self.assertEqual(string.key, 'a')
+        self.assertEqual(string.key, "a")
         self.assertEqual(string.string, "hello <b>world</b>")
 
     def test_string_content_is_valid_xml(self):
-        source = '''
+        source = """
             <resources>
                 <string name="a">hello <b>world</b></string>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
         string = stringset[0]
-        self.assertEqual(string.key, 'a')
+        self.assertEqual(string.key, "a")
         self.assertEqual(string.string, "hello <b>world</b>")
 
     def test_string_content_is_not_valid_xml(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <string name="a">hello <b>world</c></string>
                 </resources>
-            ''',
-            "Closing tag 'c' does not match opening tag 'b' on line 3"
+            """,
+            "Closing tag 'c' does not match opening tag 'b' on line 3",
         )
 
     def test_empty_string_ignored(self):
         random_key = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string name="{key}"></string>
             </resources>
-        '''.format(key=random_key))
+        """.format(
+                key=random_key
+            )
+        )
 
         template, stringset = self.handler.parse(source)
 
@@ -187,13 +204,17 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_empty_string_array_item_ignored(self):
         random_key = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="{key}">
                     <item></item>
                 </string-array>
             </resources>
-        '''.format(key=random_key))
+        """.format(
+                key=random_key
+            )
+        )
 
         template, stringset = self.handler.parse(source)
 
@@ -203,12 +224,12 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_empty_plural_raises_error(self):
         self._test_parse_error(
             '<resources><plurals name="a"></plurals></resources>',
-            u"No plurals found in <plurals> tag on line 1"
+            "No plurals found in <plurals> tag on line 1",
         )
 
     def test_empty_plural_item_raises_error(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <plurals name="a">
                         <item quantity="one"></item>
@@ -216,22 +237,19 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                         <item quantity="other">hello</item>
                     </plurals>
                 </resources>
-            ''',
-            (
-                'Missing string(s) in <item> tag(s) in the <plural> tag '
-                'on line 3'
-            )
+            """,
+            ("Missing string(s) in <item> tag(s) in the <plural> tag " "on line 3"),
         )
 
     def test_all_plural_items_empty_get_skipped(self):
-        source = u'''
+        source = """
             <resources>
                 <plurals name="a">
                     <item quantity="one"></item>
                     <item quantity="other"></item>
                 </plurals>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
 
         self.assertEqual(template, source)
@@ -240,95 +258,132 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_missing_translated_strings_removed(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string name="{key}">{string}</string>
             </resources>
-        '''.format(key=random_key, string=random_string))
+        """.format(
+                key=random_key, string=random_string
+            )
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEqual(compiled, strip_leading_spaces(u'''
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """
             <resources>
                 </resources>
-        '''))
+        """
+            ),
+        )
 
     def test_missing_translated_string_array_items_removed(self):
         random_key = generate_random_string()
         random_string1 = generate_random_string()
         random_string2 = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="{key}">
                     <item>{string1}</item>
                     <item>{string2}</item>
                 </string-array>
             </resources>
-        '''.format(key=random_key, string1=random_string1,
-                   string2=random_string2))
+        """.format(
+                key=random_key, string1=random_string1, string2=random_string2
+            )
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [stringset[0]])
-        self.assertEqual(compiled, strip_leading_spaces(u'''
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """
             <resources>
                 <string-array name="{key}">
                     <item>{string1}</item>
                 </string-array>
             </resources>
-        '''.format(key=random_key, string1=random_string1)))
+        """.format(
+                    key=random_key, string1=random_string1
+                )
+            ),
+        )
 
     def test_missing_translated_plurals_removed(self):
         random_key = generate_random_string()
         random_singular = generate_random_string()
         random_plural = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <plurals name="{key}">
                     <item quantity="one">{singular}</item>
                     <item quantity="other">{plural}</item>
                 </plurals>
             </resources>
-        '''.format(key=random_key, singular=random_singular,
-                   plural=random_plural))
+        """.format(
+                key=random_key, singular=random_singular, plural=random_plural
+            )
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEqual(compiled, strip_leading_spaces(u'''
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """
             <resources>
                 </resources>
-        '''.format(key=random_key, singular=random_singular,
-                   plural=random_plural)))
+        """.format(
+                    key=random_key, singular=random_singular, plural=random_plural
+                )
+            ),
+        )
 
     def test_missing_translated_string_arrays_removed(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
-        source = strip_leading_spaces(u'''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="{key}">
                     <item>{string}</item>
                 </string-array>
             </resources>
-        '''.format(key=random_key, string=random_string))
+        """.format(
+                key=random_key, string=random_string
+            )
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
-        self.assertEqual(compiled, strip_leading_spaces(u'''
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """
             <resources>
                 </resources>
-        '''))
+        """
+            ),
+        )
 
     def test_compile_plurals_not_indented(self):
         random_key = generate_random_string()
         random_singular = generate_random_string()
         random_plural = generate_random_string()
-        random_openstring = OpenString(random_key,
-                                       {1: random_singular, 5: random_plural},
-                                       order=0)
-        source = (u'<resources><plurals name="{key}"><item quantity="one">'
-                  '{singular}</item><item quantity="other">{plural}</item>'
-                  '</plurals></resources>').format(key=random_key,
-                                                   singular=random_singular,
-                                                   plural=random_plural)
+        random_openstring = OpenString(
+            random_key, {1: random_singular, 5: random_plural}, order=0
+        )
+        source = (
+            '<resources><plurals name="{key}"><item quantity="one">'
+            '{singular}</item><item quantity="other">{plural}</item>'
+            "</plurals></resources>"
+        ).format(key=random_key, singular=random_singular, plural=random_plural)
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [random_openstring])
@@ -338,99 +393,99 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_missing_quantity_raises_error(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <plurals name="a">
                         <item>a</item>
                         <item quantity="other">b</item>
                     </plurals>
                 </resources>
-            ''',
-            u"Missing the `quantity` attribute on line 4"
+            """,
+            "Missing the `quantity` attribute on line 4",
         )
 
     def test_unknown_quantity(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <plurals name="a">
                         <item quantity="one">a</item>
                         <item quantity="three-hundred-and-fifty-four">b</item>
                     </plurals>
                 </resources>
-            ''',
-            u"The `quantity` attribute on line 5 contains an invalid plural: "
-            u"`three-hundred-and-fifty-four`"
+            """,
+            "The `quantity` attribute on line 5 contains an invalid plural: "
+            "`three-hundred-and-fifty-four`",
         )
 
     def test_missing_other_quantity(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <plurals name="a">
                         <item quantity="one">a</item>
                         <item quantity="two">b</item>
                     </plurals>
                 </resources>
-            ''',
-            u"Quantity 'other' is missing from <plurals> tag on line 3"
+            """,
+            "Quantity 'other' is missing from <plurals> tag on line 3",
         )
 
     def test_wrong_tag_type_in_plurals_tag(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <plurals name="a">
                         <item quantity="other">a</item>
                         <stuff quantity="one">b</stuff>
                     </plurals>
                 </resources>
-            ''',
+            """,
             (
-                u"Wrong tag type found on line 5. Was "
-                u"expecting <item> but found <stuff>"
-            )
+                "Wrong tag type found on line 5. Was "
+                "expecting <item> but found <stuff>"
+            ),
         )
 
     def test_tail_characters_where_they_should_not_be(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <plurals name="a">
                         <item quantity="other">a</item>My tail chars
                         <item quantity="one">b</item>
                     </plurals>
                 </resources>
-            ''',
-            u"Found trailing characters after <item> tag on line 4"
+            """,
+            "Found trailing characters after <item> tag on line 4",
         )
 
     def test_duplicate_names(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <string name="a">hello</string>
                     <string name="a">world</string>
                 </resources>
-            ''',
-            u"Duplicate `tag_name` (string) for `name` (a) specify a"
-            u" product to differentiate"
+            """,
+            "Duplicate `tag_name` (string) for `name` (a) specify a"
+            " product to differentiate",
         )
 
     def test_duplicate_names_and_products(self):
         self._test_parse_error(
-            '''
+            """
                 <resources>
                     <string name="a" product="b">hello</string>
                     <string name="a" product="b">world</string>
                 </resources>
-            ''',
-            u"Duplicate `tag_name` (string) for `name` (a) and `product`"
-            u" (b) found on line 4"
+            """,
+            "Duplicate `tag_name` (string) for `name` (a) and `product`"
+            " (b) found on line 4",
         )
 
     def test_duplicate_names_and_products_for_different_tag_names(self):
-        source = '''
+        source = """
              <resources>
                  <plurals name="a" product="b">
                     <item quantity="one">one</item>
@@ -438,14 +493,14 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                  </plurals>
                  <string name="a" product="b">first string</string>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
         string = stringset[0]
-        self.assertEqual(string.key, 'a')
-        self.assertEqual(string.string, {1: 'one', 5: 'one'})
+        self.assertEqual(string.key, "a")
+        self.assertEqual(string.string, {1: "one", 5: "one"})
 
     def test_name_escaping_helps_with_duplication_cornercases(self):
-        source = '''s
+        source = """s
             <resources>
                 <string name="a[0]">hello</string>
                 <string-array name="a">
@@ -454,12 +509,12 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <item>goodbye</item>
                 </string-array>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
         self.assertEqual(stringset[0].key, "a\\[0]")
         self.assertEqual(stringset[1].key, "a[0]")
 
-        source = r'''
+        source = r"""
             <resources>
                 <string name="a[0]">hello</string>
                 <!-- If we were only escaping the '[' char, this would still
@@ -469,14 +524,16 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <item>goodbye</item>
                 </string-array>
             </resources>
-        '''
+        """
         template, stringset = self.handler.parse(source)
         self.assertEqual(stringset[0].key, "a\\[0]")
         self.assertEqual(stringset[1].key, "a\\\\[0]")
 
     def test_missing_name(self):
-        self._test_parse_error('<resources><string>hello</string></resources>',
-                               u"Missing the `name` attribute on line 1")
+        self._test_parse_error(
+            "<resources><string>hello</string></resources>",
+            "Missing the `name` attribute on line 1",
+        )
 
     def test_missing_first_item_in_array_list(self):
         source = """
@@ -513,71 +570,82 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         stringset.pop(0)
         compiled = self.handler.compile(template, stringset)
-        self.assertEqual(
-            compiled, expected
-        )
+        self.assertEqual(compiled, expected)
 
     def test_compile_removes_missing_strings(self):
-        source = strip_leading_spaces('''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string name="a">hello</string>
                 <string name="b">goodbye</string>
             </resources>
-        ''')
+        """
+        )
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset[:1])
         self.assertEqual(
             compiled,
-            strip_leading_spaces('''
+            strip_leading_spaces(
+                """
                 <resources>
                     <string name="a">hello</string>
                 </resources>
-            ''')
+            """
+            ),
         )
 
     def test_compile_removes_missing_string_array_items(self):
-        source = strip_leading_spaces('''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="a">
                     <item>hello</item>
                     <item>world</item>
                 </string-array>
             </resources>
-        ''')
+        """
+        )
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset[:1])
         self.assertEqual(
             compiled,
-            strip_leading_spaces('''
+            strip_leading_spaces(
+                """
                 <resources>
                     <string-array name="a">
                         <item>hello</item>
                     </string-array>
                 </resources>
-            ''')
+            """
+            ),
         )
 
     def test_compile_removes_missing_string_arrays(self):
-        source = strip_leading_spaces('''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="a">
                     <item>hello</item>
                     <item>world</item>
                 </string-array>
             </resources>
-        ''')
+        """
+        )
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
         self.assertEqual(
             compiled,
-            strip_leading_spaces('''
+            strip_leading_spaces(
+                """
                 <resources>
                     </resources>
-            ''')
+            """
+            ),
         )
 
     def test_compile_doesnt_remove_already_empty_string_array(self):
-        source = strip_leading_spaces('''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <string-array name="a"></string-array>
                 <string-array name="b">
@@ -585,39 +653,47 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <item>world</item>
                 </string-array>
             </resources>
-        ''')
+        """
+        )
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
         self.assertEqual(
             compiled,
-            strip_leading_spaces('''
+            strip_leading_spaces(
+                """
                 <resources>
                     <string-array name="a"></string-array>
                 </resources>
-            ''')
+            """
+            ),
         )
 
     def test_compile_removes_missing_plurals(self):
-        source = strip_leading_spaces('''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <plurals name="a">
                     <item quantity="one">hello</item>
                     <item quantity="other">world</item>
                 </plurals>
             </resources>
-        ''')
+        """
+        )
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
         self.assertEqual(
             compiled,
-            strip_leading_spaces('''
+            strip_leading_spaces(
+                """
                 <resources>
                     </resources>
-            ''')
+            """
+            ),
         )
 
     def test_compile_doesnt_remove_already_empty_plurals(self):
-        source = strip_leading_spaces('''
+        source = strip_leading_spaces(
+            """
             <resources>
                 <plurals name="a">
                     <item quantity="one">hello</item>
@@ -628,41 +704,44 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
                     <item quantity="other"></item>
                 </plurals>
             </resources>
-        ''')
+        """
+        )
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [])
         self.assertEqual(
             compiled,
-            strip_leading_spaces('''
+            strip_leading_spaces(
+                """
                 <resources>
                     <plurals name="b">
                         <item quantity="one"></item>
                         <item quantity="other"></item>
                     </plurals>
                 </resources>
-            ''')
+            """
+            ),
         )
 
     def test_parser_doesnt_like_text_where_it_shouldnt_be(self):
         self._test_parse_error(
-            u'<resources>hello<string name="a">world</string></resources>',
-            u"Found leading characters inside <resources> tag on line 1"
+            '<resources>hello<string name="a">world</string></resources>',
+            "Found leading characters inside <resources> tag on line 1",
         )
 
     def test_strings_from_plurals_are_always_pluralized(self):
         _, stringset = self.handler.parse(
-            u'''
+            """
                 <resources>
                     <plurals name="a">
                         <item quantity="other">hello</item>
                     </plurals>
                 </resources>
-            '''
+            """
         )
         self.assertTrue(stringset[0].pluralized)
 
     def test_single_string_skipped(self):
-        source = u'<resources><string name="a" /></resources>'
+        source = '<resources><string name="a" /></resources>'
         template, stringset = self.handler.parse(source)
         self.assertEqual(source, template)
         self.assertEqual(len(stringset), 0)
@@ -670,7 +749,7 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, source)
 
     def test_single_string_array_skipped(self):
-        source = u'<resources><string-array name="a" /></resources>'
+        source = '<resources><string-array name="a" /></resources>'
         template, stringset = self.handler.parse(source)
         self.assertEqual(source, template)
         self.assertEqual(len(stringset), 0)
@@ -680,63 +759,76 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_single_string_array_item_skipped(self):
         random_key = generate_random_string()
         random_string = generate_random_string()
-        random_openstring = OpenString("{}[1]".format(random_key),
-                                       random_string, order=0)
+        random_openstring = OpenString(
+            "{}[1]".format(random_key), random_string, order=0
+        )
         random_hash = random_openstring.template_replacement
 
-        source_template = u'''
+        source_template = """
             <resources>
                 <string-array name="{key}">
                     <item />
                     <item>{string}</item>
                 </string-array>
             </resources>
-        '''
+        """
         source = source_template.format(key=random_key, string=random_string)
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
 
-        self.assertEqual(template, source_template.format(key=random_key,
-                                                           string=random_hash))
+        self.assertEqual(
+            template, source_template.format(key=random_key, string=random_hash)
+        )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
         self.assertEqual(compiled, source)
 
     def test_single_plural_raises(self):
         self._test_parse_error(
-            u'<resources><plurals name="a" /></resources>',
-            u'No plurals found in <plurals> tag on line 1'
+            '<resources><plurals name="a" /></resources>',
+            "No plurals found in <plurals> tag on line 1",
         )
 
     def test_compile_for_target_language_clears_untranslatable_strings(self):
-        string = OpenString(generate_random_string(), generate_random_string(),
-                            order=0)
+        string = OpenString(generate_random_string(), generate_random_string(), order=0)
         template = """
             <resources>
                 <string name="untranslatable"
                         translatable="false">Untranslatable</string>
                 <string name="{key}">{string}</string>
             </resources>
-        """.format(key=string.key, string=string.template_replacement)
+        """.format(
+            key=string.key, string=string.template_replacement
+        )
 
         # Try for source
         compiled = self.handler.compile(template, [string], is_source=True)
-        self.assertEqual(compiled, """
+        self.assertEqual(
+            compiled,
+            """
             <resources>
                 <string name="untranslatable"
                         translatable="false">Untranslatable</string>
                 <string name="{key}">{string}</string>
             </resources>
-        """.format(key=string.key, string=string.string))
+        """.format(
+                key=string.key, string=string.string
+            ),
+        )
 
         # Try for translation
         compiled = self.handler.compile(template, [string], is_source=False)
-        self.assertEqual(compiled, """
+        self.assertEqual(
+            compiled,
+            """
             <resources>
                 <string name="{key}">{string}</string>
             </resources>
-        """.format(key=string.key, string=string.string))
+        """.format(
+                key=string.key, string=string.string
+            ),
+        )
 
     def test_tools_locale(self):
         random_key = generate_random_string()
@@ -744,130 +836,135 @@ class AndroidTestCase(CommonFormatTestMixin, unittest.TestCase):
         random_openstring = OpenString(random_key, random_string, order=0)
         random_hash = random_openstring.template_replacement
 
-        source_python_template = u'''
+        source_python_template = """
             <resources tools:locale="{language_code}">
                 <string name="{key}">{string}</string>
             </resources>
-        '''
-        source = source_python_template.format(language_code="en",
-                                               key=random_key,
-                                               string=random_string)
+        """
+        source = source_python_template.format(
+            language_code="en", key=random_key, string=random_string
+        )
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [random_openstring],
-                                        language_info={'code': "fr"})
+        compiled = self.handler.compile(
+            template, [random_openstring], language_info={"code": "fr"}
+        )
 
         self.assertEqual(
             template,
-            source_python_template.format(language_code="en", key=random_key,
-                                          string=random_hash)
+            source_python_template.format(
+                language_code="en", key=random_key, string=random_hash
+            ),
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
-        self.assertEqual(compiled,
-                          source_python_template.format(language_code="fr",
-                                                        key=random_key,
-                                                        string=random_string))
+        self.assertEqual(
+            compiled,
+            source_python_template.format(
+                language_code="fr", key=random_key, string=random_string
+            ),
+        )
 
     def test_escape(self):
         cases = (
             # a"b => a\"b
-            ([u'a', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+            (["a", '"', "b"], ["a", "\\", '"', "b"]),
             # a'b => a\'b
-            ([u'a', u"'", u'b'], [u'a', u'\\', u"'", u'b']),
+            (["a", "'", "b"], ["a", "\\", "'", "b"]),
             # a\b => a\b
-            ([u'a', u'\\', u'b'], [u'a', u'\\', u'b']),
+            (["a", "\\", "b"], ["a", "\\", "b"]),
             # a\\b => a\\b
-            ([u'a', u'\\', u'\\', u'b'], [u'a', u'\\', u'\\', u'b']),
+            (["a", "\\", "\\", "b"], ["a", "\\", "\\", "b"]),
             # a"b\c => a\"b\c
-            ([u'a', u'"', u'b', u'\\', u'c'],
-             [u'a', u'\\', u'"', u'b', u'\\', u'c']),
+            (["a", '"', "b", "\\", "c"], ["a", "\\", '"', "b", "\\", "c"]),
             # "a" => \"a\"
-            ([u'"', u'a', u'"'], [u'\\', u'"', u'a', u'\\', u'"']),
+            (['"', "a", '"'], ["\\", '"', "a", "\\", '"']),
             # "a"b" => \"\a\"\b\"
-            ([u'"', u'a', u'"', u'b', u'"'],
-             [u'\\', u'"', u'a', u'\\', u'"', u'b', u'\\', u'"']),
+            (['"', "a", '"', "b", '"'], ["\\", '"', "a", "\\", '"', "b", "\\", '"']),
             # "a'b" => \"\a\"\b\"
-            ([u'"', u'a', u"'", u'b', u'"'],
-             [u'\\', u'"', u'a', u'\\', u"'", u'b', u'\\', u'"']),
+            (['"', "a", "'", "b", '"'], ["\\", '"', "a", "\\", "'", "b", "\\", '"']),
             # Simple
-            (u'<x y="z">hello</x>', u'<x y=\\"z\\">hello</x>'),
-            (u'<a b="c">"hello"</a>', u'<a b="c">\\"hello\\"</a>'),
+            ('<x y="z">hello</x>', '<x y=\\"z\\">hello</x>'),
+            ('<a b="c">"hello"</a>', '<a b="c">\\"hello\\"</a>'),
             # Combined
-            (u'<a b="c">hello</a><x y="z">hello</x>',
-             u'<a b="c">hello</a><x y=\\"z\\">hello</x>'),
+            (
+                '<a b="c">hello</a><x y="z">hello</x>',
+                '<a b="c">hello</a><x y=\\"z\\">hello</x>',
+            ),
             # Nested
-            (u'<a b="c"><x y="z">hello</x></a>',
-             u'<a b="c"><x y=\\"z\\">hello</x></a>'),
-            (u'<x y="z"><a b="c">hello</a></x>',
-             u'<x y=\\"z\\"><a b="c">hello</a></x>'),
+            ('<a b="c"><x y="z">hello</x></a>', '<a b="c"><x y=\\"z\\">hello</x></a>'),
+            ('<x y="z"><a b="c">hello</a></x>', '<x y=\\"z\\"><a b="c">hello</a></x>'),
             # Heads and tails
-            (u'this <x y="z">is escaped</x>, this <a b="c">isnt</a>, ok?',
-             u'this <x y=\\"z\\">is escaped</x>, this <a b="c">isnt</a>, ok?'),
+            (
+                'this <x y="z">is escaped</x>, this <a b="c">isnt</a>, ok?',
+                'this <x y=\\"z\\">is escaped</x>, this <a b="c">isnt</a>, ok?',
+            ),
             # Not proper XML
-            (u'"0 < "1', u'\\"0 < \\"1'),
-            (u'<a>"b"</c>', u'<a>\\"b\\"</c>'),
+            ('"0 < "1', '\\"0 < \\"1'),
+            ('<a>"b"</c>', '<a>\\"b\\"</c>'),
             # Single tags
-            (u'<a b="c" />', u'<a b="c" />'),
-            (u'<x y="z" />', u'<x y=\\"z\\" />'),
+            ('<a b="c" />', '<a b="c" />'),
+            ('<x y="z" />', '<x y=\\"z\\" />'),
             # xliff:g tag
-            (u'<xliff:g y="z">hello</xliff:g>',
-             u'<xliff:g y="z">hello</xliff:g>'),
+            ('<xliff:g y="z">hello</xliff:g>', '<xliff:g y="z">hello</xliff:g>'),
             # annotation tag
-            (u'<annotation y="z">hello</annotation>',
-             u'<annotation y="z">hello</annotation>'),
+            (
+                '<annotation y="z">hello</annotation>',
+                '<annotation y="z">hello</annotation>',
+            ),
             # At-sign cases
-            (u'@', '\@'),
-            (u'@something', u'\@something'),
-            (u'"@enclosed"', u'\\"@enclosed\\"'),
-            (u'no need @', u'no need @'),
+            ("@", "\@"),
+            ("@something", "\@something"),
+            ('"@enclosed"', '\\"@enclosed\\"'),
+            ("no need @", "no need @"),
             # Identifiers should remain intact
-            (u'@string/one', u'@string/one'),
+            ("@string/one", "@string/one"),
         )
         for rich, raw in cases:
-            self.assertEqual(AndroidHandler.escape(bytes_to_string(rich)),
-                              bytes_to_string(raw))
+            self.assertEqual(
+                AndroidHandler.escape(bytes_to_string(rich)), bytes_to_string(raw)
+            )
 
     def test_unescape(self):
         cases = (
             # a"b => a"b
-            ([u'a', u'"', u'b'], [u'a', u'"', u'b']),
+            (["a", '"', "b"], ["a", '"', "b"]),
             # a'b => a'b
-            ([u'a', u"'", u'b'], [u'a', u"'", u'b']),
+            (["a", "'", "b"], ["a", "'", "b"]),
             # a\b => a\b
-            ([u'a', u'\\', u'b'], [u'a', u'\\', u'b']),
+            (["a", "\\", "b"], ["a", "\\", "b"]),
             # a\"b => a"b
-            ([u'a', u'\\', u'"', u'b'], [u'a', u'"', u'b']),
+            (["a", "\\", '"', "b"], ["a", '"', "b"]),
             # a\'b => a'b
-            ([u'a', u'\\', u"'", u'b'], [u'a', u"'", u'b']),
+            (["a", "\\", "'", "b"], ["a", "'", "b"]),
             # a\\b => a\\b
-            ([u'a', u'\\', u'\\', u'b'], [u'a', u'\\', u'\\', u'b']),
+            (["a", "\\", "\\", "b"], ["a", "\\", "\\", "b"]),
             # "a"b" => a"b
-            ([u'"', u'a', u'"', u'b', u'"'], [u'a', u'"', u'b']),
+            (['"', "a", '"', "b", '"'], ["a", '"', "b"]),
             # "a'b" => a'b
-            ([u'"', u'a', u"'", u'b', u'"'], [u'a', u"'", u'b']),
+            (['"', "a", "'", "b", '"'], ["a", "'", "b"]),
             # "a\b" => a\b
-            ([u'"', u'a', u'\\', u'b', u'"'], [u'a', u'\\', u'b']),
+            (['"', "a", "\\", "b", '"'], ["a", "\\", "b"]),
             # "a\"b" => a"b
-            ([u'"', u'a', u'\\', u'"', u'b', u'"'], [u'a', u'"', u'b']),
+            (['"', "a", "\\", '"', "b", '"'], ["a", '"', "b"]),
             # "a\'b" => a\'b
-            ([u'"', u'a', u'\\', u"'", u'b', u'"'], [u'a', u'\\', u"'", u'b']),
+            (['"', "a", "\\", "'", "b", '"'], ["a", "\\", "'", "b"]),
             # "a\\b" => a\\b
-            ([u'"', u'a', u'\\', u'\\', u'b', u'"'],
-             [u'a', u'\\', u'\\', u'b']),
+            (['"', "a", "\\", "\\", "b", '"'], ["a", "\\", "\\", "b"]),
             # a"b\c => a"b\c
-            ([u'a', u'"', u'b', u'\\', u'c'], [u'a', u'"', u'b', u'\\', u'c']),
+            (["a", '"', "b", "\\", "c"], ["a", '"', "b", "\\", "c"]),
             # a'b\c => a'b\c
-            ([u'a', u"'", u'b', u'\\', u'c'], [u'a', u"'", u'b', u'\\', u'c']),
+            (["a", "'", "b", "\\", "c"], ["a", "'", "b", "\\", "c"]),
             # a\\"b => a\"b
-            ([u'a', u'\\', u'\\', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+            (["a", "\\", "\\", '"', "b"], ["a", "\\", '"', "b"]),
             # At-sign cases
-            (u'\@', '@'),
-            (u'\@something', u'@something'),
-            (u'\\"@enclosed\\"', u'"@enclosed"'),
-            (u'no need @', u'no need @'),
-            (u'@string/one', u'@string/one'),
+            ("\@", "@"),
+            ("\@something", "@something"),
+            ('\\"@enclosed\\"', '"@enclosed"'),
+            ("no need @", "no need @"),
+            ("@string/one", "@string/one"),
         )
         for raw, rich in cases:
-            self.assertEqual(AndroidHandler.unescape(bytes_to_string(raw)),
-                              bytes_to_string(rich))
+            self.assertEqual(
+                AndroidHandler.unescape(bytes_to_string(raw)), bytes_to_string(rich)
+            )
