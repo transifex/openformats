@@ -206,8 +206,10 @@ class OfficeOpenXmlHandler(object):
                 continue
 
             last_element = text_element
-
-            hyperlink_url = cls.get_hyperlink_url(text_element, rels_soup)
+            try:
+                hyperlink_url = cls.get_hyperlink_url(text_element, rels_soup)
+            except MissingParentError:
+                continue
 
             # the text parts of the translation are less that the
             # text parts of the document, so we will just remove
