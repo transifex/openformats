@@ -1,5 +1,7 @@
 import unittest
+from openformats.exceptions import ParseError
 from openformats.formats.android_unescaped import AndroidUnescapedHandler
+from openformats.tests.formats.android.test_android import AndroidTestCase
 from openformats.tests.formats.common import CommonFormatTestMixin
 from openformats.tests.utils.strings import (
     generate_random_string,
@@ -19,31 +21,32 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.handler = AndroidUnescapedHandler()
 
     def test_string(self):
+        self.maxDiff = None
         random_key = generate_random_string()
-        random_string = generate_random_string()
-        random_openstring = OpenString(random_key, random_string, order=0)
-        random_hash = random_openstring.template_replacement
+        uploaded_string = """&amp; &lt; &gt; \\' \\n \\t \\@ \\? \\" <xliff:g id="1">%1$s</xliff:g> \@ \?"""
+        uploaded_openstring = OpenString(random_key, uploaded_string, order=0)
+        uploaded_hash = uploaded_openstring.template_replacement
 
         source_python_template = """
             <resources>
                 <string name="{key}">{string}</string>
             </resources>
         """
-        source = source_python_template.format(key=random_key, string=random_string)
-
+        source = source_python_template.format(key=random_key, string=uploaded_string)
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [random_openstring])
+        compiled = self.handler.compile(template, [uploaded_openstring])
 
         self.assertEqual(
-            template, source_python_template.format(key=random_key, string=random_hash)
+            template,
+            source_python_template.format(key=random_key, string=uploaded_hash),
         )
         self.assertEqual(len(stringset), 1)
-        self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
         self.assertEqual(compiled, source)
 
     def test_escape(self):
-        rich = "&<>'\n\t@?" + '"'
-        raw = "&amp;&lt;&gt;\\'\\n\\t\\@\\?" + '\\"'
+        rich = '&>"\n\t@? <xliff:g id="1">%1$s &</xliff:g> @ ?'
+        raw = '&amp;&gt;\\"\\n\\t\\@\\? <xliff:g id="1">%1$s &</xliff:g> \\@ \\?'
 
         self.assertEqual(
             AndroidUnescapedHandler.escape(rich),
@@ -57,4 +60,42 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(
             AndroidUnescapedHandler.unescape(raw),
             rich,
+        )
+
+    def test_create_string_raises_error(self):
+        unescaped_string = "some ' string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = 'some " string'
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = "some @ string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = "some ? string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = "some \n string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = "some \t string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
         )
