@@ -7,8 +7,8 @@ install_requires = [
     "polib==1.0.3",
     "mistune==0.8.1",
     "PyYAML==6.0.1",
-    "pyparsing==2.2.0",
-    "lxml==4.6.5",
+    "pyparsing==3.1.2",
+    "lxml==4.9.3",
     "beautifulsoup4==4.9.3",
     "ucflib @ git+https://github.com/kbairak/ucflib.git@py3_compatibility#egg=ucflib-0.2.1",  # noqa
 ]
