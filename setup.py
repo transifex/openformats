@@ -6,7 +6,7 @@ import versioneer
 install_requires = [
     "polib==1.0.3",
     "mistune==0.8.1",
-    "PyYAML==5.4.1",
+    "PyYAML==6.0.1",
     "pyparsing==2.2.0",
     "lxml==4.6.5",
     "beautifulsoup4==4.9.3",
