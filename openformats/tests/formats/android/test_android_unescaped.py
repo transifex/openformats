@@ -20,6 +20,31 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         super(AndroidUnescapedTestCase, self).setUp()
         self.handler = AndroidUnescapedHandler()
 
+
+
+    def test_allow_new_line_unescaped(self):
+        self.maxDiff = None
+        random_key = generate_random_string()
+        uploaded_string ='''Free 
+                    crypto
+                    '''
+        
+        uploaded_openstring = OpenString(random_key, uploaded_string, order=0)
+        uploaded_hash = uploaded_openstring.template_replacement
+
+        source_python_template = """
+            <resources>
+                <string name="{key}">{string}</string>
+            </resources>
+        """
+        source = source_python_template.format(key=random_key, string=uploaded_string)
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [uploaded_openstring])
+        self.assertEqual(
+            template,
+            source_python_template.format(key=random_key, string=uploaded_hash),
+        )
+        self.assertEqual(compiled, source)
     def test_string(self):
         self.maxDiff = None
         random_key = generate_random_string()
@@ -87,12 +112,7 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
             AndroidUnescapedHandler._check_unescaped_characters,
             unescaped_string,
         )
-        unescaped_string = "some \n string"
-        self.assertRaises(
-            ParseError,
-            AndroidUnescapedHandler._check_unescaped_characters,
-            unescaped_string,
-        )
+       
         unescaped_string = "some \t string"
         self.assertRaises(
             ParseError,

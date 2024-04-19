@@ -94,7 +94,6 @@ class AndroidUnescapedHandler(AndroidHandler):
             r'(?<!\\)"',
             r"(?<!\\)@",
             r"(?<!\\)\?",
-            r"(?<!\\)\n",
             r"(?<!\\)\t",
         ]
 
