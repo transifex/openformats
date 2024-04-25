@@ -3,8 +3,6 @@ from hashlib import md5
 from openformats.exceptions import ParseError
 from openformats.formats.android import AndroidHandler
 from ..utils.xml import NewDumbXml as DumbXml
-from ..utils.xmlutils import XMLUtils
-from ..strings import OpenString
 
 
 class AndroidUnescapedHandler(AndroidHandler):
@@ -23,45 +21,7 @@ class AndroidUnescapedHandler(AndroidHandler):
                     else None.
         """
         AndroidUnescapedHandler._check_unescaped_characters(text)
-        if XMLUtils.validate_not_empty_string(
-            self.transcriber,
-            text,
-            child,
-            error_context={"main_tag": "plural", "child_tag": "item"},
-        ):
-            if (name, product) in self.existing_hashes:
-                if child.tag in self.existing_hashes[(name, product)]:
-                    format_dict = {"name": name, "child_tag": child.tag}
-                    if product:
-                        msg = (
-                            "Duplicate `tag_name` ({child_tag}) for `name`"
-                            " ({name}) and `product` ({product}) "
-                            "found on line {line_number}"
-                        )
-                        format_dict["product"] = product
-                    else:
-                        msg = (
-                            "Duplicate `tag_name` ({child_tag}) for `name`"
-                            " ({name}) specify a product to differentiate"
-                        )
-                    XMLUtils.raise_error(
-                        self.transcriber, child, msg, context=format_dict
-                    )
-                else:
-                    product += child.tag
-            # Create OpenString
-            string = OpenString(
-                name,
-                text,
-                context=product,
-                order=next(self.order_counter),
-                developer_comment=comment,
-                pluralized=pluralized,
-            )
-            self.existing_hashes.setdefault((name, product), [])
-            self.existing_hashes[(name, product)].append(child.tag)
-            return string
-        return None
+        return super()._create_string(name, text, comment, product, child, pluralized)
 
     @staticmethod
     def _check_unescaped_characters(text):
@@ -94,16 +54,13 @@ class AndroidUnescapedHandler(AndroidHandler):
             r'(?<!\\)"',
             r"(?<!\\)@",
             r"(?<!\\)\?",
-            r"(?<!\\)\n",
-            r"(?<!\\)\t",
         ]
-
-        for pattern in not_allowed_unescaped:
-            if re.search(pattern, protected_string):
-                raise ParseError(
-                    "You have one or more unescaped characters from the following "
-                    f"list ', \", @, ?, \\n, \\t in the string : {text}"
-                )
+        full_pattern = "|".join(not_allowed_unescaped)
+        if re.search(full_pattern, protected_string):
+            raise ParseError(
+                "You have one or more unescaped characters from the following list: ', "
+                f'", @, ?, \\n, \\t in the string: {text!r}'
+            )
 
     @staticmethod
     def _check_unescaped_characters_in_plural_string(text):
