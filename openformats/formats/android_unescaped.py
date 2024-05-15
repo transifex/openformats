@@ -52,8 +52,6 @@ class AndroidUnescapedHandler(AndroidHandler):
         not_allowed_unescaped = [
             r"(?<!\\)'",
             r'(?<!\\)"',
-            r"(?<!\\)@",
-            r"(?<!\\)\?",
         ]
         full_pattern = "|".join(not_allowed_unescaped)
         if re.search(full_pattern, protected_string):

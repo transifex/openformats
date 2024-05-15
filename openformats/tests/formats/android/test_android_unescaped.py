@@ -75,15 +75,3 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
             AndroidUnescapedHandler._check_unescaped_characters,
             unescaped_string,
         )
-        unescaped_string = "some @ string"
-        self.assertRaises(
-            ParseError,
-            AndroidUnescapedHandler._check_unescaped_characters,
-            unescaped_string,
-        )
-        unescaped_string = "some ? string"
-        self.assertRaises(
-            ParseError,
-            AndroidUnescapedHandler._check_unescaped_characters,
-            unescaped_string,
-        )
