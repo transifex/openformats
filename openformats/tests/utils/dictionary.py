@@ -28,7 +28,7 @@ class FunkyDictionary(object):
     def __init__(self):
         self.phrase_list = []
         self.phrase_dict = {}
-        with open(DICT_FNAME, 'rU', encoding='utf-8') as dict_file:
+        with open(DICT_FNAME, 'r', encoding='utf-8', newline=None) as dict_file:
             dict_reader = csv.DictReader(dict_file)
             for phrase in dict_reader:
                 unicode_phrase = {}

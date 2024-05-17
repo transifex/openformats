@@ -15,7 +15,7 @@ import sys
 from io import open
 
 from openformats.formats import (android, github_markdown_v2, json, plaintext,
-                                 po, srt)
+                                 po, srt, vtt)
 from openformats.tests.utils import translate_stringset
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -29,6 +29,7 @@ def get_handler(ext):
     return {
         'txt': plaintext.PlaintextHandler(),
         'srt': srt.SrtHandler(),
+        'vtt': vtt.VttHandler(),
         'xml': android.AndroidHandler(),
         'json': json.JsonHandler(),
         'po': po.PoHandler(),
