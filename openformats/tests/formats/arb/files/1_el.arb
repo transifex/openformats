@@ -1,0 +1,43 @@
+{
+  "@@locale": "en_US",
+  "@@x-template": "path/to/template.arb",
+  "@@context": "HomePage",
+
+  "MSG_OK": "el:Everything works fine.",
+
+  "title_bar": "el:My Cool Home",
+  "@title_bar": {
+    "type": "text",
+    "context": "HomePage",
+    "description": "Page title."
+  },
+
+  "total_files": "{ item_count, plural, one {el:You have {file_count} file.} other {el:You have {file_count} files.} }",
+  "special_chars": "{ cnt, plural, one {el:This is Sam's book.} other {el:These are Sam's books.} }",
+  "gold_coins": "{count, plural, zero {el:The chest is empty.} one {el:You have one gold coin.} other {el:You have {cnt} gold coins.}}",
+  "custom_plural_value": "{number, plural, one {el:1 New} two {el:# New}}",
+
+  "logo@src": "images/001.jpg",
+  "@logo@src": {
+      "context": "arb_editor",
+      "type": "image",
+      "description": "logo image, 128x128"
+  },
+
+  "font_style": "#title {font-family: Verdana, Geneva, sans-serif; font-style: oblique; font-size: 36px}",
+  "@font_style": {
+      "context": "arb_editor",
+      "type": "css",
+      "description": "font specific css"
+  },
+
+  "input_test1@placeholder": "el:localized placeholder text",
+  "input_test2@value": "el:localized input value",
+
+  "logo": "el:ARB",
+  "@logo": {
+    "type": "text",
+    "screen": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBhQGBRUIBwgKFQkKDRYODRYMFhYfHhoWHRweHB8cHh4cJzIqIyUkHB4cITssLycpLCwsFSExPjAtNSgrLEABCQoKDQsNGQ4OGTUkHiQ1LDU1NS4sLCo1NTYpNTYpLCw1NS40NCw0LikuKSkpLCwpLCw0KTQpKSwsNCkpNCkpLP/AABEIADIAMgMBIgACEQEDEQH/xAAbAAACAwEBAQAAAAAAAAAAAAAABQIEBgcBA//EADQQAAEDAgIIAwUJAAAAAAAAAAEAAgMEEQUhBhITMUFRYXEUIjIjgbHB0QcWNEJTkaGi4f/EABgBAAMBAQAAAAAAAAAAAAAAAAABBAUC/8QAIBEAAgEEAgMBAAAAAAAAAAAAAAECAxExQQQhEiKhFP/aAAwDAQACEQMRAD8A7c30+4LN6WSubVwxxyPbYufdhIzyA3dyvtJjTqHFjHKWvpZbOjLbXFsiLjI2cDlvzVPSmobII6mJwLQ19rcxY2PLsmVUINVFddFj7xeGwNz5zeoiadU88sj9f9SfB8VqKOQvmqHSMkiHllPpflmCM7b7hIJ6uSplAkn9kDrFthY24Gwum9LXtqachoIeBmD8QeKWDS/PCEX0nf4OsG0hkmxjYVjmmOa4ZqgDVIBPcg9ei1Nlh8FDY8VbNM6zIgXn9rD+Sr2JaXPjkEVBTN13uDI9oTck7hYfVMhrUPKfotGrQq8DX+HbtpGbXVGvqjK9s7e9epEVjn+k8UmB4trAu8FUv2sd9weR5gOR49R2VeWsGI0oEbgJb2IPG+S6NV0TK+jNPVRNdE8WcHLn+O6DzUFUZMHa99M4ekWLmnkQSLjrv+KT6NCjyY+KUumtmbnqNhUGF5Ie02IKvUkxEJlYPLexKli2D1FDRNrcSpYtj6Ha4zHImxNhwGe9JjWSOpCwgiFxvEQ02yyIHPuk6mmiyNeMkOZMW1W2a4342TvQzAXYhiLcYqmkQwkmC/5iQRcdBc58Sk+iNBTmU1OkNXFZpAhidffzNt/AAZ9eS6w1oa2zQAAMrLq60S8nkNJwis7JoQhBmEW+kdgpWUW+kdgpIAyv2iR+I0dbSkfiayCP+4PyT+sw2PEaXYVdOx0Rys4fDkkOlz9pjNDSfq120PZgv81qBuSWzlN3Yjw/Q6mwup29NS+1YbtL3OdY8wHGwPVPEL1M7cnLLBCEIERb6R2CkhCAKlTA2Sdkj42F8TzsyQLt8h3HgrQQhAlk9QhCBghCEAf/2Q==",
+    "video": "http://www.youtube.com/user_interaction"
+  }
+}
