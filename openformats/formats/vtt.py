@@ -1,3 +1,4 @@
+from itertools import count
 import re
 
 from ..handlers import Handler
@@ -26,6 +27,7 @@ class VttHandler(Handler):
         self.transcriber = Transcriber(content)
         source = self.transcriber.source
         stringset = []
+        self._order = count()
         for start, subtitle_section in self._generate_split_subtitles(source):
             self.transcriber.copy_until(start)
             offset, string = self._parse_section(start, subtitle_section)
@@ -101,7 +103,8 @@ class VttHandler(Handler):
             raise ParseError(f"Subtitle is empty on line {self.transcriber.line_number + 2}")
 
         string = OpenString(timings, string_to_translate,
-                            occurrences=f"{start},{end}")
+                            occurrences=f"{start},{end}",
+                            order=next(self._order))
         offset += len(identifier) + len(timings) + 1;
         if len(identifier):
             offset += 1
