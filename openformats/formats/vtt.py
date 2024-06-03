@@ -58,6 +58,7 @@ class VttHandler(Handler):
             if "-->" in str:
                 timings = str
                 timings_index = i
+                break
 
         if timings_index < 0:
             return None, None
@@ -137,7 +138,10 @@ class VttHandler(Handler):
         transcriber = Transcriber(template)
         template = transcriber.source
         stringset = iter(stringset)
-        string = next(stringset)
+        try:
+            string = next(stringset)
+        except StopIteration:
+            raise ParseError("stringset cannot be empty")
 
         for start, subtitle_section in self._generate_split_subtitles(template):
             transcriber.copy_until(start)
@@ -147,8 +151,12 @@ class VttHandler(Handler):
             hash_position = -1
             if subtitle_section.count('-->') > 0:
                 arrow_pos = subtitle_section.index('-->')
-                end_of_timings = subtitle_section.index('\n', arrow_pos + len('-->'))
-                hash_position = end_of_timings + 1
+                try:
+                    end_of_timings = subtitle_section.index('\n', arrow_pos + len('-->'))
+                    hash_position = end_of_timings + 1
+                except ValueError:
+                    # No newlines after timing: subtitle is missing
+                    pass
 
             if hash_position < 0:
                 transcriber.copy_until(start + len(subtitle_section))
