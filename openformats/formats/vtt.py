@@ -1,10 +1,11 @@
-from itertools import count
 import re
+from itertools import count
 
-from ..handlers import Handler
 from openformats.exceptions import ParseError
 from openformats.strings import OpenString
 from openformats.transcribers import Transcriber
+
+from ..handlers import Handler
 
 
 class VttHandler(Handler):
@@ -12,18 +13,18 @@ class VttHandler(Handler):
     extension = "vtt"
     EXTRACTS_RAW = False
 
-    NON_SPACE_PAT = re.compile(r'[^\s]')
+    NON_SPACE_PAT = re.compile(r"[^\s]")
 
     def _generate_split_subtitles(self, content, **kwargs):
         start = 0
-        for section in content.split('\n\n'):  # sections are separated by blank lines
+        for section in content.split("\n\n"):  # sections are separated by blank lines
             # find first non-space character of section
             match = self.NON_SPACE_PAT.search(section)
             if match:
                 yield start + match.start(), section.strip()
             start += len(section) + 2
 
-    def parse(self, content):
+    def parse(self, content, **kwargs):
         self.transcriber = Transcriber(content)
         source = self.transcriber.source
         stringset = []
@@ -44,17 +45,17 @@ class VttHandler(Handler):
         self.transcriber.copy_until(len(source))
 
         template = self.transcriber.get_destination()
-        if not template.startswith('WEBVTT'):
+        if not template.startswith("WEBVTT"):
             raise ParseError("VTT file should start with 'WEBVTT'!")
         return template, stringset
 
     def _parse_section(self, offset, section):
-        src_strings = section.split('\n')  # identifier_str is optional in VTT
+        src_strings = section.split("\n")  # identifier_str is optional in VTT
 
         timings = ""
         timings_index = -1
         for i in range(len(src_strings)):
-            str = src_strings[i];
+            str = src_strings[i]
             if "-->" in str:
                 timings = str
                 timings_index = i
@@ -65,7 +66,7 @@ class VttHandler(Handler):
 
         # Identifier (lines preceding the line with timings) is optional in VTT.
         # Identifier can be either numberic or textual, and it is not necessarily unique.
-        identifier = '\n'.join(src_strings[:timings_index])
+        identifier = "\n".join(src_strings[:timings_index])
 
         # timings
         timings_parse_error = False
@@ -99,40 +100,51 @@ class VttHandler(Handler):
             )
 
         # Content
-        string_to_translate = '\n'.join(src_strings[timings_index+1:])
+        string_to_translate = "\n".join(src_strings[timings_index + 1 :])
         if string_to_translate == "":
-            raise ParseError(f"Subtitle is empty on line {self.transcriber.line_number + 2}")
+            raise ParseError(
+                f"Subtitle is empty on line {self.transcriber.line_number + 2}"
+            )
 
-        string = OpenString(timings, string_to_translate,
-                            occurrences=f"{start},{end}",
-                            order=next(self._order))
-        offset += len(identifier) + len(timings) + 1;
+        string = OpenString(
+            timings,
+            string_to_translate,
+            occurrences=f"{start},{end}",
+            order=next(self._order),
+        )
+        offset += len(identifier) + len(timings) + 1
         if len(identifier):
             offset += 1
         return offset, string
 
     def _format_timing(self, timing):
         try:
-            rest, milliseconds = timing.split('.')
+            rest, milliseconds = timing.split(".")
             milliseconds = f"{milliseconds:<03}"
         except ValueError:
             rest, milliseconds = timing, "000"
         # timing may or may not contain hours part
-        if rest.count(':') == 1:
-            minutes, seconds = rest.split(':')
-            minutes, seconds, milliseconds = (int(minutes),
-                                              int(seconds),
-                                              int(milliseconds))
+        if rest.count(":") == 1:
+            minutes, seconds = rest.split(":")
+            minutes, seconds, milliseconds = (
+                int(minutes),
+                int(seconds),
+                int(milliseconds),
+            )
             return f"{minutes:02}:{seconds:02}.{milliseconds:03}"
-        elif rest.count(':') == 2:
-            hours, minutes, seconds = rest.split(':')
-            hours, minutes, seconds, milliseconds = (int(hours),
-                                                    int(minutes),
-                                                    int(seconds),
-                                                    int(milliseconds))
+        elif rest.count(":") == 2:
+            hours, minutes, seconds = rest.split(":")
+            hours, minutes, seconds, milliseconds = (
+                int(hours),
+                int(minutes),
+                int(seconds),
+                int(milliseconds),
+            )
             return f"{hours:02}:{minutes:02}:{seconds:02}.{milliseconds:03}"
         else:
-            raise ParseError(f"Unexpected timing format on line {self.transcriber.line_number + 2}")
+            raise ParseError(
+                f"Unexpected timing format on line {self.transcriber.line_number + 2}"
+            )
 
     def compile(self, template, stringset, **kwargs):
         transcriber = Transcriber(template)
@@ -149,10 +161,12 @@ class VttHandler(Handler):
 
             # Find hash after timings
             hash_position = -1
-            if subtitle_section.count('-->') > 0:
-                arrow_pos = subtitle_section.index('-->')
+            if subtitle_section.count("-->") > 0:
+                arrow_pos = subtitle_section.index("-->")
                 try:
-                    end_of_timings = subtitle_section.index('\n', arrow_pos + len('-->'))
+                    end_of_timings = subtitle_section.index(
+                        "\n", arrow_pos + len("-->")
+                    )
                     hash_position = end_of_timings + 1
                 except ValueError:
                     # No newlines after timing: subtitle is missing
@@ -161,10 +175,12 @@ class VttHandler(Handler):
             if hash_position < 0:
                 transcriber.copy_until(start + len(subtitle_section))
                 transcriber.mark_section_end()
-            elif (subtitle_section[
-                    hash_position:
-                    hash_position + len(string.template_replacement)
-                    ] == string.template_replacement):
+            elif (
+                subtitle_section[
+                    hash_position : hash_position + len(string.template_replacement)
+                ]
+                == string.template_replacement
+            ):
                 # found it
                 transcriber.copy_until(start + hash_position)
                 transcriber.add(string.string)
