@@ -6,6 +6,8 @@ pyparsing==2.2.0
 six
 lxml==4.6.5
 beautifulsoup4==4.9.3
+pytest
+mock
 
 # InDesign
 git+https://github.com/kbairak/ucflib@py3_compatibility

@@ -1,0 +1,35 @@
+WEBVTT
+
+STYLE here
+some long,
+long style
+
+1
+00:01:28.797 --> 00:01:30.297
+Γεια σου, Κόσμε!
+
+NOTE some note
+here
+
+2
+00:01:45.105 --> 00:01:47.940 X:350 Y:240
+Pinky: Brain, ρι θες να κάνουμε απόψε;
+Brain: Ό,τι και κάθε βράδυ, Pinky: θα κατακτήσουμε τον κόσμο!
+
+3
+00:02:45.105 --> 00:02:47.940
+el:A phrase with escaped &lt;HTML tags&gt;
+
+4
+00:03:45.105 --> 00:03:47.940
+el:<font color="#00ff00">A phrase with <b>HTML</b> characters</font>
+
+5
+00:05:45.105 --> 00:05:47.940
+el:A phrase with unicode characters: ΑβΓδΕ → ♡ Ш
+
+6
+00:06:45.105 --> 00:06:47.940
+el:Three lines: First
+Second
+Third
