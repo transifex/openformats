@@ -82,6 +82,20 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
         compiled = compiled.replace("{ ", "{").replace(" }", "}")  # fix spaces inside {}
         self.assertEqual(compiled, '{"b": "%s"}' % string2)
 
+    def test_locale(self):
+        source = '{"@@locale": "en_US", "a": "%s"}' % self.random_string
+        template, stringset = self.handler.parse(source)
+        self.assertEqual(template,
+                         '{"@@locale": "en_US", "a": "%s"}' % self.random_hash)
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__,
+                         self.random_openstring.__dict__)
+
+        compiled = self.handler.compile(template, [self.random_openstring],
+                                        language_info={"name": "French", "code": "fr"})
+        self.assertEqual(compiled,
+                         '{"@@locale": "fr", "a": "%s"}' % self.random_string)
+
     def test_whitespace_only_strings(self):
         self._test_parse_error('{"a": " ", "b": "   "}',
                                "No strings could be extracted")

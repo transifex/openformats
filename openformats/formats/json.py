@@ -162,7 +162,7 @@ class JsonHandler(Handler):
         # e.g. a pluralized string.
         # If it cannot be parsed that way (returns None), parse it like
         # a regular string.
-        parser = ICUParser(allow_numeric_plural_values = (self.name == "ARB"))
+        parser = ICUParser(allow_numeric_plural_values = False)
         icu_string = parser.parse(key, value)
         if icu_string:
             return self._create_pluralized_string(icu_string, value_position)
@@ -171,7 +171,8 @@ class JsonHandler(Handler):
             key, value, value_position
         )
 
-    def _create_pluralized_string(self, icu_string, value_position):
+    def _create_pluralized_string(self, icu_string, value_position,
+                                  context_value="", description_value=""):
         """Create a pluralized string based on the given information.
 
         Also updates the transcriber accordingly.
@@ -185,6 +186,8 @@ class JsonHandler(Handler):
             icu_string.strings_by_rule,
             pluralized=icu_string.pluralized,
             order=next(self._order),
+            context=context_value,
+            developer_comment=description_value,
         )
 
         current_pos = icu_string.current_position
@@ -196,7 +199,8 @@ class JsonHandler(Handler):
 
         return openstring
 
-    def _create_regular_string(self, key, value, value_position):
+    def _create_regular_string(self, key, value, value_position,
+                               context_value="", description_value=""):
         """Return a new simple OpenString based on the given key and value
         and update the transcriber accordingly.
 
@@ -204,7 +208,10 @@ class JsonHandler(Handler):
         :param value: the translation string
         :return: an OpenString or None
         """
-        openstring = OpenString(key, value, order=next(self._order))
+        openstring = OpenString(key, value, order=next(self._order),
+                                context=context_value,
+                                developer_comment=description_value,
+        )
         self.transcriber.copy_until(value_position)
         self.transcriber.add(openstring.template_replacement)
         self.transcriber.skip(len(value))
@@ -485,11 +492,14 @@ class ArbHandler(JsonHandler):
         source = self.transcriber.source
         self.stringset = []
         self.existing_keys = set()
+        self.metadata = dict()
 
         try:
             parsed = DumbJson(source)
         except ValueError as e:
             raise ParseError(six.text_type(e))
+        if parsed.type != dict:
+            raise ParseError("Invalid JSON")
         self._order = count()
         self._find_keys(parsed)
         self._extract(parsed)
@@ -502,55 +512,76 @@ class ArbHandler(JsonHandler):
         return self.transcriber.get_destination(), self.stringset
 
     def _find_keys(self, parsed, nest=None):
-        if parsed.type == dict:
-            for key, key_position, value, _ in parsed:
-                key = self._escape_key(key)
-                if nest is not None:
-                    key = f"{nest}.{key}"
+        for key, key_position, value, _ in parsed:
+            key = self._escape_key(key)
+            if nest is not None:
+                key = f"{nest}.{key}"
 
-                # 'key' should be unique
-                if key in self.existing_keys:
-                    # Need this for line number
-                    self.transcriber.copy_until(key_position)
-                    raise ParseError(u"Duplicate string key ('{}') in line {}".
-                                     format(key, self.transcriber.line_number))
-                if nest is None:  # store all root-level keys in order to detect duplication
+            # 'key' should be unique
+            if key in self.existing_keys:
+                # Need this for line number
+                self.transcriber.copy_until(key_position)
+                raise ParseError(u"Duplicate string key ('{}') in line {}".
+                                    format(key, self.transcriber.line_number))
+            if nest is None:  # store all root-level keys in order to detect duplication
+                self.existing_keys.add(key)
+            elif key.startswith("@"):
+                if key.endswith(".type") and value != "text":
                     self.existing_keys.add(key)
-                elif key.startswith("@") and key.endswith(".type") and value != "text":
-                    self.existing_keys.add(key)
+                elif key.endswith(".context"):
+                    self.metadata[key] = value
+                elif key.endswith(".description"):
+                    self.metadata[key] = value
 
-                if isinstance(value, DumbJson):
-                    self._find_keys(value, key)
-                else:
-                    pass
-        else:
-            raise ParseError("Invalid JSON")
+            if isinstance(value, DumbJson):
+                self._find_keys(value, key)
+            else:
+                pass
 
     def _extract(self, parsed):
-        if parsed.type == dict:
-            # string_type = "text"
-            for key, _, value, value_position in parsed:
-                key = self._escape_key(key)
+        for key, _, value, value_position in parsed:
+            key = self._escape_key(key)
 
-                if key.startswith("@"):
+            if key.startswith("@"):
+                continue
+            elif isinstance(value, (six.text_type)):
+                if not value.strip():
                     continue
-                elif isinstance(value, (six.text_type)):
-                    if not value.strip():
-                        continue
-                    elif f"@{key}.type" in self.existing_keys:
-                        continue
+                elif f"@{key}.type" in self.existing_keys:
+                    continue
 
-                    openstring = self._create_openstring(key, value,
-                                                         value_position)
-                    if openstring:
-                        self.stringset.append(openstring)
-                else:
-                    # Ignore other JSON types (bools, nulls, numbers)
-                    pass
-        else:
-            raise ParseError("Invalid JSON")
+                context_key = f"@{key}.context"
+                context_value = self.metadata[context_key] \
+                    if context_key in self.metadata.keys() else ""
+                description_key = f"@{key}.description"
+                description_value = self.metadata[description_key] \
+                    if description_key in self.metadata.keys() else ""
 
-    def compile(self, template, stringset, **kwargs):
+                openstring = self._create_openstring(key, value,
+                                                     value_position,
+                                                     context_value,
+                                                     description_value)
+                if openstring:
+                    self.stringset.append(openstring)
+            else:
+                # Ignore other JSON types (bools, nulls, numbers)
+                pass
+
+    def _create_openstring(self, key, value, value_position,
+                           context_value, description_value):
+        parser = ICUParser(allow_numeric_plural_values = True)
+        icu_string = parser.parse(key, value)
+        if icu_string:
+            return self._create_pluralized_string(icu_string, value_position,
+                                                  context_value,
+                                                  description_value)
+
+        return self._create_regular_string(
+            key, value, value_position,
+            context_value, description_value
+        )
+
+    def compile(self, template, stringset, language_info=None, **kwargs):
         # Lets play on the template first, we need it to not include the hashes
         # that aren't in the stringset. For that we will create a new stringset
         # which will have the hashes themselves as strings and compile against
@@ -574,6 +605,15 @@ class ArbHandler(JsonHandler):
             template, fake_stringset, False
         )
         new_template = self._clean_empties(new_template)
+
+        if language_info is not None:
+            match = re.search(r'(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"', new_template)
+            if match:
+                new_template = u"{}{}{}".format(
+                    new_template[:match.start(2)],
+                    language_info["code"],
+                    new_template[match.end(2):]
+                )
 
         return self._replace_translations(new_template, stringset, True)
 
