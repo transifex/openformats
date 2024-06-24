@@ -45,7 +45,9 @@ class VttHandler(Handler):
         self.transcriber.copy_until(len(source))
 
         template = self.transcriber.get_destination()
-        if not template.startswith("WEBVTT"):
+        if len(stringset) == 0:
+            raise ParseError("There are no strings to translate")
+        elif not template.startswith("WEBVTT"):
             raise ParseError("VTT file should start with 'WEBVTT'!")
         return template, stringset
 
@@ -101,10 +103,6 @@ class VttHandler(Handler):
 
         # Content
         string_to_translate = "\n".join(src_strings[timings_index + 1 :])
-        if string_to_translate == "":
-            raise ParseError(
-                f"Subtitle is empty on line {self.transcriber.line_number + 2}"
-            )
 
         string = OpenString(
             timings,
