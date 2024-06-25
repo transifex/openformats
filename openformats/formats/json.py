@@ -74,7 +74,7 @@ class JsonHandler(Handler):
             for key, key_position, value, value_position in parsed:
                 key = self._escape_key(key)
                 if nest is not None:
-                    key = u"{}.{}".format(nest, key)
+                    key = f"{nest}.{key}"
 
                 # 'key' should be unique
                 if key in self.existing_keys:
@@ -130,9 +130,9 @@ class JsonHandler(Handler):
         elif parsed.type == list:
             for index, (item, item_position) in enumerate(parsed):
                 if nest is None:
-                    key = u"..{}..".format(index)
+                    key = f"..{index}.."
                 else:
-                    key = u"{}..{}..".format(nest, index)
+                    key = f"{nest}..{index}.."
                 if isinstance(item, (six.binary_type, six.text_type)):
                     if not item.strip():
                         continue
@@ -162,7 +162,7 @@ class JsonHandler(Handler):
         # e.g. a pluralized string.
         # If it cannot be parsed that way (returns None), parse it like
         # a regular string.
-        parser = ICUParser(allow_numeric_plural_values=False)
+        parser = ICUParser(allow_numeric_plural_values = False)
         icu_string = parser.parse(key, value)
         if icu_string:
             return self._create_pluralized_string(icu_string, value_position)
@@ -171,7 +171,8 @@ class JsonHandler(Handler):
             key, value, value_position
         )
 
-    def _create_pluralized_string(self, icu_string, value_position):
+    def _create_pluralized_string(self, icu_string, value_position,
+                                  context_value="", description_value=""):
         """Create a pluralized string based on the given information.
 
         Also updates the transcriber accordingly.
@@ -185,6 +186,8 @@ class JsonHandler(Handler):
             icu_string.strings_by_rule,
             pluralized=icu_string.pluralized,
             order=next(self._order),
+            context=context_value,
+            developer_comment=description_value,
         )
 
         current_pos = icu_string.current_position
@@ -196,7 +199,8 @@ class JsonHandler(Handler):
 
         return openstring
 
-    def _create_regular_string(self, key, value, value_position):
+    def _create_regular_string(self, key, value, value_position,
+                               context_value="", description_value=""):
         """Return a new simple OpenString based on the given key and value
         and update the transcriber accordingly.
 
@@ -204,7 +208,10 @@ class JsonHandler(Handler):
         :param value: the translation string
         :return: an OpenString or None
         """
-        openstring = OpenString(key, value, order=next(self._order))
+        openstring = OpenString(key, value, order=next(self._order),
+                                context=context_value,
+                                developer_comment=description_value,
+        )
         self.transcriber.copy_until(value_position)
         self.transcriber.add(openstring.template_replacement)
         self.transcriber.skip(len(value))
@@ -472,6 +479,156 @@ class JsonHandler(Handler):
         return unescape(string)
 
 
+class ArbHandler(JsonHandler):
+    name = "ARB"
+    extension = "arb"
+    keep_sections = True
+
+    def parse(self, content, **kwargs):
+        # Validate that content is JSON
+        self.validate_content(content)
+
+        self.transcriber = Transcriber(content)
+        source = self.transcriber.source
+        self.stringset = []
+        self.existing_keys = set()
+        self.metadata = dict()
+
+        try:
+            parsed = DumbJson(source)
+        except ValueError as e:
+            raise ParseError(six.text_type(e))
+        if parsed.type != dict:
+            raise ParseError("Invalid JSON")
+        self._order = count()
+        self._find_keys(parsed)
+        self._extract(parsed)
+
+        if not self.stringset:
+            raise ParseError('No strings could be extracted')
+
+        self.transcriber.copy_until(len(source))
+
+        return self.transcriber.get_destination(), self.stringset
+
+    def _find_keys(self, parsed, nest=None):
+        for key, key_position, value, _ in parsed:
+            key = self._escape_key(key)
+            if nest is not None:
+                key = f"{nest}.{key}"
+
+            # 'key' should be unique
+            if key in self.existing_keys:
+                # Need this for line number
+                self.transcriber.copy_until(key_position)
+                raise ParseError(u"Duplicate string key ('{}') in line {}".
+                                    format(key, self.transcriber.line_number))
+            if nest is None:  # store all root-level keys in order to detect duplication
+                self.existing_keys.add(key)
+            elif key.startswith("@"):
+                if key.endswith(".type") and value != "text":
+                    self.existing_keys.add(key)
+                elif key.endswith(".context"):
+                    self.metadata[key] = value
+                elif key.endswith(".description"):
+                    self.metadata[key] = value
+
+            if isinstance(value, DumbJson):
+                self._find_keys(value, key)
+            else:
+                pass
+
+    def _extract(self, parsed):
+        for key, _, value, value_position in parsed:
+            key = self._escape_key(key)
+
+            if key.startswith("@"):
+                continue
+            elif isinstance(value, (six.text_type)):
+                if not value.strip():
+                    continue
+                elif f"@{key}.type" in self.existing_keys:
+                    continue
+
+                context_key = f"@{key}.context"
+                context_value = self.metadata[context_key] \
+                    if context_key in self.metadata.keys() else ""
+                description_key = f"@{key}.description"
+                description_value = self.metadata[description_key] \
+                    if description_key in self.metadata.keys() else ""
+
+                openstring = self._create_openstring(key, value,
+                                                     value_position,
+                                                     context_value,
+                                                     description_value)
+                if openstring:
+                    self.stringset.append(openstring)
+            else:
+                # Ignore other JSON types (bools, nulls, numbers)
+                pass
+
+    def _create_openstring(self, key, value, value_position,
+                           context_value, description_value):
+        parser = ICUParser(allow_numeric_plural_values = True)
+        icu_string = parser.parse(key, value)
+        if icu_string:
+            return self._create_pluralized_string(icu_string, value_position,
+                                                  context_value,
+                                                  description_value)
+
+        return self._create_regular_string(
+            key, value, value_position,
+            context_value, description_value
+        )
+
+    def compile(self, template, stringset, language_info=None, **kwargs):
+        # Lets play on the template first, we need it to not include the hashes
+        # that aren't in the stringset. For that we will create a new stringset
+        # which will have the hashes themselves as strings and compile against
+        # that. The compilation process will remove any string sections that
+        # are absent from the stringset. Next we will call `_clean_empties`
+        # from the template to clear out any `...,  ,...` or `...{ ,...`
+        # sequences left. The result will be used as the actual template for
+        # the compilation process
+        self.keep_sections = kwargs.get('keep_sections', True)
+
+        stringset = list(stringset)
+
+        fake_stringset = [
+            OpenString(openstring.key,
+                    openstring.template_replacement,
+                    order=openstring.order,
+                    pluralized=openstring.pluralized)
+            for openstring in stringset
+        ]
+        new_template = self._replace_translations(
+            template, fake_stringset, False
+        )
+        new_template = self._clean_empties(new_template)
+
+        if language_info is not None:
+            match = re.search(r'(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"', new_template)
+            if match:
+                new_template = u"{}{}{}".format(
+                    new_template[:match.start(2)],
+                    language_info["code"],
+                    new_template[match.end(2):]
+                )
+
+        return self._replace_translations(new_template, stringset, True)
+
+    def _copy_until_and_remove_section(self, pos):
+        """
+        Copy characters to the transcriber until the given position,
+        then end the current section.
+        """
+        self.transcriber.copy_until(pos)
+        self.transcriber.mark_section_end()
+        # Unlike the JSON format, do not remove the remaining section of the template
+        if self.keep_sections == False:  # needed for a test
+            self.transcriber.remove_section()
+
+
 class StructuredJsonHandler(JsonHandler):
     """Handler that preserves certain keys for internal usage, while
     keeping the flexibility and functionality of the original JsonHandler. It
@@ -534,16 +691,15 @@ class StructuredJsonHandler(JsonHandler):
                 self.transcriber.add(u"null")
             else:
                 if template_value is None:
-                    self.transcriber.add(u"\"{}\"".format(value))
+                    self.transcriber.add(f"\"{value}\"")
                 else:
-                    self.transcriber.add(u"{}".format(value))
+                    self.transcriber.add(f"{value}")
         else:
             self.transcriber.add(u"null")
 
-        self.transcriber.skip(len(u"{}".format(template_value)))
+        self.transcriber.skip(len(f"{template_value}"))
         self.transcriber.copy_until(value_position +
-                                    len(u"{}".format(template_value)) +
-                                    1)
+                                    len(f"{template_value}") + 1)
 
     def _compile_recursively(self, current_part):
         if isinstance(current_part, DumbJson):
@@ -623,7 +779,7 @@ class StructuredJsonHandler(JsonHandler):
                                                 value_position)
                         elif not isinstance(value, DumbJson):
                             self.transcriber.copy_until(
-                                value_position + len(u"{}".format(value)) + 1
+                                value_position + len(f"{value}") + 1
                             )
 
                     extra_elements = []
@@ -765,7 +921,7 @@ class StructuredJsonHandler(JsonHandler):
         """
         # We need to parse only STRING_KEY keys, otherwise we should
         # early return
-        if not key.endswith(".{}".format(self.STRING_KEY)):
+        if not key.endswith(f".{self.STRING_KEY}"):
             return None
         # Remove the STRING_KEY part of the key as it is not needed. Add +1
         # when calculating the length of the STRING_KEY, for the "." character
@@ -1004,8 +1160,7 @@ class ChromeI18nHandlerV3(Handler):
              outer_key_position, outer_value, outer_value_position) in parsed:
             if outer_key in existing_keys:
                 transcriber.copy_until(outer_key_position)
-                raise ParseError(u"Key '{}' appears multiple times (line {})".
-                                 format(outer_key, transcriber.line_number))
+                raise ParseError(f"Key '{outer_key}' appears multiple times (line {transcriber.line_number})")
             existing_keys.add(outer_key)
 
             if not isinstance(outer_value, DumbJson):

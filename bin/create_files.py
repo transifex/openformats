@@ -32,6 +32,7 @@ def get_handler(ext):
         'vtt': vtt.VttHandler(),
         'xml': android.AndroidHandler(),
         'json': json.JsonHandler(),
+        'arb': json.ArbHandler(),
         'po': po.PoHandler(),
         'md': github_markdown_v2.GithubMarkdownHandlerV2(),
     }[ext]
