@@ -56,16 +56,15 @@ class VttTestCase(CommonFormatTestMixin, unittest.TestCase):
         _, stringset = self.handler.parse(source)
         self.assertEqual(stringset[0].occurrences, '00:01:28.797,00:01:30.297')
 
-    def test_missing_string(self):
+    def test_empty_subtitle(self):
         source = strip_leading_spaces("""WEBVTT
 
             1
             00:01:28.797 --> 00:01:30.297
         """)
-        self._test_parse_error(
-            source,
-            "Subtitle is empty on line 5"
-        )
+        template, stringset = self.handler.parse(source)
+        self.assertIn('WEBVTT', template)
+        self.assertEqual(len(stringset), 1)
 
     def test_full_and_short_timings(self):
         source = strip_leading_spaces("""WEBVTT
