@@ -56,14 +56,13 @@ class VttTestCase(CommonFormatTestMixin, unittest.TestCase):
         _, stringset = self.handler.parse(source)
         self.assertEqual(stringset[0].occurrences, '00:01:28.797,00:01:30.297')
 
-    def test_missing_string(self):
+    def test_empty_subtitle(self):
         source = strip_leading_spaces("""WEBVTT
 
             1
             00:01:28.797 --> 00:01:30.297
         """)
-        template, _ = self.handler.parse(source)
-        self.assertEqual(source, template)
+        self._test_parse_error(source, "There are no strings to translate")
 
     def test_full_and_short_timings(self):
         source = strip_leading_spaces("""WEBVTT
