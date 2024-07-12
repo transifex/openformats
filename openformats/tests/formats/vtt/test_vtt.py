@@ -1,8 +1,8 @@
 import unittest
 
+from openformats.formats.vtt import VttHandler
 from openformats.tests.formats.common import CommonFormatTestMixin
 from openformats.tests.utils import strip_leading_spaces
-from openformats.formats.vtt import VttHandler
 
 
 class VttTestCase(CommonFormatTestMixin, unittest.TestCase):
@@ -11,7 +11,8 @@ class VttTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_vtt_metadata(self):
         """vtt: Test that metadata is included in template but not included in stringset."""
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             STYLE
             ::cue(v) {
@@ -27,45 +28,57 @@ class VttTestCase(CommonFormatTestMixin, unittest.TestCase):
             Hello, World!
 
             NOTE want this test to pass
-        """)
+        """
+        )
         template, stringset = self.handler.parse(source)
         for str in stringset:
             s = str.string
-            self.assertFalse('WEBVTT' in s or 'STYLE' in s or 'REGION' in s or 'NOTE' in s,
-                             'Metadata should not be present in stringset!')
+            self.assertFalse(
+                "WEBVTT" in s or "STYLE" in s or "REGION" in s or "NOTE" in s,
+                "Metadata should not be present in stringset!",
+            )
             break
-        self.assertIn('WEBVTT', template)
-        self.assertIn('STYLE', template)
-        self.assertIn('REGION', template)
-        self.assertIn('NOTE', template)
+        self.assertIn("WEBVTT", template)
+        self.assertIn("STYLE", template)
+        self.assertIn("REGION", template)
+        self.assertIn("NOTE", template)
 
-        source = strip_leading_spaces("""
+        source = strip_leading_spaces(
+            """
             00:01:28.797 --> 00:01:30.297
             Check the first line
-        """)
+        """
+        )
         self._test_parse_error(source, "VTT file should start with 'WEBVTT'!")
 
     def test_vtt_occurrences(self):
         """vtt: Test that timings are saved as occurrencies."""
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             1
             00:01:28.797 --> 00:01:30.297
             Hello, World!
-        """)
+        """
+        )
         _, stringset = self.handler.parse(source)
-        self.assertEqual(stringset[0].occurrences, '00:01:28.797,00:01:30.297')
+        self.assertEqual(stringset[0].occurrences, "00:01:28.797,00:01:30.297")
 
     def test_empty_subtitle(self):
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             1
             00:01:28.797 --> 00:01:30.297
-        """)
-        self._test_parse_error(source, "There are no strings to translate")
+        """
+        )
+        self._test_parse_error(
+            source, "We are not able to extract any strings from the file"
+        )
 
     def test_full_and_short_timings(self):
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             00:01:28.797 --> 00:01:30.297
             Full timings hh:mm:ss.fff
@@ -75,43 +88,44 @@ class VttTestCase(CommonFormatTestMixin, unittest.TestCase):
 
             28.797 --> 30.297
             Abnormal timings format ss.fff
-        """)
-        self._test_parse_error(
-            source,
-            "Unexpected timing format on line 11"
+        """
         )
+        self._test_parse_error(source, "Unexpected timing format on line 11")
 
     def test_wrong_timings(self):
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             1
             00:01:28.797 ---> 00:01:30.297
             Hello, World!
-        """)
+        """
+        )
         self._test_parse_error(
             source,
-            "Timings on line 4 don't follow '[start] --> [end] (position)' "
-            "pattern"
+            "Timings on line 4 don't follow '[start] --> [end] (position)' " "pattern",
         )
 
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             1
             00:fas28.797 --> 00:01:30.297
             Hello, World!
-        """)
+        """
+        )
         self._test_parse_error(
-            source,
-            "Problem with start of timing at line 4: '00:fas28.797'"
+            source, "Problem with start of timing at line 4: '00:fas28.797'"
         )
 
-        source = strip_leading_spaces("""WEBVTT
+        source = strip_leading_spaces(
+            """WEBVTT
 
             1
             00:01:28.797 --> 00:ois30.297
             Hello, World!
-        """)
+        """
+        )
         self._test_parse_error(
-            source,
-            "Problem with end of timing at line 4: '00:ois30.297'"
+            source, "Problem with end of timing at line 4: '00:ois30.297'"
         )

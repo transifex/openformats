@@ -46,7 +46,7 @@ class VttHandler(Handler):
 
         template = self.transcriber.get_destination()
         if len(stringset) == 0:
-            raise ParseError("There are no strings to translate")
+            raise ParseError("We are not able to extract any strings from the file")
         elif not template.startswith("WEBVTT"):
             raise ParseError("VTT file should start with 'WEBVTT'!")
         return template, stringset
@@ -151,10 +151,7 @@ class VttHandler(Handler):
         transcriber = Transcriber(template)
         template = transcriber.source
         stringset = iter(stringset)
-        try:
-            string = next(stringset)
-        except StopIteration:
-            raise ParseError("stringset cannot be empty")
+        string = next(stringset, None)
 
         for start, subtitle_section in self._generate_split_subtitles(template):
             transcriber.copy_until(start)
@@ -176,7 +173,7 @@ class VttHandler(Handler):
             if hash_position < 0:
                 transcriber.copy_until(start + len(subtitle_section))
                 transcriber.mark_section_end()
-            elif (
+            elif string is not None and (
                 subtitle_section[
                     hash_position : hash_position + len(string.template_replacement)
                 ]
@@ -188,10 +185,7 @@ class VttHandler(Handler):
                 transcriber.skip(len(string.template_replacement))
                 transcriber.copy_until(start + len(subtitle_section))
                 transcriber.mark_section_end()
-                try:
-                    string = next(stringset)
-                except StopIteration:
-                    pass
+                string = next(stringset, None)
             else:
                 # did not find it, must remove section
                 transcriber.copy_until(start + len(subtitle_section))
