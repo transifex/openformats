@@ -46,7 +46,7 @@ class VttHandler(Handler):
 
         template = self.transcriber.get_destination()
         if len(stringset) == 0:
-            raise ParseError("There are no strings to translate")
+            raise ParseError("We are not able to extract any strings from the file")
         elif not template.startswith("WEBVTT"):
             raise ParseError("VTT file should start with 'WEBVTT'!")
         return template, stringset
