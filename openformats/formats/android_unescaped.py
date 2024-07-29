@@ -4,7 +4,6 @@ from openformats.exceptions import ParseError
 from openformats.formats.android import AndroidHandler
 from ..utils.xml import NewDumbXml as DumbXml
 
-
 class AndroidUnescapedHandler(AndroidHandler):
     def _create_string(self, name, text, comment, product, child, pluralized=False):
         """Creates a string and returns it. If empty string it returns None.
@@ -96,17 +95,19 @@ class AndroidUnescapedHandler(AndroidHandler):
                 string
             )
         except Exception as _:
-            return AndroidHandler.escape(string)
+            # Exception handling: If an error occurs during tag protection,
+            # escape all special characters. One case of these errors is the
+            # presence of '<' symbols without corresponding closing tags, causing
+            # parsing errors.
+            string = AndroidHandler.escape(string)
+            string = AndroidUnescapedHandler.escape_special_characters(string)
+            string = (
+                string.replace("<", "&lt;")
+            )
+            return string
 
         string = AndroidHandler.escape(string)
-        string = (
-            string.replace("&", "&amp;")
-            .replace(">", "&gt;")
-            .replace("\n", "\\n")
-            .replace("\t", "\\t")
-            .replace("@", "\\@")
-            .replace("?", "\\?")
-        )
+        string = AndroidUnescapedHandler.escape_special_characters(string)
         return AndroidUnescapedHandler._unprotect_inline_tags(string, protected_tags)
 
     @staticmethod
@@ -120,4 +121,26 @@ class AndroidUnescapedHandler(AndroidHandler):
             .replace("&gt;", ">")
             .replace("&lt;", "<")
             .replace("&amp;", "&")
+        )
+
+    @staticmethod
+    def escape_special_characters(string):
+        """
+        Escapes special characters in the given string.
+
+        Note:
+        - The '<' character is not escaped intentionally to avoid interfering
+        with inline tags that need to be protected and unprotected separately.
+
+        :param string: The input string that needs special characters escaped.
+
+        :returns: str: The input string with special characters escaped.
+        """
+        return (
+            string.replace("&", "&amp;")
+            .replace(">", "&gt;")
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+            .replace("@", "\\@")
+            .replace("?", "\\?")
         )
