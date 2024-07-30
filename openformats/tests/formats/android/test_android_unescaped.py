@@ -53,6 +53,31 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
             raw,
         )
 
+    def test_escape_lt_character(self):
+        rich = '< 20 units'
+        raw = '&lt; 20 units'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
+        rich = '< 20 & > 50 units'
+        raw = '&lt; 20 &amp; &gt; 50 units'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
+        rich = '< 20 & > 50 units<xliff:g>test</xliff:g>'
+        raw = '&lt; 20 &amp; &gt; 50 units&lt;xliff:g&gt;test&lt;/xliff:g&gt;'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
     def test_unescape(self):
         rich = "&<>'\n\t@?" + '"'
         raw = "&amp;&lt;&gt;\\'\\n\\t\\@\\?" + '\\"'
