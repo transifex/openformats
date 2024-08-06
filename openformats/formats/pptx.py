@@ -329,7 +329,8 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
 
     @classmethod
     def remove_text_element(cls, text_element):
-        text_element.decompose()
+        parent = text_element.find_parent('a:r')
+        parent.decompose()
 
     @classmethod
     def set_rtl_orientation(cls, paragraph):
