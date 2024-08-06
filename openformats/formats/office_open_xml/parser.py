@@ -249,7 +249,7 @@ class OfficeOpenXmlHandler(object):
         # the text parts of the translation are more that the
         # text parts of the document, so we will compress the
         # remaining translation parts into one string
-        if len(translation_soup) > 0:
+        if len(translation_soup) > 0 and last_element and last_element.contents:
             translation = last_element.contents[0] + \
                           "".join([six.text_type(t) for t in translation_soup]
             )
