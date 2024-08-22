@@ -633,8 +633,13 @@ class ArbHandler(JsonHandler):
         num_of_mdb = len(self.metadata_blocks)
         while num_of_mdb > 0:
             idx = num_of_mdb - 1
-            new_template = "{}{}".format(
+            new_template = "{}{}{}".format(
                 new_template[: self.metadata_blocks[idx][0]],
+                self._preserve_developer_comment(
+                    new_template[
+                        self.metadata_blocks[idx][0] : self.metadata_blocks[idx][1]
+                    ]
+                ),
                 new_template[self.metadata_blocks[idx][1] :],
             )
             num_of_mdb -= 1
@@ -659,6 +664,22 @@ class ArbHandler(JsonHandler):
                 )
 
         return self._replace_translations(new_template, stringset, True)
+
+    def _preserve_developer_comment(self, template_part):
+        if "description" in template_part:
+            template_part_to_dict = json.loads(f"{{{template_part}}}")
+            part_values = list(template_part_to_dict.values())[0]
+            if len(part_values.keys()) == 1 and part_values.get("description"):
+                # it only contains a non empty description
+                return template_part
+            description_value = part_values.get("description")
+            if description_value:
+                # it only contains multiple values, keep only the description
+                template_part_key = list(template_part_to_dict.keys())[0]
+                return (
+                    f'"{template_part_key}": {{"description": "{description_value}"}}'
+                )
+        return ""
 
     def _copy_until_and_remove_section(self, pos):
         """
