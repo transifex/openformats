@@ -264,7 +264,6 @@ class JsonHandler(Handler):
         self.stringset = stringset
         self.stringset_index = 0
 
-        self.depth = 0
         self.metadata_blocks = []
 
         parsed = DumbJson(template)
@@ -279,8 +278,7 @@ class JsonHandler(Handler):
         elif parsed.type == list:
             return self._insert_from_list(parsed, is_real_stringset)
 
-    def _insert_item(self, value, value_position, is_real_stringset, key_position=0):
-
+    def _insert_item(self, value, value_position, is_real_stringset):
         at_least_one = False
 
         if isinstance(value, (six.binary_type, six.text_type)):
@@ -320,14 +318,10 @@ class JsonHandler(Handler):
                     self._insert_regular_string(value, value_position, "", False)
 
         elif isinstance(value, DumbJson):
-            self.depth += 1
-            if self.depth == 1:
-                self.metadata_blocks.append((key_position - 1, value.end + 1))
             items_still_left = self._insert(value, is_real_stringset)
 
             if not items_still_left:
                 self._copy_until_and_remove_section(value.end + 1)
-                self.depth -= 1
             else:
                 at_least_one = True
 
@@ -355,7 +349,7 @@ class JsonHandler(Handler):
             self.transcriber.mark_section_start()
 
             tmp_at_least_one = self._insert_item(
-                value, value_position, is_real_stringset, key_position
+                value, value_position, is_real_stringset
             )
 
             if tmp_at_least_one:
@@ -630,24 +624,7 @@ class ArbHandler(JsonHandler):
             for openstring in stringset
         ]
         new_template = self._replace_translations(template, fake_stringset, False)
-        num_of_mdb = len(self.metadata_blocks)
-        while num_of_mdb > 0:
-            idx = num_of_mdb - 1
-            new_template = "{}{}".format(
-                new_template[: self.metadata_blocks[idx][0]],
-                new_template[self.metadata_blocks[idx][1] :],
-            )
-            num_of_mdb -= 1
-
-        # Remember whether the root JSON ends with "}" on a separate line
-        closed_on_new_line = new_template[new_template.rfind("}") - 1] == "\n"
-
         new_template = self._clean_empties(new_template)
-        end_of_root_json = new_template.rfind("}")
-        if closed_on_new_line and new_template[end_of_root_json - 1] != "\n":
-            new_template = "{}{}{}".format(
-                new_template[:end_of_root_json], "\n", new_template[end_of_root_json:]
-            )
 
         if language_info is not None:
             match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", new_template)
