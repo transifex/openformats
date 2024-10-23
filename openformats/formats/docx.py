@@ -101,7 +101,7 @@ class DocxFile(object):
         os.remove(docx_path)
 
         base_rels_path = '{}/{}'.format(self.__tmp_folder, '_rels/.rels')
-        with io.open(base_rels_path, 'r') as f:
+        with io.open(base_rels_path, 'rb') as f:
             base_rels = f.read()
 
         document_relative_path = next((
@@ -124,7 +124,7 @@ class DocxFile(object):
 
     def get_document(self):
         if self.__document is None:
-            with io.open(self.__document_path, 'r') as f:
+            with io.open(self.__document_path, 'rb') as f:
                 self.__document = f.read()
 
         return self.__document
@@ -137,7 +137,7 @@ class DocxFile(object):
 
     def get_document_rels(self):
         if self.__document_rels is None:
-            with io.open(self.__document_rels_path, 'r') as f:
+            with io.open(self.__document_rels_path, 'rb') as f:
                 self.__document_rels = f.read()
 
         return self.__document_rels
