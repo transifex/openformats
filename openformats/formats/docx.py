@@ -127,6 +127,10 @@ class DocxFile(object):
             with io.open(self.__document_path, 'r') as f:
                 self.__document = f.read()
 
+            if self.__document.startswith("\ufeff"):
+                # Remove BOM                
+                self.__document = self.__document.replace("\ufeff", "")
+
         return self.__document
 
     def set_document(self, document):
