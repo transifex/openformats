@@ -103,6 +103,10 @@ class DocxFile(object):
         base_rels_path = '{}/{}'.format(self.__tmp_folder, '_rels/.rels')
         with io.open(base_rels_path, 'r') as f:
             base_rels = f.read()
+            
+        if base_rels.startswith("\ufeff"):
+            # Remove BOM
+            base_rels = base_rels.replace("\ufeff", "")
 
         document_relative_path = next((
             relationship
