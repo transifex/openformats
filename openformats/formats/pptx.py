@@ -405,19 +405,26 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
         stringset = {string.string_hash: string for string in stringset}
         pptx = PptxFile(template)
         is_rtl = kwargs.get("is_rtl", False)
-        for slide in pptx.get_slides():
-            soup = BeautifulSoup(pptx.get_slide(slide), "xml")
-            rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), "xml")
 
-            for parent in soup.find_all(["p:sp", "p:graphicFrame"]):
-                for paragraph in parent.find_all("a:p"):
-                    self.compile_paragraph(
-                        paragraph, rels_soup, stringset, is_rtl=is_rtl
-                    )
+        try:
+            for slide in pptx.get_slides():
+                soup = BeautifulSoup(
+                    pptx.get_slide(slide), "xml", preserve_whitespace_tags=["a:t"]
+                )
+                rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), "xml")
 
-            pptx.set_slide(slide, six.text_type(soup))
-            pptx.set_slide_rels(slide, six.text_type(rels_soup))
+                for parent in soup.find_all(
+                    ["p:sp", "p:graphicFrame", "p:txBody", "p:cTxBody"]
+                ):
+                    for paragraph in parent.find_all("a:p"):
+                        self.compile_paragraph(
+                            paragraph, rels_soup, stringset, is_rtl=is_rtl
+                        )
 
-        result = pptx.compress()
-        pptx.delete()
-        return result
+                pptx.set_slide(slide, six.text_type(soup))
+                pptx.set_slide_rels(slide, six.text_type(rels_soup))
+
+            result = pptx.compress()
+            return result
+        finally:
+            pptx.delete()
