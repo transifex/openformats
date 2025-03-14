@@ -389,9 +389,11 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
 
             pptx.set_slide(slide, six.text_type(soup))
 
-        template = pptx.compress()
-        pptx.delete()
-        return template, stringset
+        try:
+            template = pptx.compress()
+            return template, stringset
+        finally:
+            pptx.delete()
 
     def compile(self, template, stringset, **kwargs):
         stringset = {string.string_hash: string for string in stringset}
