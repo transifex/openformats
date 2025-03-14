@@ -189,11 +189,19 @@ class PptxFile(object):
 
     def get_slide_rels(self, slide):
         if self.__slides[slide]["rels"]["content"] is None:
-            with io.open(self.__slides[slide]["rels"]["path"], "rb") as f:
-                content = f.read().decode("utf-8", errors="replace")
-                if content.startswith("\ufeff"):
-                    content = content.replace("\ufeff", "")
-                self.__slides[slide]["rels"]["content"] = content
+            try:
+                with io.open(self.__slides[slide]["rels"]["path"], "rb") as f:
+                    content = f.read().decode("utf-8", errors="replace")
+                    if content.startswith("\ufeff"):
+                        content = content.replace("\ufeff", "")
+                    self.__slides[slide]["rels"]["content"] = content
+            except FileNotFoundError:
+                # Create empty relationships file if it doesn't exist
+                self.__slides[slide]["rels"][
+                    "content"
+                ] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>'
+                with io.open(self.__slides[slide]["rels"]["path"], "w") as f:
+                    f.write(self.__slides[slide]["rels"]["content"])
 
         return self.__slides[slide]["rels"]["content"]
 
