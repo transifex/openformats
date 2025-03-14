@@ -86,76 +86,76 @@ class PptxFile(object):
     """
 
     def __init__(self, content):
-        self.__tmp_folder = "{}/{}".format(
-            tempfile.gettempdir(), uuid.uuid4().hex
-        )
+        self.__tmp_folder = "{}/{}".format(tempfile.gettempdir(), uuid.uuid4().hex)
         os.mkdir(self.__tmp_folder)
 
-        pptx_path = '{}/{}.pptx'.format(self.__tmp_folder, 'in')
-        with io.open(pptx_path, 'wb') as f:
+        pptx_path = "{}/{}.pptx".format(self.__tmp_folder, "in")
+        with io.open(pptx_path, "wb") as f:
             f.write(content)
 
-        with ZipFile(pptx_path, 'r') as z:
+        with ZipFile(pptx_path, "r") as z:
             z.extractall(self.__tmp_folder)
 
         self.__filelist = z.namelist()
 
         os.remove(pptx_path)
 
-        content_types_path = '{}/{}'.format(
-            self.__tmp_folder, '[Content_Types].xml'
-        )
-        with io.open(content_types_path, 'r') as f:
+        content_types_path = "{}/{}".format(self.__tmp_folder, "[Content_Types].xml")
+        with io.open(content_types_path, "r") as f:
             content_types = f.read()
 
-        slide_content_type = 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml'  # noqa
+        slide_content_type = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml"  # noqa
         slide_paths = [
-            relationship.attrs['PartName']
-            for relationship in BeautifulSoup(
-                content_types, 'xml'
-            ).find_all(attrs={'ContentType': slide_content_type})
+            relationship.attrs["PartName"]
+            for relationship in BeautifulSoup(content_types, "xml").find_all(
+                attrs={"ContentType": slide_content_type}
+            )
         ]
 
-        notes_content_type = 'application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml'  # noqa
+        notes_content_type = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"  # noqa
         notes_paths = [
-            relationship.attrs['PartName']
-            for relationship in BeautifulSoup(
-                content_types, 'xml'
-            ).find_all(attrs={'ContentType': notes_content_type})
+            relationship.attrs["PartName"]
+            for relationship in BeautifulSoup(content_types, "xml").find_all(
+                attrs={"ContentType": notes_content_type}
+            )
         ]
 
         self.__slides = {}
         for slide_path in slide_paths:
             self.__slides[slide_path] = {
-                'slide': {
-                    'content': None,
-                    'path': '{}{}'.format(self.__tmp_folder, slide_path),
-                    'notes':  False
+                "slide": {
+                    "content": None,
+                    "path": "{}{}".format(self.__tmp_folder, slide_path),
+                    "notes": False,
                 },
-                'rels': {
-                    'content': None,
-                    'path': '{}{}'.format(self.__tmp_folder, self.get_rels_path(slide_path))  # noqa
-                }
+                "rels": {
+                    "content": None,
+                    "path": "{}{}".format(
+                        self.__tmp_folder, self.get_rels_path(slide_path)
+                    ),  # noqa
+                },
             }
 
         for notes_path in notes_paths:
             self.__slides[notes_path] = {
-                'slide': {
-                    'content': None,
-                    'path': '{}{}'.format(self.__tmp_folder, notes_path),
-                    'notes':  True
+                "slide": {
+                    "content": None,
+                    "path": "{}{}".format(self.__tmp_folder, notes_path),
+                    "notes": True,
                 },
-                'rels': {
-                    'content': None,
-                    'path': '{}{}'.format(self.__tmp_folder, self.get_rels_path(notes_path))  # noqa
-                }
+                "rels": {
+                    "content": None,
+                    "path": "{}{}".format(
+                        self.__tmp_folder, self.get_rels_path(notes_path)
+                    ),  # noqa
+                },
             }
 
     def get_rels_path(self, slides_path):
-        path = slides_path.split('/')
-        path.insert(-1, '_rels')
-        path = '/'.join(path)
-        path += '.rels'
+        path = slides_path.split("/")
+        path.insert(-1, "_rels")
+        path = "/".join(path)
+        path += ".rels"
         return path
 
     def get_slides(self):
@@ -169,42 +169,42 @@ class PptxFile(object):
         return slides
 
     def get_slide(self, slide):
-        if self.__slides[slide]['slide']['content'] is None:
-            with io.open(self.__slides[slide]['slide']['path'], 'r') as f:
-                self.__slides[slide]['slide']['content'] = f.read()
+        if self.__slides[slide]["slide"]["content"] is None:
+            with io.open(self.__slides[slide]["slide"]["path"], "r") as f:
+                self.__slides[slide]["slide"]["content"] = f.read()
 
-        return self.__slides[slide]['slide']['content']
+        return self.__slides[slide]["slide"]["content"]
 
     def is_notes_slide(self, slide):
-        return self.__slides[slide]['slide']['notes']
+        return self.__slides[slide]["slide"]["notes"]
 
     def set_slide(self, slide, content):
-        self.__slides[slide]['slide']['content'] = content
+        self.__slides[slide]["slide"]["content"] = content
 
-        with io.open(self.__slides[slide]['slide']['path'], 'w') as f:
+        with io.open(self.__slides[slide]["slide"]["path"], "w") as f:
             f.write(content)
 
     def get_slide_rels(self, slide):
-        if self.__slides[slide]['rels']['content'] is None:
-            with io.open(self.__slides[slide]['rels']['path'], 'r') as f:
-                self.__slides[slide]['rels']['content'] = f.read()
+        if self.__slides[slide]["rels"]["content"] is None:
+            with io.open(self.__slides[slide]["rels"]["path"], "r") as f:
+                self.__slides[slide]["rels"]["content"] = f.read()
 
-        return self.__slides[slide]['rels']['content']
+        return self.__slides[slide]["rels"]["content"]
 
     def set_slide_rels(self, slide, content):
-        self.__slides[slide]['rels']['content'] = content
+        self.__slides[slide]["rels"]["content"] = content
 
-        with io.open(self.__slides[slide]['rels']['path'], 'w') as f:
+        with io.open(self.__slides[slide]["rels"]["path"], "w") as f:
             f.write(content)
 
     def compress(self):
-        pptx_path = '{}/{}.pptx'.format(self.__tmp_folder, 'out')
+        pptx_path = "{}/{}.pptx".format(self.__tmp_folder, "out")
 
         with ZipFile(pptx_path, "w", compression=ZIP_DEFLATED) as z:
             for filename in self.__filelist:
                 z.write(os.path.join(self.__tmp_folder, filename), filename)
 
-        with io.open(pptx_path, 'rb') as f:
+        with io.open(pptx_path, "rb") as f:
             result = f.read()
 
         os.remove(pptx_path)
@@ -268,62 +268,57 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
 
     @classmethod
     def get_hyperlink_url(cls, element, document_rels):
-        parent = element.find_parent('a:r')
+        parent = element.find_parent("a:r")
 
         if not parent:
             raise MissingParentError
 
-        hyperlinks = parent.find_all('a:hlinkClick', limit=1)
+        hyperlinks = parent.find_all("a:hlinkClick", limit=1)
         if hyperlinks:
-            rel = document_rels.find(
-                attrs={'Id': hyperlinks[0].attrs.get('r:id')}
-            )
-            if rel and rel.attrs.get('TargetMode') == 'External':
-                return rel.attrs['Target']
+            rel = document_rels.find(attrs={"Id": hyperlinks[0].attrs.get("r:id")})
+            if rel and rel.attrs.get("TargetMode") == "External":
+                return rel.attrs["Target"]
 
         return None
 
     @classmethod
     def set_hyperlink_url(cls, element, document_rels, url):
-        parent = element.find_parent('a:r')
+        parent = element.find_parent("a:r")
 
-        hyperlinks = parent.find_all('a:hlinkClick', limit=1)
+        hyperlinks = parent.find_all("a:hlinkClick", limit=1)
         if hyperlinks:
-            rel = document_rels.find(
-                attrs={'Id': hyperlinks[0].attrs.get('r:id')}
-            )
-            if rel and rel.attrs.get('TargetMode') == 'External':
-                rel.attrs['Target'] = url
+            rel = document_rels.find(attrs={"Id": hyperlinks[0].attrs.get("r:id")})
+            if rel and rel.attrs.get("TargetMode") == "External":
+                rel.attrs["Target"] = url
 
     @classmethod
     def create_hyperlink_url(cls, element, document_rels, url):
         if cls.get_hyperlink_url(element, document_rels):
             cls.set_hyperlink_url(element, document_rels, url)
         else:
-            max_rid = max([
-                int(re.findall(r'\d+', e["Id"])[0])
-                for e in document_rels.find_all(attrs={"Id": True})
-            ])
+            max_rid = max(
+                [
+                    int(re.findall(r"\d+", e["Id"])[0])
+                    for e in document_rels.find_all(attrs={"Id": True})
+                ]
+            )
+            rid = "rId{}".format(max_rid + 1)
 
-            rid = "rId{}".format(max_rid+1)
             hyperlink_rel = document_rels.new_tag(
                 "Relationship",
                 TargetMode="External",
                 Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",  # noqa
                 Target=url,
-                Id=rid
+                Id=rid,
             )
             document_rels.Relationships.append(hyperlink_rel)
-            hyperlink = document_rels.new_tag(
-                "a:hlinkClick",
-                **{"r:id": rid}
-            )
+            hyperlink = document_rels.new_tag("a:hlinkClick", **{"r:id": rid})
             element.parent.rPr.append(hyperlink)
 
     @classmethod
     def remove_hyperlink(cls, text_element):
-        parent = text_element.find_parent('a:r')
-        hyperlinks = parent.find_all('a:hlinkClick', limit=1)
+        parent = text_element.find_parent("a:r")
+        hyperlinks = parent.find_all("a:hlinkClick", limit=1)
         if hyperlinks:
             hyperlinks[0].decompose()
 
@@ -360,18 +355,18 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
 
         for slide in pptx.get_slides():
             notes_slide = pptx.is_notes_slide(slide)
-            soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
-            rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
+            soup = BeautifulSoup(pptx.get_slide(slide), "xml")
+            rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), "xml")
 
-            for parent in soup.find_all(['p:sp', 'p:graphicFrame']):
-                for paragraph in parent.find_all('a:p'):
+            for parent in soup.find_all(["p:sp", "p:graphicFrame"]):
+                for paragraph in parent.find_all("a:p"):
                     open_string = self.parse_paragraph(paragraph, rels_soup)
                     if not open_string:
                         continue
 
                     open_string.order = next(order)
                     if notes_slide:
-                        open_string.tags = ['notes']
+                        open_string.tags = ["notes"]
                     stringset.append(open_string)
 
             pptx.set_slide(slide, six.text_type(soup))
@@ -381,17 +376,15 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
         return template, stringset
 
     def compile(self, template, stringset, **kwargs):
-        stringset = {
-            string.string_hash: string for string in stringset
-        }
+        stringset = {string.string_hash: string for string in stringset}
         pptx = PptxFile(template)
-        is_rtl = kwargs.get('is_rtl', False)
+        is_rtl = kwargs.get("is_rtl", False)
         for slide in pptx.get_slides():
-            soup = BeautifulSoup(pptx.get_slide(slide), 'xml')
-            rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), 'xml')
+            soup = BeautifulSoup(pptx.get_slide(slide), "xml")
+            rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), "xml")
 
-            for parent in soup.find_all(['p:sp', 'p:graphicFrame']):
-                for paragraph in parent.find_all('a:p'):
+            for parent in soup.find_all(["p:sp", "p:graphicFrame"]):
+                for paragraph in parent.find_all("a:p"):
                     self.compile_paragraph(
                         paragraph, rels_soup, stringset, is_rtl=is_rtl
                     )

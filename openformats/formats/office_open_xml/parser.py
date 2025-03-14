@@ -33,19 +33,20 @@ class OfficeOpenXmlHandler(object):
         raise NotImplementedError
 
     @classmethod
-    def swap_hyperlink_elements(
-        cls, added_hl_text_elements, deleted_hl_text_elements
-    ):
+    def swap_hyperlink_elements(cls, added_hl_text_elements, deleted_hl_text_elements):
         for added_url, deleted_url in zip(
-            added_hl_text_elements.keys(),
-            deleted_hl_text_elements.keys()
+            added_hl_text_elements.keys(), deleted_hl_text_elements.keys()
         ):
             replacements = {}
             for index, e in enumerate(added_hl_text_elements[added_url]):
                 if 0 <= index < len(deleted_hl_text_elements[deleted_url]):
-                    deleted_format = deleted_hl_text_elements[deleted_url][index].parent.rPr
+                    deleted_format = deleted_hl_text_elements[deleted_url][
+                        index
+                    ].parent.rPr
                 else:
-                    deleted_format = deleted_hl_text_elements[deleted_url][-1].parent.rPr
+                    deleted_format = deleted_hl_text_elements[deleted_url][
+                        -1
+                    ].parent.rPr
                 deleted_format = copy(deleted_format)
                 replacements[e] = deleted_format
             for index, e in enumerate(deleted_hl_text_elements[deleted_url]):
@@ -68,17 +69,18 @@ class OfficeOpenXmlHandler(object):
 
     @staticmethod
     def _escape_xml(translation):
-        """ Do escaping: BeautifulSoup doesn't like unescaped '&' or '<' in its
-            input. We do expect some '<tx>' and `</tx>` so we first replace
-            these tags to placeholders, do the escaping and restore them.
+        """Do escaping: BeautifulSoup doesn't like unescaped '&' or '<' in its
+        input. We do expect some '<tx>' and `</tx>` so we first replace
+        these tags to placeholders, do the escaping and restore them.
         """
-        return translation.\
-            replace(u"<tx", u"__TX__OPENING__TAG__").\
-            replace(u"</tx>", u"__TX__CLOSING__TAG__").\
-            replace(u"&", "&amp;").\
-            replace(u"<", "&lt;").\
-            replace(u"__TX__OPENING__TAG__", u"<tx").\
-            replace(u"__TX__CLOSING__TAG__", u"</tx>")
+        return (
+            translation.replace("<tx", "__TX__OPENING__TAG__")
+            .replace("</tx>", "__TX__CLOSING__TAG__")
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace("__TX__OPENING__TAG__", "<tx")
+            .replace("__TX__CLOSING__TAG__", "</tx>")
+        )
 
     @classmethod
     def parse_paragraph(cls, paragraph, rels_soup):
@@ -99,58 +101,56 @@ class OfficeOpenXmlHandler(object):
                 leading_spaces += len(text) - len(text.strip())
                 continue
             else:
-                text = u"".join([u" "*leading_spaces, text])
+                text = "".join([" " * leading_spaces, text])
                 leading_spaces = 0
 
             try:
-                hyperlink_url = cls.get_hyperlink_url(
-                    text_element, rels_soup
-                )
+                hyperlink_url = cls.get_hyperlink_url(text_element, rels_soup)
             except MissingParentError:
                 continue
 
-            if all([
-                text_elements_count == 2,
-                not hyperlink_url or hyperlink_url == open_hyperlink
-            ]) or all([
-                index > 0,
-                index < text_elements_count - 1,
-                not hyperlink_url or hyperlink_url == open_hyperlink
-            ]):
+            if all(
+                [
+                    text_elements_count == 2,
+                    not hyperlink_url or hyperlink_url == open_hyperlink,
+                ]
+            ) or all(
+                [
+                    index > 0,
+                    index < text_elements_count - 1,
+                    not hyperlink_url or hyperlink_url == open_hyperlink,
+                ]
+            ):
                 # skip surrounding text with tags if:
                 #   * first element
                 #   * last element
                 #   * opening hyperlink (we will add the tx tag later)
-                text = u'<tx>{}</tx>'.format(text)
+                text = "<tx>{}</tx>".format(text)
 
             if hyperlink_url and not open_hyperlink:
                 # open an a tag
-                text = u'<tx href="{}">{}'.format(
-                    hyperlink_url, text
-                )
+                text = '<tx href="{}">{}'.format(hyperlink_url, text)
                 open_hyperlink = hyperlink_url
 
             if not hyperlink_url and open_hyperlink:
                 # close a tag if open
-                text = u'</tx>{}'.format(text)
+                text = "</tx>{}".format(text)
                 open_hyperlink = None
 
             if hyperlink_url and open_hyperlink:
                 if hyperlink_url != open_hyperlink:
                     # close and open a new tag
-                    text = u'</tx><tx href="{}">{}'.format(
-                        hyperlink_url, text
-                    )
+                    text = '</tx><tx href="{}">{}'.format(hyperlink_url, text)
                     open_hyperlink = hyperlink_url
 
             paragraph_text.append(text)
 
         if open_hyperlink:
             # close the open tag
-            paragraph_text.append(u'</tx>')
+            paragraph_text.append("</tx>")
             open_hyperlink = None
 
-        paragraph_text = u''.join(paragraph_text)
+        paragraph_text = "".join(paragraph_text)
         if not paragraph_text.strip():
             return None
 
@@ -158,7 +158,7 @@ class OfficeOpenXmlHandler(object):
             paragraph_text,
             paragraph_text,
         )
-        paragraph.attrs['txid'] = open_string.string_hash
+        paragraph.attrs["txid"] = open_string.string_hash
 
         return open_string
 
@@ -167,7 +167,7 @@ class OfficeOpenXmlHandler(object):
         if not text_elements:
             return
 
-        txid = paragraph.attrs.get('txid')
+        txid = paragraph.attrs.get("txid")
 
         if not txid:
             return
@@ -179,7 +179,8 @@ class OfficeOpenXmlHandler(object):
         escaped_translation_string = cls._escape_xml(translation_string)
 
         translation_soup = BeautifulSoup(
-            u'<wrapper>{}</wrapper>'.format(escaped_translation_string), 'xml',
+            "<wrapper>{}</wrapper>".format(escaped_translation_string),
+            "xml",
         ).find_all(text=True)
 
         added_hl_text_elements = defaultdict(list)
@@ -187,7 +188,6 @@ class OfficeOpenXmlHandler(object):
         empty_text_element = None
         elements_for_removal = []
         last_element = None
-
         leading_spaces = 0
 
         # First of all try to replace each element translation
@@ -220,7 +220,9 @@ class OfficeOpenXmlHandler(object):
             else:
                 translation_part = translation_soup.pop(0)
                 translation = six.text_type(translation_part)
-                translation_hyperlink_url = cls.get_translation_hyperlink(translation_part)
+                translation_hyperlink_url = cls.get_translation_hyperlink(
+                    translation_part
+                )
 
                 if not translation[:leading_spaces].strip():
                     translation = translation[leading_spaces:]
@@ -240,27 +242,28 @@ class OfficeOpenXmlHandler(object):
                 )
             else:
                 if hyperlink_url:
-                    deleted_hl_text_elements[hyperlink_url]\
-                        .append(text_element)
+                    deleted_hl_text_elements[hyperlink_url].append(text_element)
                 elif translation_hyperlink_url:
-                    added_hl_text_elements[translation_hyperlink_url]\
-                        .append(text_element)
+                    added_hl_text_elements[translation_hyperlink_url].append(
+                        text_element
+                    )
 
         # the text parts of the translation are more that the
         # text parts of the document, so we will compress the
         # remaining translation parts into one string
         if len(translation_soup) > 0 and last_element and last_element.contents:
-            translation = last_element.contents[0] + \
-                          "".join([six.text_type(t) for t in translation_soup]
+            translation = last_element.contents[0] + "".join(
+                [six.text_type(t) for t in translation_soup]
             )
             last_element.clear()
             last_element.insert(0, translation)
 
-        if len(added_hl_text_elements) == len(deleted_hl_text_elements)\
-                and len(added_hl_text_elements) > 0:
+        if (
+            len(added_hl_text_elements) == len(deleted_hl_text_elements)
+            and len(added_hl_text_elements) > 0
+        ):
             cls.swap_hyperlink_elements(
-                added_hl_text_elements,
-                deleted_hl_text_elements
+                added_hl_text_elements, deleted_hl_text_elements
             )
 
         for text_elements in six.itervalues(deleted_hl_text_elements):
@@ -276,5 +279,5 @@ class OfficeOpenXmlHandler(object):
 
     def get_translation_hyperlink(self, translation_part):
         return getattr(
-            translation_part.find_parent(attrs={'href': True}
-                                         ), 'attrs', {}).get('href', None)
+            translation_part.find_parent(attrs={"href": True}), "attrs", {}
+        ).get("href", None)
