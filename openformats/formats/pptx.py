@@ -369,7 +369,9 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
 
         for slide in pptx.get_slides():
             notes_slide = pptx.is_notes_slide(slide)
-            soup = BeautifulSoup(pptx.get_slide(slide), "xml")
+            soup = BeautifulSoup(
+                pptx.get_slide(slide), "xml", preserve_whitespace_tags=["a:t"]
+            )
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), "xml")
 
             for parent in soup.find_all(["p:sp", "p:graphicFrame"]):
