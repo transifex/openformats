@@ -326,6 +326,12 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
                 Id=rid,
             )
             document_rels.Relationships.append(hyperlink_rel)
+
+            # Check if rPr exists, create it if it doesn't
+            if not element.parent.find("a:rPr"):
+                rPr = document_rels.new_tag("a:rPr")
+                element.parent.insert(0, rPr)
+
             hyperlink = document_rels.new_tag("a:hlinkClick", **{"r:id": rid})
             element.parent.rPr.append(hyperlink)
 
