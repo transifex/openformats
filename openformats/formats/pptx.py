@@ -101,8 +101,8 @@ class PptxFile(object):
         os.remove(pptx_path)
 
         content_types_path = "{}/{}".format(self.__tmp_folder, "[Content_Types].xml")
-        with io.open(content_types_path, "r") as f:
-            content_types = f.read()
+        with io.open(content_types_path, "rb") as f:
+            content_types = f.read().decode("utf-8", errors="replace")
 
         slide_content_type = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml"  # noqa
         slide_paths = [
@@ -170,8 +170,8 @@ class PptxFile(object):
 
     def get_slide(self, slide):
         if self.__slides[slide]["slide"]["content"] is None:
-            with io.open(self.__slides[slide]["slide"]["path"], "r") as f:
-                content = f.read()
+            with io.open(self.__slides[slide]["slide"]["path"], "rb") as f:
+                content = f.read().decode("utf-8", errors="replace")
                 if content.startswith("\ufeff"):
                     content = content.replace("\ufeff", "")
                 self.__slides[slide]["slide"]["content"] = content
@@ -184,13 +184,13 @@ class PptxFile(object):
     def set_slide(self, slide, content):
         self.__slides[slide]["slide"]["content"] = content
 
-        with io.open(self.__slides[slide]["slide"]["path"], "w") as f:
+        with io.open(self.__slides[slide]["slide"]["path"], "w", encoding="utf-8") as f:
             f.write(content)
 
     def get_slide_rels(self, slide):
         if self.__slides[slide]["rels"]["content"] is None:
-            with io.open(self.__slides[slide]["rels"]["path"], "r") as f:
-                content = f.read()
+            with io.open(self.__slides[slide]["rels"]["path"], "rb") as f:
+                content = f.read().decode("utf-8", errors="replace")
                 if content.startswith("\ufeff"):
                     content = content.replace("\ufeff", "")
                 self.__slides[slide]["rels"]["content"] = content
@@ -211,7 +211,7 @@ class PptxFile(object):
                 z.write(os.path.join(self.__tmp_folder, filename), filename)
 
         with io.open(pptx_path, "rb") as f:
-            result = f.read()
+            result = f.read().decode("utf-8", errors="replace")
 
         os.remove(pptx_path)
 
