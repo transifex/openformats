@@ -171,7 +171,10 @@ class PptxFile(object):
     def get_slide(self, slide):
         if self.__slides[slide]["slide"]["content"] is None:
             with io.open(self.__slides[slide]["slide"]["path"], "r") as f:
-                self.__slides[slide]["slide"]["content"] = f.read()
+                content = f.read()
+                if content.startswith("\ufeff"):
+                    content = content.replace("\ufeff", "")
+                self.__slides[slide]["slide"]["content"] = content
 
         return self.__slides[slide]["slide"]["content"]
 
@@ -187,7 +190,10 @@ class PptxFile(object):
     def get_slide_rels(self, slide):
         if self.__slides[slide]["rels"]["content"] is None:
             with io.open(self.__slides[slide]["rels"]["path"], "r") as f:
-                self.__slides[slide]["rels"]["content"] = f.read()
+                content = f.read()
+                if content.startswith("\ufeff"):
+                    content = content.replace("\ufeff", "")
+                self.__slides[slide]["rels"]["content"] = content
 
         return self.__slides[slide]["rels"]["content"]
 
