@@ -374,7 +374,9 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
             )
             rels_soup = BeautifulSoup(pptx.get_slide_rels(slide), "xml")
 
-            for parent in soup.find_all(["p:sp", "p:graphicFrame"]):
+            for parent in soup.find_all(
+                ["p:sp", "p:graphicFrame", "p:txBody", "p:cTxBody"]
+            ):
                 for paragraph in parent.find_all("a:p"):
                     open_string = self.parse_paragraph(paragraph, rels_soup)
                     if not open_string:
