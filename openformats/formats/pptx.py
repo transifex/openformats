@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup
 from openformats.handlers import Handler
 from openformats.exceptions import MissingParentError
 from openformats.formats.office_open_xml.parser import OfficeOpenXmlHandler
+from openformats.strings import OpenString
+from collections import defaultdict
 
 
 class PptxFile(object):
@@ -402,3 +404,175 @@ class PptxHandler(Handler, OfficeOpenXmlHandler):
         result = pptx.compress()
         pptx.delete()
         return result
+
+class PptxHandlerV2(PptxHandler):
+    """
+    New version of the PptxHandler that handles empty spaces in the text elements as
+    normal text, instead of prepending it to the next text element.
+    """
+    name = "PPTX_V2"
+    
+    @classmethod
+    def parse_paragraph(cls, paragraph, rels_soup):
+        paragraph_text = []
+        text_elements = paragraph.find_all(cls.TEXT_ELEMENT_TAG)
+        if not text_elements:
+            return None
+
+        text_elements_count = len(text_elements)
+
+        open_hyperlink = None        
+        for index, text_element in enumerate(text_elements):
+            text = text_element.text            
+
+            try:
+                hyperlink_url = cls.get_hyperlink_url(
+                    text_element, rels_soup
+                )
+            except MissingParentError:
+                continue
+
+            if all([
+                text_elements_count == 2,
+                not hyperlink_url or hyperlink_url == open_hyperlink
+            ]) or all([
+                index > 0,
+                index < text_elements_count - 1,
+                not hyperlink_url or hyperlink_url == open_hyperlink
+            ]):
+                # skip surrounding text with tags if:
+                #   * first element
+                #   * last element
+                #   * opening hyperlink (we will add the tx tag later)
+                text = u'<tx>{}</tx>'.format(text)
+
+            if hyperlink_url and not open_hyperlink:
+                # open an a tag
+                text = u'<tx href="{}">{}'.format(
+                    hyperlink_url, text
+                )
+                open_hyperlink = hyperlink_url
+
+            if not hyperlink_url and open_hyperlink:
+                # close a tag if open
+                text = u'</tx>{}'.format(text)
+                open_hyperlink = None
+
+            if hyperlink_url and open_hyperlink:
+                if hyperlink_url != open_hyperlink:
+                    # close and open a new tag
+                    text = u'</tx><tx href="{}">{}'.format(
+                        hyperlink_url, text
+                    )
+                    open_hyperlink = hyperlink_url
+
+            paragraph_text.append(text)
+
+        if open_hyperlink:
+            # close the open tag
+            paragraph_text.append(u'</tx>')
+            open_hyperlink = None
+
+        paragraph_text = u''.join(paragraph_text)
+        if not paragraph_text.strip():
+            return None
+
+        open_string = OpenString(
+            paragraph_text,
+            paragraph_text,
+        )
+        paragraph.attrs['txid'] = open_string.string_hash
+
+        return open_string
+
+    def compile_paragraph(cls, paragraph, rels_soup, stringset, is_rtl=False):
+        text_elements = paragraph.find_all(cls.TEXT_ELEMENT_TAG)
+        if not text_elements:
+            return
+
+        txid = paragraph.attrs.get('txid')
+
+        if not txid:
+            return
+
+        if stringset.get(txid, None) is None:
+            return
+
+        translation_string = stringset[txid].string
+        escaped_translation_string = cls._escape_xml(translation_string)
+
+        translation_soup = BeautifulSoup(
+            u'<wrapper>{}</wrapper>'.format(escaped_translation_string), 'xml',
+        ).find_all(text=True)
+
+        added_hl_text_elements = defaultdict(list)
+        deleted_hl_text_elements = defaultdict(list)
+        elements_for_removal = []
+        last_element = None
+
+        # First of all try to replace each element translation
+        # this is the happiest path
+        if is_rtl:
+            cls.set_rtl_orientation(paragraph)
+
+        for _, text_element in enumerate(text_elements):
+            last_element = text_element
+            try:
+                hyperlink_url = cls.get_hyperlink_url(text_element, rels_soup)
+            except MissingParentError:
+                continue
+
+            # the text parts of the translation are less that the
+            # text parts of the document, so we will just remove
+            # any exceeding part from the document
+            if len(translation_soup) == 0:
+                elements_for_removal.append(text_element)
+                continue
+            else:
+                translation_part = translation_soup.pop(0)
+                translation = six.text_type(translation_part)
+                translation_hyperlink_url = cls.get_translation_hyperlink(translation_part)
+
+                text_element.clear()
+                text_element.insert(0, translation)
+
+            # Edit in place hyperlink url
+            if hyperlink_url and translation_hyperlink_url:
+                cls.set_hyperlink_url(
+                    text_element, rels_soup, translation_hyperlink_url
+                )
+            else:
+                if hyperlink_url:
+                    deleted_hl_text_elements[hyperlink_url]\
+                        .append(text_element)
+                elif translation_hyperlink_url:
+                    added_hl_text_elements[translation_hyperlink_url]\
+                        .append(text_element)
+
+        # the text parts of the translation are more that the
+        # text parts of the document, so we will compress the
+        # remaining translation parts into one string
+        if len(translation_soup) > 0 and last_element and last_element.contents:
+            translation = last_element.contents[0] + \
+                          "".join([six.text_type(t) for t in translation_soup]
+            )
+            last_element.clear()
+            last_element.insert(0, translation)
+
+        if len(added_hl_text_elements) == len(deleted_hl_text_elements)\
+                and len(added_hl_text_elements) > 0:
+            cls.swap_hyperlink_elements(
+                added_hl_text_elements,
+                deleted_hl_text_elements
+            )
+
+        for text_elements in six.itervalues(deleted_hl_text_elements):
+            for text_element in text_elements:
+                cls.remove_hyperlink(text_element)
+
+        for url, text_elements in six.iteritems(added_hl_text_elements):
+            for text_element in text_elements:
+                cls.create_hyperlink_url(text_element, rels_soup, url)
+
+        for element in elements_for_removal:
+            cls.remove_text_element(element)
