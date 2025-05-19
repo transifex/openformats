@@ -44,6 +44,46 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
         self.assertEqual(compiled, source)
 
+
+    def test_cdata_string(self):
+        self.maxDiff = None
+        random_key = generate_random_string()
+        uploaded_string = """<![CDATA[<b>test</b>]]>"""
+        saved_string = """<b>test</b>"""
+        uploaded_openstring = OpenString(random_key, saved_string, order=0)
+        uploaded_hash = uploaded_openstring.template_replacement
+
+        source_python_template = """
+            <resources>
+                <string name="{key}">{string}</string>
+            </resources>
+        """
+        cdata_source_python_template = """
+            <resources>
+                <string name="{key}"><![CDATA[{string}]]></string>
+            </resources>
+        """
+
+        source = source_python_template.format(key=random_key, string=uploaded_string)
+        template, stringset = self.handler.parse(source)
+       
+        compiled = self.handler.compile(template, [uploaded_openstring])
+        self.assertEqual(
+            template,
+            cdata_source_python_template.format(key=random_key, string=uploaded_hash),
+        )
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
+        self.assertEqual(compiled, source)
+
+    def test_escape(self):
+        rich = '&>"\n\t@? <xliff:g id="1">%1$s &</xliff:g> @ ?'
+        raw = '&amp;&gt;\\"\\n\\t\\@\\? <xliff:g id="1">%1$s &</xliff:g> \\@ \\?'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
     def test_escape(self):
         rich = '&>"\n\t@? <xliff:g id="1">%1$s &</xliff:g> @ ?'
         raw = '&amp;&gt;\\"\\n\\t\\@\\? <xliff:g id="1">%1$s &</xliff:g> \\@ \\?'
