@@ -463,6 +463,23 @@ class AndroidHandler(Handler):
             else:
                 self._skip_tag(child)
 
+    @staticmethod
+    def _search_for_cdata(_string,_destination):
+        string_index=-1
+        for index,value in enumerate(_destination):
+            if len(_destination) > 1:
+                if _string==value:
+                    string_index=index
+                    break
+        result = False
+        pattern = re.compile(r'!\[CDATA')
+        match = pattern.search(_destination[string_index-1])
+        
+        if match:
+                result= True
+        return result
+
+        
     def _compile_string(self, child):
         """Handles child element that has the `string` and `item` tag.
 
@@ -470,22 +487,13 @@ class AndroidHandler(Handler):
         skip it.
         """
        
-        def _search_for_cdata(_destination):
-            result = False
-            if len(_destination) > 1:
-                _string = _destination[1]
-                pattern = re.compile(r'!\[CDATA')
-                match = pattern.search(_string)
-                if match:
-                    result= True
-            return result
+
         if self._should_compile(child):
-           
-            
             self.transcriber.copy_until(child.text_position)
-            self.transcriber.add(self.next_string.string)
-            ret = _search_for_cdata(self.transcriber.__dict__['destination'])
-            self.transcriber.skip_until(child.content_end if not ret else child.content_end-len("]]>"))
+            _string = self.next_string.string
+            self.transcriber.add(_string)
+            has_cdata = AndroidHandler._search_for_cdata(_string,self.transcriber.destination)
+            self.transcriber.skip_until(child.content_end if not has_cdata else child.content_end-len("]]>"))
             self.transcriber.copy_until(child.tail_position)
             self.transcriber.mark_section_start()
             self.transcriber.copy_until(child.end)
