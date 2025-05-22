@@ -16,9 +16,9 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = AndroidUnescapedHandler
     TESTFILE_BASE = "openformats/tests/formats/android/files"
 
-    # def setUp(self):
-    #     super(AndroidUnescapedTestCase, self).setUp()
-    #     self.handler = AndroidUnescapedHandler()
+    def setUp(self):
+        super(AndroidUnescapedTestCase, self).setUp()
+        self.handler = AndroidUnescapedHandler()
 
     def test_string(self):
         self.maxDiff = None
