@@ -455,7 +455,8 @@ class AndroidHandler(Handler):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
         """
-
+        from ipdb import set_trace  
+        # set_trace()
         if not self._should_ignore(child):
             if child.tag == self.STRING:
                 self._compile_string(child)
@@ -610,11 +611,16 @@ class AndroidHandler(Handler):
         :param child: The child to check if it should be compiled.
         :returns: True if the child should be compiled else False.
         """
-        child_content = child.content and child.content.strip() or ''
-        return (
-            self.next_string is not None and
-            self.next_string.template_replacement == child_content
-        )
+        try:
+            child_content = child.content and child.content.strip() or ''
+            return (
+                self.next_string is not None and
+                self.next_string.template_replacement == child_content
+            )
+        except Exception as e:
+            from ipdb import set_trace  
+            set_trace()
+            raise e
 
     def _skip_tag(self, tag):
         """Skips a tag from the compilation.

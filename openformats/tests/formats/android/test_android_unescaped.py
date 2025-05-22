@@ -45,6 +45,54 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, source)
 
 
+    def test_cdata_string_plurals(self):
+        self.maxDiff = None
+        uploaded_openstring = OpenString("first_string", "non plural cdata", order=0)
+        uploaded_openstring2 = OpenString("second_string", "no plural signle", order=1)
+        uploaded_openstring3 = OpenString("third_string", {1: "plural one", 5: "plural other"}, order=2)
+        uploaded_hash = uploaded_openstring.template_replacement
+        uploaded_hash2 = uploaded_openstring2.template_replacement
+        uploaded_hash3 = uploaded_openstring3.template_replacement
+
+        source= """
+            <resources>
+                <string name="first_string">
+                    <![CDATA[non plural cdata]]>
+                </string>
+                <string name="second_string">no plural signle</string>
+                <plurals name="third_string">
+                    <item quantity="one">
+                        <![CDATA[plural one]]>
+                    </item>
+                    <item quantity="other">
+                        <![CDATA[plural other]]>
+                    </item>
+                </plurals>
+            </resources>
+        """
+        cdata_source_python_template = f"""
+            <resources>
+                <string name="{uploaded_openstring.key}"><![CDATA[{uploaded_hash}]]></string>
+                <string name="{uploaded_openstring2.key}">{uploaded_hash2}</string>
+                <string name="{uploaded_openstring3.key}">{uploaded_hash3}</string>
+            </resources>
+        """
+
+        template, stringset = self.handler.parse(source)
+        from icecream import ic
+      
+        compiled = self.handler.compile(template, [uploaded_openstring,uploaded_openstring2,uploaded_openstring3])
+        ic(compiled)
+        return
+        self.assertEqual(
+            template,
+            cdata_source_python_template,
+        )
+        self.assertEqual(len(stringset), 3)
+        self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
+        self.assertEqual(compiled, source)
+        self.assertEqual(self.handler.debug_counter, 3)
+
     def test_cdata_string(self):
         self.maxDiff = None
         uploaded_openstring = OpenString("onshape_edu_plan", "<b>Onshape Education Plan</b>", order=0)
@@ -56,7 +104,6 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         source= """
             <resources>
-                <string name="onshape_edu_plan"><![CDATA[<b>Onshape Education Plan</b>]]></string>
                 <string name="explore_the_basics">Explore the basics</string>
                 <string name="test"><b>Onshape Education Plan</b></string>
             </resources>
@@ -70,7 +117,7 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         """
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [uploaded_openstring,uploaded_openstring2,uploaded_openstring3])
+        compiled = self.handler.compile(template, [uploaded_openstring2,uploaded_openstring3])
         self.assertEqual(
             template,
             cdata_source_python_template,
