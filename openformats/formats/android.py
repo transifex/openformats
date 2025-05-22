@@ -92,6 +92,7 @@ class AndroidHandler(Handler):
 
     # Compile plural template
     PLURAL_TEMPLATE = u'<item quantity="{rule}">{string}</item>'
+    PLURAL_TEMPLATE_CDATA = u'<item quantity="{rule}"><![CDATA[{string}]]></item>'
 
     """ Parse Methods """
     def __init__(self):
@@ -99,6 +100,8 @@ class AndroidHandler(Handler):
         # self.text_position = text_position
         self.handler_keeper={}
         self.debug_counter = 0
+
+        self.cdata_in_plurals = {}
 
     @reraise_syntax_as_parse_errors
     def parse(self, content, **kwargs):
@@ -203,12 +206,17 @@ class AndroidHandler(Handler):
         string_rules_text = {}
         item_iterator = child.find_children()
         # Iterate through the children with the item tag.
+        
+        pattern = re.compile(r'!\[CDATA')
+        has_cdata = False if pattern.search(child.content) is None else True
+        
         for item_tag in item_iterator:
             if item_tag.tag != AndroidDumbXml.COMMENT:
                 rule_number = self._validate_plural_item(item_tag)
                 string_rules_text[rule_number] = item_tag.content
 
         name, product = self._get_child_attributes(child)
+      
         string = self._create_string(
             name,
             string_rules_text,
@@ -219,6 +227,8 @@ class AndroidHandler(Handler):
             # one plural form and thus there's only one <item>
             pluralized=True,
         )
+        if has_cdata:
+            self.cdata_in_plurals[name] = string.template_replacement
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
             #                        ^
@@ -577,7 +587,7 @@ class AndroidHandler(Handler):
         # If placeholder (has empty children) skip
         if len(list(child.find_children(self.STRING_ITEM))):
             return
-
+      
         if self._should_compile(child):
             self.transcriber.copy_until(child.text_position)
 
@@ -586,16 +596,17 @@ class AndroidHandler(Handler):
             )
             start = splited_content[0]
             end = splited_content[1]
-
+            
             # If newline formating
             if start.startswith(end):
                 start = start.replace(end, '', 1)
                 self.transcriber.add(end)
-
+            key = self.next_string.key
+            template = self.PLURAL_TEMPLATE_CDATA if key in self.cdata_in_plurals else self.PLURAL_TEMPLATE
             for rule, string in six.iteritems(self.next_string.string):
                 self.transcriber.add(
                     start +
-                    self.PLURAL_TEMPLATE.format(
+                    template.format(
                         rule=self.get_rule_string(rule), string=string
                     ) + end
                 )
@@ -618,8 +629,6 @@ class AndroidHandler(Handler):
                 self.next_string.template_replacement == child_content
             )
         except Exception as e:
-            from ipdb import set_trace  
-            set_trace()
             raise e
 
     def _skip_tag(self, tag):
