@@ -94,6 +94,11 @@ class AndroidHandler(Handler):
     PLURAL_TEMPLATE = u'<item quantity="{rule}">{string}</item>'
 
     """ Parse Methods """
+    def __init__(self):
+        super(AndroidHandler, self).__init__()
+        # self.text_position = text_position
+        self.handler_keeper={}
+        self.debug_counter = 0
 
     @reraise_syntax_as_parse_errors
     def parse(self, content, **kwargs):
@@ -327,6 +332,7 @@ class AndroidHandler(Handler):
                 developer_comment=comment,
                 pluralized=pluralized,
             )
+            # TODO Add post processing validation for cdata 
             self.existing_hashes.setdefault((name, product), [])
             self.existing_hashes[(name, product)].append(child.tag)
             return string
@@ -463,17 +469,28 @@ class AndroidHandler(Handler):
             else:
                 self._skip_tag(child)
 
-    @staticmethod
-    def _search_for_cdata(_string,_destination):
+    
+    def _search_for_cdata(self,_string,_destination,search_after=None):
         string_index=-1
-        for index,value in enumerate(_destination):
+        sliced_destination = _destination if search_after is None else _destination[search_after:]
+        self.debug_counter += 1
+        for index,value in enumerate(sliced_destination):
             if len(_destination) > 1:
                 if _string==value:
-                    string_index=index
-                    break
+                    if value  not in self.handler_keeper:
+                        self.handler_keeper.update({_string:index})
+                    else:
+                        seen = self.handler_keeper.get(_string,-1) == index
+                        if seen:
+                            self._search_for_cdata(_string,_destination, search_after=index+1)
+            self.handler_keeper.update({_string:index})
         result = False
         pattern = re.compile(r'!\[CDATA')
-        match = pattern.search(_destination[string_index-1])
+        match = None
+        try:
+            match = pattern.search(_destination[string_index-1])
+        except TypeError:
+            return result
         
         if match:
                 result= True
@@ -489,10 +506,12 @@ class AndroidHandler(Handler):
        
 
         if self._should_compile(child):
+           
             self.transcriber.copy_until(child.text_position)
             _string = self.next_string.string
             self.transcriber.add(_string)
-            has_cdata = AndroidHandler._search_for_cdata(_string,self.transcriber.destination)
+           
+            has_cdata = self._search_for_cdata(_string, self.transcriber.destination)
             self.transcriber.skip_until(child.content_end if not has_cdata else child.content_end-len("]]>"))
             self.transcriber.copy_until(child.tail_position)
             self.transcriber.mark_section_start()
@@ -505,6 +524,7 @@ class AndroidHandler(Handler):
             pass
         else:
             self._skip_tag(child)
+       
 
     def _compile_string_array(self, child):
         """Handles child element that has the `string-array` tag.
