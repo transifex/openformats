@@ -16,9 +16,7 @@ from ..utils.xml import escape as xml_escape
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
 class AndroidDumbXml(DumbXml):
-    # def __init__(self, source, text_position=0):
-    #     super().__init__(source, text_position)
-    #     self.text_position = text_position
+   
     def _find_next_lt(self, start):
         in_cdata = False
         for ptr in six.moves.xrange(start, len(self.source)):
@@ -31,6 +29,8 @@ class AndroidDumbXml(DumbXml):
                 if candidate == self.LESS_THAN:
                     # Check against CDATA
                     if self.source[ptr:ptr + len("<![CDATA[")] == "<![CDATA[":
+                        # this is the only difference from the parent class,
+                        # move the text position to the start of the cdata
                         self._text_position=ptr+len("<![CDATA[")
                         in_cdata = True
                     else:
@@ -41,9 +41,13 @@ class AndroidDumbXml(DumbXml):
     @property
     def content(self):
         """ All the contents of a tag (both text and children tags)
-
-            <a>goobye <b>cruel</b> world</a>
-               ^^^^^^^^^^^^^^^^^^^^^^^^^
+             Parent class:
+             <string><![CDATA[goobye <b>cruel</b> world]]></string>
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            
+            This class:
+            <string><![CDATA[goobye <b>cruel</b> world]]></string>
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
         """
 
         if self.tag == self.COMMENT:
@@ -97,11 +101,7 @@ class AndroidHandler(Handler):
     """ Parse Methods """
     def __init__(self):
         super(AndroidHandler, self).__init__()
-        # self.text_position = text_position
-        self.handler_keeper={}
-        self.debug_counter = 0
-
-        self.cdata_in_plurals = {}
+        self.cdata_pattern = re.compile(r'!\[CDATA')
 
     @reraise_syntax_as_parse_errors
     def parse(self, content, **kwargs):
@@ -207,9 +207,8 @@ class AndroidHandler(Handler):
         item_iterator = child.find_children()
         # Iterate through the children with the item tag.
         
-        pattern = re.compile(r'!\[CDATA')
         try:
-            has_cdata = False if pattern.search(child.content) is None else True
+            has_cdata = False if self.cdata_pattern.search(child.content) is None else True
         except TypeError:
             raise ParseError("No plurals found in <plurals> tag on line 1")
         
@@ -230,8 +229,7 @@ class AndroidHandler(Handler):
             # one plural form and thus there's only one <item>
             pluralized=True,
         )
-        if has_cdata:
-            self.cdata_in_plurals[name] = string.template_replacement
+      
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
             #                        ^
@@ -483,32 +481,25 @@ class AndroidHandler(Handler):
                 self._skip_tag(child)
 
     
-    def _search_for_cdata(self,_string,_destination,search_after=None):
-        string_index=-1
-        sliced_destination = _destination if search_after is None else _destination[search_after:]
-        self.debug_counter += 1
-        for index,value in enumerate(sliced_destination):
-            if len(_destination) > 1:
-                if _string==value:
-                    if value  not in self.handler_keeper:
-                        self.handler_keeper.update({_string:index})
-                    else:
-                        seen = self.handler_keeper.get(_string,-1) == index
-                        if seen:
-                            self._search_for_cdata(_string,_destination, search_after=index+1)
-            self.handler_keeper.update({_string:index})
-        result = False
-        pattern = re.compile(r'!\[CDATA')
-        match = None
+    def _search_for_cdata(self,_string,_destination):
+        """
+        The destination list is the entries that the transcriber
+        has visited. The last string is the one that is being compiled.
+        An example entry is:
+        <string name="string_key"><![CDATA[hello]]></string>
+        the transcriber will have the following entries:
+        [ <string name="string_key"><![CDATA[],
+          hello]
+        so we need to find if the preceding entry of the 
+        actual string is a cdata entry and return True/False
+        """
+        if not _destination or (len(_destination)> 0 and _destination[-1] != _string):
+            return False
         try:
-            match = pattern.search(_destination[string_index-1])
+            return bool(self.cdata_pattern.search(_destination[-2]))
         except TypeError:
-            return result
+            return False
         
-        if match:
-                result= True
-        return result
-
         
     def _compile_string(self, child):
         """Handles child element that has the `string` and `item` tag.
@@ -612,10 +603,8 @@ class AndroidHandler(Handler):
             if start.startswith(end):
                 start = start.replace(end, '', 1)
                 self.transcriber.add(end)
-            key = self.next_string.key
             template = self.PLURAL_TEMPLATE_CDATA if  has_cdata else self.PLURAL_TEMPLATE
            
-            
             for rule, string in six.iteritems(self.next_string.string):
                 self.transcriber.add(
                     start +
@@ -637,11 +626,9 @@ class AndroidHandler(Handler):
         """
         child_content = child.content and child.content.strip() or ''
     
-        if child_content.endswith("_cdata"):
-            
+        if child_content.endswith("_cdata"):     
             child_content = child_content.replace("_cdata", "")
-        else:
-            child_content = child_content
+       
         return (
             self.next_string is not None and
             self.next_string.template_replacement == child_content

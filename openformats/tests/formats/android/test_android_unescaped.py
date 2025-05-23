@@ -48,13 +48,16 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_cdata_string_plurals(self):
         self.maxDiff = None
         uploaded_openstring = OpenString("plurals_key", {1: "plural one", 5: "plural other"}, order=0)
+        uploaded_openstring1 = OpenString("simple_string", "test string", order=1)
         uploaded_hash = uploaded_openstring.template_replacement
+        uploaded_hash1 = uploaded_openstring1.template_replacement
         source= """
             <resources>
                 <plurals name="plurals_key">
                     <item quantity="one"><![CDATA[plural one]]></item>
                     <item quantity="other"><![CDATA[plural other]]></item>
                 </plurals>
+                <string name="simple_string">test string</string>
             </resources>
         """
         cdata_source_python_template = f"""
@@ -62,16 +65,17 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
                 <plurals name="plurals_key">
                     {uploaded_hash}_cdata
                 </plurals>
+                <string name="simple_string">{uploaded_hash1}</string>
             </resources>
         """
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [uploaded_openstring])
+        compiled = self.handler.compile(template, [uploaded_openstring,uploaded_openstring1])
         self.assertEqual(
             template,
             cdata_source_python_template,
         )
-        self.assertEqual(len(stringset), 1)
+        self.assertEqual(len(stringset), 2)
         self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
         self.assertEqual(compiled, source)
         
@@ -109,8 +113,6 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(len(stringset), 3)
         self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
         self.assertEqual(compiled, source)
-        self.assertEqual(self.handler.debug_counter, 3)
-
 
     def test_escape(self):
         rich = '&>"\n\t@? <xliff:g id="1">%1$s &</xliff:g> @ ?'
