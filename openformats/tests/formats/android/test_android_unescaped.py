@@ -45,54 +45,36 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, source)
 
 
-    # def test_cdata_string_plurals(self):
-    #     self.maxDiff = None
-    #     uploaded_openstring = OpenString("first_string", "non plural cdata", order=0)
-    #     uploaded_openstring2 = OpenString("second_string", "no plural signle", order=1)
-    #     uploaded_openstring3 = OpenString("third_string", {1: "plural one", 5: "plural other"}, order=2)
-    #     uploaded_hash = uploaded_openstring.template_replacement
-    #     uploaded_hash2 = uploaded_openstring2.template_replacement
-    #     uploaded_hash3 = uploaded_openstring3.template_replacement
+    def test_cdata_string_plurals(self):
+        self.maxDiff = None
+        uploaded_openstring = OpenString("plurals_key", {1: "plural one", 5: "plural other"}, order=0)
+        uploaded_hash = uploaded_openstring.template_replacement
+        source= """
+            <resources>
+                <plurals name="plurals_key">
+                    <item quantity="one"><![CDATA[plural one]]></item>
+                    <item quantity="other"><![CDATA[plural other]]></item>
+                </plurals>
+            </resources>
+        """
+        cdata_source_python_template = f"""
+            <resources>
+                <plurals name="plurals_key">
+                    {uploaded_hash}_cdata
+                </plurals>
+            </resources>
+        """
 
-    #     source= """
-    #         <resources>
-    #             <string name="first_string">
-    #                 <![CDATA[non plural cdata]]>
-    #             </string>
-    #             <string name="second_string">no plural signle</string>
-
-    #             -----
-    #             <plurals name="third_string">
-    #                 <item quantity="one">
-    #                     <![CDATA[plural one]]>
-    #                 </item>
-    #                 <item quantity="other">
-    #                     <![CDATA[plural other]]>
-    #                 </item>
-    #             </plurals>
-    #         </resources>
-    #     """
-    #     cdata_source_python_template = f"""
-    #         <resources>
-                
-    #             <string name="{uploaded_openstring3.key}">{uploaded_hash3}</string>
-    #         </resources>
-    #     """
-
-    #     template, stringset = self.handler.parse(source)
-    #     from icecream import ic
-      
-    #     compiled = self.handler.compile(template, [uploaded_openstring3])
-    #     ic(compiled)
-    #     return
-    #     self.assertEqual(
-    #         template,
-    #         cdata_source_python_template,
-    #     )
-    #     self.assertEqual(len(stringset), 3)
-    #     self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
-    #     self.assertEqual(compiled, source)
-    #     self.assertEqual(self.handler.debug_counter, 3)
+        template, stringset = self.handler.parse(source)
+        compiled = self.handler.compile(template, [uploaded_openstring])
+        self.assertEqual(
+            template,
+            cdata_source_python_template,
+        )
+        self.assertEqual(len(stringset), 1)
+        self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
+        self.assertEqual(compiled, source)
+        
 
     def test_cdata_string(self):
         self.maxDiff = None
