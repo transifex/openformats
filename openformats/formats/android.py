@@ -234,7 +234,8 @@ class AndroidHandler(Handler):
             #                        ^
             first_plural_position = child.text_position + len(child.text or '')
             self.transcriber.copy_until(first_plural_position)
-            self.transcriber.add(string.template_replacement)
+            
+            self.transcriber.add(string.template_replacement if not has_cdata else string.template_replacement + "_cdata")
             # ...</item>   </plurals>...
             #           ^
             self.transcriber.skip_until(item_tag.tail_position)
@@ -465,8 +466,6 @@ class AndroidHandler(Handler):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
         """
-        from ipdb import set_trace  
-        # set_trace()
         if not self._should_ignore(child):
             if child.tag == self.STRING:
                 self._compile_string(child)
@@ -587,13 +586,22 @@ class AndroidHandler(Handler):
         # If placeholder (has empty children) skip
         if len(list(child.find_children(self.STRING_ITEM))):
             return
-      
+       
         if self._should_compile(child):
             self.transcriber.copy_until(child.text_position)
+          
+            has_cdata = child.content.strip().endswith("_cdata")
+           
+            if has_cdata:
+                template_replacement = self.next_string.template_replacement+"_cdata"
 
-            splited_content = child.content.split(
-                self.next_string.template_replacement
-            )
+                splited_content = child.content.split(
+                    template_replacement
+                )
+            else:
+                splited_content = child.content.split(
+                    self.next_string.template_replacement
+                )
             start = splited_content[0]
             end = splited_content[1]
             
@@ -602,7 +610,9 @@ class AndroidHandler(Handler):
                 start = start.replace(end, '', 1)
                 self.transcriber.add(end)
             key = self.next_string.key
-            template = self.PLURAL_TEMPLATE_CDATA if key in self.cdata_in_plurals else self.PLURAL_TEMPLATE
+            template = self.PLURAL_TEMPLATE_CDATA if  has_cdata else self.PLURAL_TEMPLATE
+           
+            
             for rule, string in six.iteritems(self.next_string.string):
                 self.transcriber.add(
                     start +
@@ -622,14 +632,18 @@ class AndroidHandler(Handler):
         :param child: The child to check if it should be compiled.
         :returns: True if the child should be compiled else False.
         """
-        try:
-            child_content = child.content and child.content.strip() or ''
-            return (
-                self.next_string is not None and
-                self.next_string.template_replacement == child_content
-            )
-        except Exception as e:
-            raise e
+        child_content = child.content and child.content.strip() or ''
+    
+        if child_content.endswith("_cdata"):
+            
+            child_content = child_content.replace("_cdata", "")
+        else:
+            child_content = child_content
+        return (
+            self.next_string is not None and
+            self.next_string.template_replacement == child_content
+        )
+    
 
     def _skip_tag(self, tag):
         """Skips a tag from the compilation.
