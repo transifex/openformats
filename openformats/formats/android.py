@@ -6,7 +6,7 @@ import re
 import six
 
 from openformats.utils.compat import ensure_unicode
-
+from openformats.exceptions import ParseError
 from ..exceptions import RuleError
 from ..handlers import Handler
 from ..strings import OpenString
@@ -208,7 +208,10 @@ class AndroidHandler(Handler):
         # Iterate through the children with the item tag.
         
         pattern = re.compile(r'!\[CDATA')
-        has_cdata = False if pattern.search(child.content) is None else True
+        try:
+            has_cdata = False if pattern.search(child.content) is None else True
+        except TypeError:
+            raise ParseError("No plurals found in <plurals> tag on line 1")
         
         for item_tag in item_iterator:
             if item_tag.tag != AndroidDumbXml.COMMENT:
