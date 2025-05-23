@@ -81,6 +81,7 @@ class Transcriber(object):
         self.ptr = 0
 
         self.newline_count = 0
+        self.destination_keeper = {}
 
         # Handle newlines
         self.newline_type = find_newline_type(self.source)
@@ -90,6 +91,7 @@ class Transcriber(object):
     def copy(self, offset):
         chunk = self.source[self.ptr:self.ptr + offset]
         self.destination.append(chunk)
+        self.destination_keeper.update({chunk:len(self.destination)})
         self.ptr += offset
 
         self.newline_count += chunk.count('\n')
@@ -97,6 +99,7 @@ class Transcriber(object):
     def copy_until(self, end):
         chunk = self.source[self.ptr:end]
         self.destination.append(chunk)
+        self.destination_keeper.update({chunk:len(self.destination)})
         self.ptr = end
 
         self.newline_count += chunk.count('\n')
@@ -106,6 +109,7 @@ class Transcriber(object):
 
     def add(self, text):
         self.destination.append(text)
+        self.destination_keeper.update({text:len(self.destination)})
 
     def skip(self, offset):
         chunk = self.source[self.ptr:self.ptr + offset]
