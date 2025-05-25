@@ -54,10 +54,12 @@ class AndroidDumbXml(DumbXml):
             return self.text
         if self.content_end is None:
             return None
-        result = self.source[self.text_position:self.content_end]
-        if result.endswith("]]>"):
-            result = self.source[self.text_position:self.content_end-len("]]>")]
-        return result
+        _string_value = self.source[self.text_position:self.content_end]
+        if _string_value.strip().endswith("]]>"):
+            diff = len(_string_value) -len(_string_value.strip())
+            self._content_end = self.content_end-diff if diff>0 else self.content_end
+            _string_value = self.source[self.text_position:self.content_end-len("]]>")]
+        return _string_value
 
 
 class AndroidHandler(Handler):
