@@ -6,7 +6,7 @@ import re
 import six
 
 from openformats.utils.compat import ensure_unicode
-from openformats.exceptions import ParseError
+
 from ..exceptions import RuleError
 from ..handlers import Handler
 from ..strings import OpenString
@@ -14,52 +14,6 @@ from ..transcribers import Transcriber
 from ..utils.xml import NewDumbXml as DumbXml
 from ..utils.xml import escape as xml_escape
 from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
-
-class AndroidDumbXml(DumbXml):
-   
-    def _find_next_lt(self, start):
-        in_cdata = False
-        for ptr in six.moves.xrange(start, len(self.source)):
-            candidate = self.source[ptr]
-            if in_cdata:
-                if (candidate == ']' and
-                        self.source[ptr:ptr + len("]]>")] == "]]>"):
-                    in_cdata = False
-            else:
-                if candidate == self.LESS_THAN:
-                    # Check against CDATA
-                    if self.source[ptr:ptr + len("<![CDATA[")] == "<![CDATA[":
-                        # this is the only difference from the parent class,
-                        # move the text position to the start of the cdata
-                        self._text_position=ptr+len("<![CDATA[")
-                        in_cdata = True
-                    else:
-                        return ptr
-        # We reached the end of the string, lets return accordingly
-        return len(self.source)
-    
-    @property
-    def content(self):
-        """ All the contents of a tag (both text and children tags)
-             Parent class:
-             <string><![CDATA[goobye <b>cruel</b> world]]></string>
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            This class:
-            <string><![CDATA[goobye <b>cruel</b> world]]></string>
-                             ^^^^^^^^^^^^^^^^^^^^^^^^^
-        """
-
-        if self.tag == self.COMMENT:
-            return self.text
-        if self.content_end is None:
-            return None
-        _string_value = self.source[self.text_position:self.content_end]
-        if _string_value.strip().endswith("]]>"):
-            diff = len(_string_value) -len(_string_value.strip())
-            self._content_end = self.content_end-diff if diff>0 else self.content_end
-            _string_value = self.source[self.text_position:self.content_end-len("]]>")]
-        return _string_value
 
 
 class AndroidHandler(Handler):
@@ -98,12 +52,9 @@ class AndroidHandler(Handler):
 
     # Compile plural template
     PLURAL_TEMPLATE = u'<item quantity="{rule}">{string}</item>'
-    PLURAL_TEMPLATE_CDATA = u'<item quantity="{rule}"><![CDATA[{string}]]></item>'
+    DumbXml = DumbXml
 
     """ Parse Methods """
-    def __init__(self):
-        super(AndroidHandler, self).__init__()
-        self.cdata_pattern = re.compile(r'!\[CDATA')
 
     @reraise_syntax_as_parse_errors
     def parse(self, content, **kwargs):
@@ -115,15 +66,14 @@ class AndroidHandler(Handler):
         # Skip XML info declaration
         resources_tag_position = source.index(self.PARSE_START)
 
-        parsed = AndroidDumbXml(source, resources_tag_position)
-    
+        parsed = self.DumbXml(source, resources_tag_position)
         XMLUtils.validate_no_text_characters(self.transcriber, parsed)
         XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
         children_iterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
             self.STRING_PLURAL,
-            AndroidDumbXml.COMMENT
+            self.DumbXml.COMMENT
         )
         stringset = []
         self.existing_hashes = {}
@@ -146,7 +96,7 @@ class AndroidHandler(Handler):
         """
         XMLUtils.validate_no_tail_characters(self.transcriber, child)
         if not self._should_ignore(child):
-            if child.tag == AndroidDumbXml.COMMENT:
+            if child.tag == self.DumbXml.COMMENT:
                 self._handle_comment(child)
             else:
                 if child.tag == self.STRING:
@@ -181,7 +131,6 @@ class AndroidHandler(Handler):
             product,
             child
         )
-      
         if string is not None:
             # <string>My Text</string>
             #         ^
@@ -208,19 +157,12 @@ class AndroidHandler(Handler):
         string_rules_text = {}
         item_iterator = child.find_children()
         # Iterate through the children with the item tag.
-        
-        try:
-            has_cdata = False if self.cdata_pattern.search(child.content) is None else True
-        except TypeError:
-            raise ParseError("No plurals found in <plurals> tag on line 1")
-        
         for item_tag in item_iterator:
-            if item_tag.tag != AndroidDumbXml.COMMENT:
+            if item_tag.tag != self.DumbXml.COMMENT:
                 rule_number = self._validate_plural_item(item_tag)
                 string_rules_text[rule_number] = item_tag.content
 
         name, product = self._get_child_attributes(child)
-      
         string = self._create_string(
             name,
             string_rules_text,
@@ -231,14 +173,12 @@ class AndroidHandler(Handler):
             # one plural form and thus there's only one <item>
             pluralized=True,
         )
-      
         if string is not None:
             # <plurals name="foo">   <item>Hello ...
             #                        ^
             first_plural_position = child.text_position + len(child.text or '')
             self.transcriber.copy_until(first_plural_position)
-            
-            self.transcriber.add(string.template_replacement if not has_cdata else string.template_replacement + "_cdata")
+            self.transcriber.add(string.template_replacement)
             # ...</item>   </plurals>...
             #           ^
             self.transcriber.skip_until(item_tag.tail_position)
@@ -346,7 +286,6 @@ class AndroidHandler(Handler):
                 developer_comment=comment,
                 pluralized=pluralized,
             )
-            # TODO Add post processing validation for cdata 
             self.existing_hashes.setdefault((name, product), [])
             self.existing_hashes[(name, product)].append(child.tag)
             return string
@@ -413,9 +352,9 @@ class AndroidHandler(Handler):
                 msg
             )
         name = name.\
-            replace(AndroidDumbXml.BACKSLASH,
-                    u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.BACKSLASH])).\
-            replace(u'[', u''.join([AndroidDumbXml.BACKSLASH, u'[']))
+            replace(self.DumbXml.BACKSLASH,
+                    u''.join([self.DumbXml.BACKSLASH, self.DumbXml.BACKSLASH])).\
+            replace(u'[', u''.join([self.DumbXml.BACKSLASH, u'[']))
 
         product = child.attrib.get('product', '')
         return name, product
@@ -425,11 +364,12 @@ class AndroidHandler(Handler):
     def compile(self, template, stringset, is_source=True, language_info=None,
                 **kwargs):
         resources_tag_position = template.index(self.PARSE_START)
+
         self.transcriber = Transcriber(template[resources_tag_position:])
         source = self.transcriber.source
 
-        parsed = AndroidDumbXml(source)
-       
+        parsed = self.DumbXml(source)
+
         # Check against 'tools:locale' attribute
         if language_info is not None and 'tools:locale' in parsed.attrib:
             value_position, value = next((
@@ -454,7 +394,6 @@ class AndroidHandler(Handler):
 
         self.is_source = is_source
         self.stringset = iter(stringset)
-       
         self.next_string = self._get_next_string()
         for child in children_iterator:
             self._compile_child(child)
@@ -462,13 +401,14 @@ class AndroidHandler(Handler):
         self.transcriber.copy_until(len(source))
         compiled = (template[:resources_tag_position] +
                     self.transcriber.get_destination())
-       
+
         return compiled
 
     def _compile_child(self, child):
         """Do basic checks on the child and assigns the appropriate method to
             handle it based on the child's tag.
         """
+
         if not self._should_ignore(child):
             if child.tag == self.STRING:
                 self._compile_string(child)
@@ -482,43 +422,16 @@ class AndroidHandler(Handler):
             else:
                 self._skip_tag(child)
 
-    
-    def _search_for_cdata(self,_string,_destination):
-        """
-        The destination list is the entries that the transcriber
-        has visited. The last string is the one that is being compiled.
-        An example entry is:
-        <string name="string_key"><![CDATA[hello]]></string>
-        the transcriber will have the following entries:
-        [ <string name="string_key"><![CDATA[],
-          hello]
-        so we need to find if the preceding entry of the 
-        actual string is a cdata entry and return True/False
-        """
-        if not _destination or (len(_destination)> 0 and _destination[-1] != _string):
-            return False
-        try:
-            return bool(self.cdata_pattern.search(_destination[-2]))
-        except TypeError:
-            return False
-        
-        
     def _compile_string(self, child):
         """Handles child element that has the `string` and `item` tag.
 
         It will compile the tag if matching string exists. Otherwise it will
         skip it.
         """
-       
-
         if self._should_compile(child):
-           
             self.transcriber.copy_until(child.text_position)
-            _string = self.next_string.string
-            self.transcriber.add(_string)
-           
-            has_cdata = self._search_for_cdata(_string, self.transcriber.destination)
-            self.transcriber.skip_until(child.content_end if not has_cdata else child.content_end-len("]]>"))
+            self.transcriber.add(self.next_string.string)
+            self.transcriber.skip_until(child.content_end)
             self.transcriber.copy_until(child.tail_position)
             self.transcriber.mark_section_start()
             self.transcriber.copy_until(child.end)
@@ -530,7 +443,6 @@ class AndroidHandler(Handler):
             pass
         else:
             self._skip_tag(child)
-       
 
     def _compile_string_array(self, child):
         """Handles child element that has the `string-array` tag.
@@ -582,35 +494,25 @@ class AndroidHandler(Handler):
         # If placeholder (has empty children) skip
         if len(list(child.find_children(self.STRING_ITEM))):
             return
-       
+
         if self._should_compile(child):
             self.transcriber.copy_until(child.text_position)
-          
-            has_cdata = child.content.strip().endswith("_cdata")
-           
-            if has_cdata:
-                template_replacement = self.next_string.template_replacement+"_cdata"
 
-                splited_content = child.content.split(
-                    template_replacement
-                )
-            else:
-                splited_content = child.content.split(
-                    self.next_string.template_replacement
-                )
+            splited_content = child.content.split(
+                self.next_string.template_replacement
+            )
             start = splited_content[0]
             end = splited_content[1]
-            
+
             # If newline formating
             if start.startswith(end):
                 start = start.replace(end, '', 1)
                 self.transcriber.add(end)
-            template = self.PLURAL_TEMPLATE_CDATA if  has_cdata else self.PLURAL_TEMPLATE
-           
+
             for rule, string in six.iteritems(self.next_string.string):
                 self.transcriber.add(
                     start +
-                    template.format(
+                    self.PLURAL_TEMPLATE.format(
                         rule=self.get_rule_string(rule), string=string
                     ) + end
                 )
@@ -627,15 +529,10 @@ class AndroidHandler(Handler):
         :returns: True if the child should be compiled else False.
         """
         child_content = child.content and child.content.strip() or ''
-    
-        if child_content.endswith("_cdata"):     
-            child_content = child_content.replace("_cdata", "")
-       
         return (
             self.next_string is not None and
             self.next_string.template_replacement == child_content
         )
-    
 
     def _skip_tag(self, tag):
         """Skips a tag from the compilation.
@@ -700,10 +597,10 @@ class AndroidHandler(Handler):
             if string.startswith(u'@') and not string.startswith(u'@string/'):
                 string = string.replace(u'@', u'\\@', 1)
             return string.\
-                replace(AndroidDumbXml.DOUBLE_QUOTES,
-                        u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.DOUBLE_QUOTES])).\
-                replace(AndroidDumbXml.SINGLE_QUOTE,
-                        u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.SINGLE_QUOTE]))
+                replace(AndroidHandler.DumbXml.DOUBLE_QUOTES,
+                        u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.DOUBLE_QUOTES])).\
+                replace(AndroidHandler.DumbXml.SINGLE_QUOTE,
+                        u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.SINGLE_QUOTE]))
 
         return xml_escape(string, AndroidHandler.INLINE_TAGS, _escape_text)
 
@@ -713,13 +610,13 @@ class AndroidHandler(Handler):
         # backslash
         if string.startswith(u'\\@'):
             string = string[1:]
-        if len(string) and string[0] == string[-1] == AndroidDumbXml.DOUBLE_QUOTES:
+        if len(string) and string[0] == string[-1] == AndroidHandler.DumbXml.DOUBLE_QUOTES:
             return string[1:-1].\
-                replace(u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.DOUBLE_QUOTES]),
-                        AndroidDumbXml.DOUBLE_QUOTES)
+                replace(u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.DOUBLE_QUOTES]),
+                        AndroidHandler.DumbXml.DOUBLE_QUOTES)
         else:
             return string.\
-                replace(u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.SINGLE_QUOTE]),
-                        AndroidDumbXml.SINGLE_QUOTE).\
-                replace(u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.DOUBLE_QUOTES]),
-                        AndroidDumbXml.DOUBLE_QUOTES)
+                replace(u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.SINGLE_QUOTE]),
+                        AndroidHandler.DumbXml.SINGLE_QUOTE).\
+                replace(u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.DOUBLE_QUOTES]),
+                        AndroidHandler.DumbXml.DOUBLE_QUOTES)

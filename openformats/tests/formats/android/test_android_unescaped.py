@@ -1,6 +1,6 @@
 import unittest
 from openformats.exceptions import ParseError
-from openformats.formats.android_unescaped import AndroidUnescapedHandler
+from openformats.formats.android_unescaped import AndroidHandler3, AndroidUnescapedHandler
 from openformats.tests.formats.android.test_android import AndroidTestCase
 from openformats.tests.formats.common import CommonFormatTestMixin
 from openformats.tests.utils.strings import (
@@ -45,6 +45,68 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, source)
 
 
+
+    def test_escape(self):
+        rich = '&>"\n\t@? <xliff:g id="1">%1$s &</xliff:g> @ ?'
+        raw = '&amp;&gt;\\"\\n\\t\\@\\? <xliff:g id="1">%1$s &</xliff:g> \\@ \\?'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
+    def test_escape_lt_character(self):
+        rich = '< 20 units'
+        raw = '&lt; 20 units'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
+        rich = '< 20 & > 50 units'
+        raw = '&lt; 20 &amp; &gt; 50 units'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
+        rich = '< 20 & > 50 units<xliff:g>test</xliff:g>'
+        raw = '&lt; 20 &amp; &gt; 50 units&lt;xliff:g&gt;test&lt;/xliff:g&gt;'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.escape(rich),
+            raw,
+        )
+
+    def test_unescape(self):
+        rich = "&<>'\n\t@?" + '"'
+        raw = "&amp;&lt;&gt;\\'\\n\\t\\@\\?" + '\\"'
+
+        self.assertEqual(
+            AndroidUnescapedHandler.unescape(raw),
+            rich,
+        )
+
+    def test_create_string_raises_error(self):
+        unescaped_string = "some ' string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = 'some " string'
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+
+class AndroidHandler3TestCase(AndroidUnescapedTestCase):
+    HANDLER_CLASS = AndroidHandler3
+
+    
     def test_cdata_string_plurals(self):
         self.maxDiff = None
         uploaded_openstring = OpenString("plurals_key", {1: "plural one", 5: "plural other"}, order=0)
@@ -113,60 +175,3 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(len(stringset), 3)
         self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
         self.assertEqual(compiled, source)
-
-    def test_escape(self):
-        rich = '&>"\n\t@? <xliff:g id="1">%1$s &</xliff:g> @ ?'
-        raw = '&amp;&gt;\\"\\n\\t\\@\\? <xliff:g id="1">%1$s &</xliff:g> \\@ \\?'
-
-        self.assertEqual(
-            AndroidUnescapedHandler.escape(rich),
-            raw,
-        )
-
-    def test_escape_lt_character(self):
-        rich = '< 20 units'
-        raw = '&lt; 20 units'
-
-        self.assertEqual(
-            AndroidUnescapedHandler.escape(rich),
-            raw,
-        )
-
-        rich = '< 20 & > 50 units'
-        raw = '&lt; 20 &amp; &gt; 50 units'
-
-        self.assertEqual(
-            AndroidUnescapedHandler.escape(rich),
-            raw,
-        )
-
-        rich = '< 20 & > 50 units<xliff:g>test</xliff:g>'
-        raw = '&lt; 20 &amp; &gt; 50 units&lt;xliff:g&gt;test&lt;/xliff:g&gt;'
-
-        self.assertEqual(
-            AndroidUnescapedHandler.escape(rich),
-            raw,
-        )
-
-    def test_unescape(self):
-        rich = "&<>'\n\t@?" + '"'
-        raw = "&amp;&lt;&gt;\\'\\n\\t\\@\\?" + '\\"'
-
-        self.assertEqual(
-            AndroidUnescapedHandler.unescape(raw),
-            rich,
-        )
-
-    def test_create_string_raises_error(self):
-        unescaped_string = "some ' string"
-        self.assertRaises(
-            ParseError,
-            AndroidUnescapedHandler._check_unescaped_characters,
-            unescaped_string,
-        )
-        unescaped_string = 'some " string'
-        self.assertRaises(
-            ParseError,
-            AndroidUnescapedHandler._check_unescaped_characters,
-            unescaped_string,
-        )
