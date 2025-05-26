@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import re
 from hashlib import md5
 from openformats.exceptions import ParseError
@@ -5,67 +6,15 @@ from openformats.formats.android import AndroidHandler
 from ..utils.xml import NewDumbXml as DumbXml
 import six
 
-from __future__ import absolute_import
-
-import itertools
 import re
 
 import six
 
 from openformats.exceptions import ParseError
-from ..exceptions import RuleError
-from ..strings import OpenString
-from ..transcribers import Transcriber
+
 from ..utils.xml import NewDumbXml as DumbXml
-from ..utils.xml import escape as xml_escape
-from ..utils.xmlutils import XMLUtils, reraise_syntax_as_parse_errors
 
 
-class AndroidDumbXml(DumbXml):
-   
-    def _find_next_lt(self, start):
-        in_cdata = False
-        for ptr in six.moves.xrange(start, len(self.source)):
-            candidate = self.source[ptr]
-            if in_cdata:
-                if (candidate == ']' and
-                        self.source[ptr:ptr + len("]]>")] == "]]>"):
-                    in_cdata = False
-            else:
-                if candidate == self.LESS_THAN:
-                    # Check against CDATA
-                    if self.source[ptr:ptr + len("<![CDATA[")] == "<![CDATA[":
-                        # this is the only difference from the parent class,
-                        # move the text position to the start of the cdata
-                        self._text_position=ptr+len("<![CDATA[")
-                        in_cdata = True
-                    else:
-                        return ptr
-        # We reached the end of the string, lets return accordingly
-        return len(self.source)
-    
-    @property
-    def content(self):
-        """ All the contents of a tag (both text and children tags)
-             Parent class:
-             <string><![CDATA[goobye <b>cruel</b> world]]></string>
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            This class:
-            <string><![CDATA[goobye <b>cruel</b> world]]></string>
-                             ^^^^^^^^^^^^^^^^^^^^^^^^^
-        """
-
-        if self.tag == self.COMMENT:
-            return self.text
-        if self.content_end is None:
-            return None
-        _string_value = self.source[self.text_position:self.content_end]
-        if _string_value.strip().endswith("]]>"):
-            diff = len(_string_value) -len(_string_value.strip())
-            self._content_end = self.content_end-diff if diff>0 else self.content_end
-            _string_value = self.source[self.text_position:self.content_end-len("]]>")]
-        return _string_value
 
 
 class AndroidUnescapedHandler(AndroidHandler):
@@ -260,7 +209,7 @@ class AndroidDumbXml(DumbXml):
 
 class AndroidHandler3(AndroidUnescapedHandler):
     PLURAL_TEMPLATE_CDATA = u'<item quantity="{rule}"><![CDATA[{string}]]></item>'
-    DumbXml = AndroidDumbXml
+    XmlClass = AndroidDumbXml
 
     def __init__(self):
         super(AndroidHandler3, self).__init__()
@@ -289,7 +238,7 @@ class AndroidHandler3(AndroidUnescapedHandler):
             raise ParseError("No plurals found in <plurals> tag on line 1")
         
         for item_tag in item_iterator:
-            if item_tag.tag != AndroidDumbXml.COMMENT:
+            if item_tag.tag != self.XmlClass.COMMENT:
                 rule_number = self._validate_plural_item(item_tag)
                 string_rules_text[rule_number] = item_tag.content
 
@@ -320,78 +269,6 @@ class AndroidHandler3(AndroidUnescapedHandler):
             return [string]
         return None
 
-    
-
-    def _handle_comment(self, child):
-        """Will assign the comment found as the current comment."""
-        self.current_comment = child.content
-
-    def _create_string(self, name, text, comment, product, child,
-                       pluralized=False):
-        """Creates a string and returns it. If empty string it returns None.
-
-        :param text: The strings text.
-        :param name: The name of the string.
-        :param comment: The developer's comment the string might have.
-        :param product: Extra context for the string.
-        :param child: The child tag that the string is created from.
-                        Used to find line numbers when errors occur.
-        :returns: Returns an OpenString object if the text is not empty
-                  else None.
-        """
-        if XMLUtils.validate_not_empty_string(
-            self.transcriber,
-            text,
-            child,
-            error_context={
-                'main_tag': 'plural',
-                'child_tag': 'item'
-            }
-        ):
-            if (name, product) in self.existing_hashes:
-                if child.tag in self.existing_hashes[(name, product)]:
-                    format_dict = {
-                        'name': name,
-                        'child_tag': child.tag
-                    }
-                    if product:
-                        msg = (
-                            u"Duplicate `tag_name` ({child_tag}) for `name`"
-                            u" ({name}) and `product` ({product}) "
-                            u"found on line {line_number}"
-                        )
-                        format_dict['product'] = product
-                    else:
-                        msg = (
-                            u"Duplicate `tag_name` ({child_tag}) for `name`"
-                            u" ({name}) specify a product to differentiate"
-                        )
-                    XMLUtils.raise_error(
-                        self.transcriber,
-                        child,
-                        msg,
-                        context=format_dict
-                    )
-                else:
-                    product += child.tag
-            # Create OpenString
-            string = OpenString(
-                name,
-                text,
-                context=product,
-                order=next(self.order_counter),
-                developer_comment=comment,
-                pluralized=pluralized,
-            )
-            # TODO Add post processing validation for cdata 
-            self.existing_hashes.setdefault((name, product), [])
-            self.existing_hashes[(name, product)].append(child.tag)
-            return string
-        return None
-
-   
-
- 
 
     """ Compile Methods """
 
@@ -516,89 +393,8 @@ class AndroidHandler3(AndroidUnescapedHandler):
         )
     
 
-    def _skip_tag(self, tag):
-        """Skips a tag from the compilation.
 
-        :param tag: The tag to be skipped.
-        """
-        self.transcriber.skip_until(tag.end)
 
-    def _get_next_string(self):
-        """Gets the next string from stringset itterable.
 
-        :returns: An openstring object or None if it has reached the end of
-                    the itterable.
-        """
-        try:
-            next_string = next(self.stringset)
-        except StopIteration:
-            next_string = None
-        return next_string
 
-    """ Util Methods """
-
-    @staticmethod
-    def _should_ignore(child):
-        """Checks if the child contains any key:value pair from the
-            SKIP_ATTRIBUTES dict.
-
-        :returns: True if it contains any else false.
-        """
-        for key, value in six.iteritems(AndroidHandler.SKIP_ATTRIBUTES):
-            filter_attr = child.attrib.get(key)
-            if filter_attr is not None and filter_attr == value:
-                return True
-        return False
-
-    # Escaping / Unescaping
-    # According to:
-    # https://developer.android.com/guide/topics/resources/string-resource#FormattingAndStyling
-    # https://developer.android.com/guide/topics/resources/string-resource#StylingWithHTML
-    INLINE_TAGS = ("xliff:g", "a", "annotation", "b", "em", "i", "cite", "dfn",
-                   "big", "small", "font", "tt", "s", "strike", "del", "u",
-                   "sup", "sub", "ul", "li", "br", "div", "span", "p")
-
-    @staticmethod
-    def escape(string):
-        """ Escape text for use in Android files.
-
-        Respect tags that are allowed in  strings. Examples:
-          "hello" world      => \\"hello\\" world
-          <a b="c">hello</a> => <a b="c">hello</a>
-          <x y="z">hello</x> => <x y=\\"z\\">hello</x>
-
-        :param str string: string to be escaped
-        :return: escaped string
-        :rtype: unicode
-        """
-
-        def _escape_text(string):
-            # If the string starts with an at-sign that doesn't identify
-            # another string, then we need to escape it using a leading
-            # backslash
-            if string.startswith(u'@') and not string.startswith(u'@string/'):
-                string = string.replace(u'@', u'\\@', 1)
-            return string.\
-                replace(AndroidDumbXml.DOUBLE_QUOTES,
-                        u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.DOUBLE_QUOTES])).\
-                replace(AndroidDumbXml.SINGLE_QUOTE,
-                        u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.SINGLE_QUOTE]))
-
-        return xml_escape(string, AndroidHandler.INLINE_TAGS, _escape_text)
-
-    @staticmethod
-    def unescape(string):
-        # If the string starts with an escaped at-sign, do not display the
-        # backslash
-        if string.startswith(u'\\@'):
-            string = string[1:]
-        if len(string) and string[0] == string[-1] == AndroidDumbXml.DOUBLE_QUOTES:
-            return string[1:-1].\
-                replace(u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.DOUBLE_QUOTES]),
-                        AndroidDumbXml.DOUBLE_QUOTES)
-        else:
-            return string.\
-                replace(u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.SINGLE_QUOTE]),
-                        AndroidDumbXml.SINGLE_QUOTE).\
-                replace(u''.join([AndroidDumbXml.BACKSLASH, AndroidDumbXml.DOUBLE_QUOTES]),
-                        AndroidDumbXml.DOUBLE_QUOTES)
+    

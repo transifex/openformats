@@ -1,7 +1,6 @@
 import unittest
 from openformats.exceptions import ParseError
 from openformats.formats.android_unescaped import AndroidHandler3, AndroidUnescapedHandler
-from openformats.tests.formats.android.test_android import AndroidTestCase
 from openformats.tests.formats.common import CommonFormatTestMixin
 from openformats.tests.utils.strings import (
     generate_random_string,
@@ -103,9 +102,12 @@ class AndroidUnescapedTestCase(CommonFormatTestMixin, unittest.TestCase):
             unescaped_string,
         )
 
-class AndroidHandler3TestCase(AndroidUnescapedTestCase):
+class AndroidHandler3TestCase(CommonFormatTestMixin, unittest.TestCase):
     HANDLER_CLASS = AndroidHandler3
-
+    TESTFILE_BASE = "openformats/tests/formats/android/files"
+    def setUp(self):
+        super(AndroidHandler3TestCase, self).setUp()
+        self.handler = AndroidHandler3()
     
     def test_cdata_string_plurals(self):
         self.maxDiff = None
@@ -132,6 +134,7 @@ class AndroidHandler3TestCase(AndroidUnescapedTestCase):
         """
 
         template, stringset = self.handler.parse(source)
+         
         compiled = self.handler.compile(template, [uploaded_openstring,uploaded_openstring1])
         self.assertEqual(
             template,
@@ -174,4 +177,19 @@ class AndroidHandler3TestCase(AndroidUnescapedTestCase):
         )
         self.assertEqual(len(stringset), 3)
         self.assertEqual(stringset[0].__dict__, uploaded_openstring.__dict__)
-        self.assertEqual(compiled, source)
+        self.assertEqual(compiled, source)  
+    
+    
+    def test_create_string_raises_error(self):
+        unescaped_string = "some ' string"
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )
+        unescaped_string = 'some " string'
+        self.assertRaises(
+            ParseError,
+            AndroidUnescapedHandler._check_unescaped_characters,
+            unescaped_string,
+        )

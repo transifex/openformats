@@ -52,7 +52,7 @@ class AndroidHandler(Handler):
 
     # Compile plural template
     PLURAL_TEMPLATE = u'<item quantity="{rule}">{string}</item>'
-    DumbXml = DumbXml
+    XmlClass = DumbXml
 
     """ Parse Methods """
 
@@ -66,14 +66,14 @@ class AndroidHandler(Handler):
         # Skip XML info declaration
         resources_tag_position = source.index(self.PARSE_START)
 
-        parsed = self.DumbXml(source, resources_tag_position)
+        parsed = self.XmlClass(source, resources_tag_position)
         XMLUtils.validate_no_text_characters(self.transcriber, parsed)
         XMLUtils.validate_no_tail_characters(self.transcriber, parsed)
         children_iterator = parsed.find_children(
             self.STRING,
             self.STRING_ARRAY,
             self.STRING_PLURAL,
-            self.DumbXml.COMMENT
+            self.XmlClass.COMMENT
         )
         stringset = []
         self.existing_hashes = {}
@@ -96,7 +96,7 @@ class AndroidHandler(Handler):
         """
         XMLUtils.validate_no_tail_characters(self.transcriber, child)
         if not self._should_ignore(child):
-            if child.tag == self.DumbXml.COMMENT:
+            if child.tag == self.XmlClass.COMMENT:
                 self._handle_comment(child)
             else:
                 if child.tag == self.STRING:
@@ -158,7 +158,7 @@ class AndroidHandler(Handler):
         item_iterator = child.find_children()
         # Iterate through the children with the item tag.
         for item_tag in item_iterator:
-            if item_tag.tag != self.DumbXml.COMMENT:
+            if item_tag.tag != self.XmlClass.COMMENT:
                 rule_number = self._validate_plural_item(item_tag)
                 string_rules_text[rule_number] = item_tag.content
 
@@ -352,9 +352,9 @@ class AndroidHandler(Handler):
                 msg
             )
         name = name.\
-            replace(self.DumbXml.BACKSLASH,
-                    u''.join([self.DumbXml.BACKSLASH, self.DumbXml.BACKSLASH])).\
-            replace(u'[', u''.join([self.DumbXml.BACKSLASH, u'[']))
+            replace(self.XmlClass.BACKSLASH,
+                    u''.join([self.XmlClass.BACKSLASH, self.XmlClass.BACKSLASH])).\
+            replace(u'[', u''.join([self.XmlClass.BACKSLASH, u'[']))
 
         product = child.attrib.get('product', '')
         return name, product
@@ -368,7 +368,7 @@ class AndroidHandler(Handler):
         self.transcriber = Transcriber(template[resources_tag_position:])
         source = self.transcriber.source
 
-        parsed = self.DumbXml(source)
+        parsed = self.XmlClass(source)
 
         # Check against 'tools:locale' attribute
         if language_info is not None and 'tools:locale' in parsed.attrib:
@@ -597,10 +597,10 @@ class AndroidHandler(Handler):
             if string.startswith(u'@') and not string.startswith(u'@string/'):
                 string = string.replace(u'@', u'\\@', 1)
             return string.\
-                replace(AndroidHandler.DumbXml.DOUBLE_QUOTES,
-                        u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.DOUBLE_QUOTES])).\
-                replace(AndroidHandler.DumbXml.SINGLE_QUOTE,
-                        u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.SINGLE_QUOTE]))
+                replace(AndroidHandler.XmlClass.DOUBLE_QUOTES,
+                        u''.join([AndroidHandler.XmlClass.BACKSLASH, AndroidHandler.XmlClass.DOUBLE_QUOTES])).\
+                replace(AndroidHandler.XmlClass.SINGLE_QUOTE,
+                        u''.join([AndroidHandler.XmlClass.BACKSLASH, AndroidHandler.XmlClass.SINGLE_QUOTE]))
 
         return xml_escape(string, AndroidHandler.INLINE_TAGS, _escape_text)
 
@@ -610,13 +610,13 @@ class AndroidHandler(Handler):
         # backslash
         if string.startswith(u'\\@'):
             string = string[1:]
-        if len(string) and string[0] == string[-1] == AndroidHandler.DumbXml.DOUBLE_QUOTES:
+        if len(string) and string[0] == string[-1] == AndroidHandler.XmlClass.DOUBLE_QUOTES:
             return string[1:-1].\
-                replace(u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.DOUBLE_QUOTES]),
-                        AndroidHandler.DumbXml.DOUBLE_QUOTES)
+                replace(u''.join([AndroidHandler.XmlClass.BACKSLASH, AndroidHandler.XmlClass.DOUBLE_QUOTES]),
+                        AndroidHandler.XmlClass.DOUBLE_QUOTES)
         else:
             return string.\
-                replace(u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.SINGLE_QUOTE]),
-                        AndroidHandler.DumbXml.SINGLE_QUOTE).\
-                replace(u''.join([AndroidHandler.DumbXml.BACKSLASH, AndroidHandler.DumbXml.DOUBLE_QUOTES]),
-                        AndroidHandler.DumbXml.DOUBLE_QUOTES)
+                replace(u''.join([AndroidHandler.XmlClass.BACKSLASH, AndroidHandler.XmlClass.SINGLE_QUOTE]),
+                        AndroidHandler.XmlClass.SINGLE_QUOTE).\
+                replace(u''.join([AndroidHandler.XmlClass.BACKSLASH, AndroidHandler.XmlClass.DOUBLE_QUOTES]),
+                        AndroidHandler.XmlClass.DOUBLE_QUOTES)
