@@ -17,6 +17,10 @@ from ..utils.xml import NewDumbXml as DumbXml
 
 class AndroidDumbXml(DumbXml):
     DumbXml = DumbXml
+    def __init__(self, source, start=0):
+        super(AndroidDumbXml, self).__init__(source, start)
+        self.string_with_cdata = set()
+
    
     def _find_next_lt(self, start):
         in_cdata = False
@@ -44,7 +48,7 @@ class AndroidDumbXml(DumbXml):
         """ All the contents of a tag (both text and children tags)
              Parent class:
              <string><![CDATA[goobye <b>cruel</b> world]]></string>
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             
             This class:
             <string><![CDATA[goobye <b>cruel</b> world]]></string>
@@ -60,6 +64,7 @@ class AndroidDumbXml(DumbXml):
             diff = len(_string_value) -len(_string_value.strip())
             self._content_end = self.content_end-diff if diff>0 else self.content_end
             _string_value = self.source[self.text_position:self.content_end-len("]]>")]
+            self.string_with_cdata.add(self._attrib.get("name"))
         return _string_value
     
 
@@ -71,7 +76,37 @@ class AndroidHandlerv3(AndroidUnescapedHandler):
     def __init__(self):
         super(AndroidHandlerv3, self).__init__()
         self.cdata_pattern = re.compile(r'!\[CDATA')
+    
+    def _handle_string(self, child):
+        """Handles child element that has the `string` tag.
 
+        If it contains a string it will create an OpenString object.
+
+        :returns: An list of containing the OpenString object
+                    if one was created else it returns None.
+        """
+        name, product = self._get_child_attributes(child)
+        
+        content = child.content
+        tx_comment = "\nAdded by Transifex:CDATA"
+        developer_comment = self.current_comment +tx_comment if name in child.string_with_cdata else self.current_comment
+        string = self._create_string(
+            name,
+            content,
+            developer_comment,
+            product,
+            child
+        )
+        if string is not None:
+            # <string>My Text</string>
+            #         ^
+            self.transcriber.copy_until(child.text_position)
+            self.transcriber.add(string.template_replacement)
+            # <string>My Text</string>
+            #                ^
+            self.transcriber.skip(len(child.content))
+            return [string]
+        return None
    
     def _handle_string_plural(self, child):
         """Handles child element that has the `plurals` tag.

@@ -51,7 +51,8 @@ class AndroidHandler3TestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_cdata_string(self):
         self.maxDiff = None
-        uploaded_openstring = OpenString("onshape_edu_plan", "<b>Onshape Education Plan</b>", order=0)
+        uploaded_openstring = OpenString("onshape_edu_plan", "<b>Onshape Education Plan</b>",\
+                                          developer_comment="\nAdded by Transifex:CDATA", order=0)
         uploaded_openstring2 = OpenString("explore_the_basics", "Explore the basics", order=1)
         uploaded_openstring3 = OpenString("test", "<b>Onshape Education Plan</b>", order=2)
         uploaded_hash = uploaded_openstring.template_replacement
