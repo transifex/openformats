@@ -18,7 +18,7 @@ jobs:
           command: pip install tox
       - run:
           name: Run tests
-          command: tox
+          command: tox -r
 
 workflows:
   version: 2
