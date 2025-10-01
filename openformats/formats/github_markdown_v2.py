@@ -116,23 +116,60 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             # Ignore any string that does not appear in the template,
             # We do this to avoid parsing strings that are not properly
             # handled by the Markdown library, such as ```code``` blocks
-            if string and string in md_template[curr_pos:]:
-                string_object = OpenString(six.text_type(order),
-                                           string,
-                                           order=order)
-                order += 1
-                stringset.append(string_object)
-                # Keep track of the index of the last replaced hash
-                md_template = (
-                    md_template[:curr_pos] + md_template[curr_pos:].replace(
-                        string, string_object.template_replacement, 1)
-                )
+            if string and (
+                bool(re.match(r'^\s*>\s{1,4}\[!NOTE]', string)) 
+                or string in md_template[curr_pos:]
+            ):
+                # Special handling for [!NOTE] blocks
+                # Investigate if issue extends to all indented blocks
+                if bool(re.match(r'^\s*>\s{1,4}\[!NOTE]', string)):
+                    start, end = self.find_fuzzy_substring(string, md_template)
+                    if start is not None and end is not None:
+                        string_object = OpenString(six.text_type(order),
+                                                string,
+                                                order=order)
+                        order += 1
+                        stringset.append(string_object)
+                        md_template = (
+                            md_template[:start] + string_object.template_replacement
+                            + md_template[end:]
+                        )
+                        curr_pos = start + len(string_object.template_replacement)
+                elif string in md_template[curr_pos:]:
+                    string_object = OpenString(six.text_type(order),
+                                            string,
+                                            order=order)
+                    order += 1
+                    stringset.append(string_object)
+                    # Keep track of the index of the last replaced hash
+                    md_template = (
+                        md_template[:curr_pos] + md_template[curr_pos:].replace(
+                            string, string_object.template_replacement, 1)
+                    )
 
-                curr_pos = md_template.find(string_object.template_replacement)
-                curr_pos = curr_pos + len(string_object.template_replacement)
+                    curr_pos = md_template.find(string_object.template_replacement)
+                    curr_pos = curr_pos + len(string_object.template_replacement)
 
         template = yaml_template + seperator + md_template
         return force_newline_type(template, newline_type), stringset
+    
+    def find_fuzzy_substring(self, pattern, text):
+        # Split pattern into non-whitespace tokens
+        tokens = re.findall(r'\S+', pattern)
+        if not tokens:
+            return None
+
+        # Escape each token literally; join with \s+ (any whitespace)
+        core = r'\s+'.join(re.escape(token) for token in tokens)
+
+        # Allow optional whitespace before/after the core to absorb indentation
+        regex = rf'(?P<pre>\s*)({core})(?P<post>\s*)'
+
+        m = re.search(regex, text)
+        if not m:
+            return None
+
+        return (m.start(2), m.end(2))
 
     def _is_yaml_string(self, string):
         """Return True if the given open string is in YAML format, False otherwise.
