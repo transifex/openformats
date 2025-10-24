@@ -127,7 +127,6 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
                 or string in md_template[curr_pos:]
             ):
                 # Special handling for [!NOTE] blocks
-                # Investigate if issue extends to all indented blocks
                 if bool(re.match(block_pattern, string)):
                     start, end = self.find_fuzzy_substring(
                         string, md_template, curr_pos
