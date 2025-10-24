@@ -37,6 +37,8 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
     BRACKET_RIGHT = ']'
     PIPE = '|'
 
+    SUPPORTED_BLOCK_LABELS = ['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION']
+
     # A string that looks like '\u0008'
     ESCAPED_UNICODE = re.compile(r'\\u[a-fA-F0-9]{4}')
     # ... or '\x2D'
@@ -111,23 +113,29 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         stringset.extend(yaml_stringset)
         order = len(stringset)
         curr_pos = 0
+
+        block_label_string = ("|").join(self.SUPPORTED_BLOCK_LABELS)
+        block_pattern = rf'^\s*>\s{{0,4}}\[!({block_label_string})\]'
+
         for string in block.md_stringset:
             string = string_handler(string, md_template)
             # Ignore any string that does not appear in the template,
             # We do this to avoid parsing strings that are not properly
             # handled by the Markdown library, such as ```code``` blocks
             if string and (
-                bool(re.match(r'^\s*>\s{1,4}\[!NOTE]', string)) 
+                bool(re.match(block_pattern, string))
                 or string in md_template[curr_pos:]
             ):
                 # Special handling for [!NOTE] blocks
                 # Investigate if issue extends to all indented blocks
-                if bool(re.match(r'^\s*>\s{1,4}\[!NOTE]', string)):
-                    start, end = self.find_fuzzy_substring(string, md_template)
+                if bool(re.match(block_pattern, string)):
+                    start, end = self.find_fuzzy_substring(
+                        string, md_template, curr_pos
+                    )
                     if start is not None and end is not None:
-                        string_object = OpenString(six.text_type(order),
-                                                string,
-                                                order=order)
+                        string_object = OpenString(
+                            six.text_type(order), string, order=order
+                        )
                         order += 1
                         stringset.append(string_object)
                         md_template = (
@@ -136,9 +144,9 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
                         )
                         curr_pos = start + len(string_object.template_replacement)
                 elif string in md_template[curr_pos:]:
-                    string_object = OpenString(six.text_type(order),
-                                            string,
-                                            order=order)
+                    string_object = OpenString(
+                        six.text_type(order), string, order=order
+                    )
                     order += 1
                     stringset.append(string_object)
                     # Keep track of the index of the last replaced hash
@@ -153,7 +161,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         template = yaml_template + seperator + md_template
         return force_newline_type(template, newline_type), stringset
     
-    def find_fuzzy_substring(self, pattern, text):
+    def find_fuzzy_substring(self, pattern, text, pos=0):
         # Split pattern into non-whitespace tokens
         tokens = re.findall(r'\S+', pattern)
         if not tokens:
@@ -165,11 +173,11 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
         # Allow optional whitespace before/after the core to absorb indentation
         regex = rf'(?P<pre>\s*)({core})(?P<post>\s*)'
 
-        m = re.search(regex, text)
+        m = re.compile(regex).search(text, pos)
         if not m:
             return None
 
-        return (m.start(2), m.end(2))
+        return m.start(2), m.end(2)
 
     def _is_yaml_string(self, string):
         """Return True if the given open string is in YAML format, False otherwise.

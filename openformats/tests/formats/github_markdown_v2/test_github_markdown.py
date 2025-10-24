@@ -63,6 +63,7 @@ Sample heading
             "    7693e302dc09b57483d26522ef25feb4_tr\n"
         )
         parsed_content_indent = self.handler.parse(content=indent_content)
+
         self.assertEqual(parsed_content_indent[0], expected_hashed_template)
         self.assertEqual(len(parsed_content_indent[1]), 5)
 
@@ -75,6 +76,82 @@ Sample heading
         self.assertEqual(
             parsed_content_indent[1][4].string, 
             " > [!NOTE]\n > This is an indented block"
+        )
+
+    def test_parse_indented_code_block_with_tabs(self):
+        tabbed_indent_content = u"""
+Sample heading
+
+> [!NOTE]
+> Non-indented block
+
+1. Sample heading
+
+\tSample sub-heading
+
+\t> [!NOTE]
+\t> This is an indented block
+"""
+        expected_hashed_template = (
+            "\n9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr"
+            "\n\n3afcdbfeb6ecfbdd0ba628696e3cc163_tr\n\n"
+            "1. 247730f9d0d2eaad265a470e32aa0cdf_tr\n\n"
+            "   cdee9bf40a070d58d14dfa3bb61e0032_tr\n\n"
+            "    7693e302dc09b57483d26522ef25feb4_tr\n"
+        )
+        parsed_content_tabbed_indent = self.handler.parse(
+            content=tabbed_indent_content
+        )
+
+        self.assertEqual(parsed_content_tabbed_indent[0], expected_hashed_template)
+        self.assertEqual(len(parsed_content_tabbed_indent[1]), 5)
+
+        self.assertEqual(parsed_content_tabbed_indent[1][0].string, "Sample heading")
+        self.assertEqual(
+            parsed_content_tabbed_indent[1][1].string, "> [!NOTE]\n> Non-indented block"
+        )
+        self.assertEqual(parsed_content_tabbed_indent[1][2].string, "Sample heading")
+        self.assertEqual(parsed_content_tabbed_indent[1][3].string, " Sample sub-heading")
+        self.assertEqual(
+            parsed_content_tabbed_indent[1][4].string,
+            " > [!NOTE]\n > This is an indented block"
+        )
+
+    def test_parse_indented_code_block_without_single_space(self):
+        indent_content = u"""
+Sample heading
+
+>[!NOTE]
+>Non-indented block
+
+1. Sample heading
+
+    Sample sub-heading
+
+    >[!NOTE]
+    >This is an indented block
+"""
+        expected_hashed_template = (
+            "\n9a1c7ee2c7ce38d4bbbaf29ab9f2ac1e_tr"
+            "\n\n3afcdbfeb6ecfbdd0ba628696e3cc163_tr\n\n"
+            "1. 247730f9d0d2eaad265a470e32aa0cdf_tr\n\n"
+            "   cdee9bf40a070d58d14dfa3bb61e0032_tr\n\n"
+            "    7693e302dc09b57483d26522ef25feb4_tr\n"
+        )
+        parsed_content_indent = self.handler.parse(content=indent_content)
+
+        self.assertEqual(parsed_content_indent[0], expected_hashed_template)
+        self.assertEqual(len(parsed_content_indent[1]), 5)
+
+        self.assertEqual(parsed_content_indent[1][0].string, "Sample heading")
+        self.assertEqual(
+            parsed_content_indent[1][1].string, ">[!NOTE]\n>Non-indented block"
+        )
+        self.assertEqual(parsed_content_indent[1][2].string, "Sample heading")
+        self.assertEqual(parsed_content_indent[1][3].string, " Sample sub-heading")
+        self.assertEqual(
+            parsed_content_indent[1][4].string, 
+            " >[!NOTE]\n >This is an indented block"
         )
 
     def test_find_fuzzy_substring(self):
