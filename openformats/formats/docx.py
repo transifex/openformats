@@ -103,7 +103,7 @@ class DocxFile(object):
         base_rels_path = '{}/{}'.format(self.__tmp_folder, '_rels/.rels')
         with io.open(base_rels_path, 'r') as f:
             base_rels = f.read()
-            
+
         if base_rels.startswith("\ufeff"):
             # Remove BOM
             base_rels = base_rels.replace("\ufeff", "")
@@ -132,7 +132,7 @@ class DocxFile(object):
                 self.__document = f.read()
 
             if self.__document.startswith("\ufeff"):
-                # Remove BOM                
+                # Remove BOM
                 self.__document = self.__document.replace("\ufeff", "")
 
         return self.__document
@@ -237,7 +237,7 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
             run_parent = text_element.find_parent('w:r').parent
             if run_parent.name == 'hyperlink':
                 return text_element.find_parent('w:hyperlink').decompose()
-        
+
         return text_element.decompose()
 
     @classmethod
@@ -262,6 +262,19 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
                 rpr_tag.rtl.decompose()
             rtl = soup.new_tag("w:rtl", **{"w:val": "1"})
             rpr_tag.append(rtl)
+
+    @classmethod
+    def set_rtl_orientation_tables(cls, tbl, soup):
+        """
+        Ensure <w:bidiVisual/> is present under the table's <w:tblPr>.
+        """
+        tblPr = tbl.find("w:tblPr")
+        if tblPr is None:
+            tblPr = soup.new_tag("w:tblPr")
+            tbl.insert(0, tblPr)
+
+        if tblPr.find("w:bidiVisual") is None:
+            tblPr.append(soup.new_tag("w:bidiVisual"))
 
     def parse(self, content, **kwargs):
         """
@@ -311,6 +324,10 @@ class DocxHandler(Handler, OfficeOpenXmlHandler):
             self.compile_paragraph(
                 paragraph, rels_soup, stringset, is_rtl=is_rtl
             )
+
+        if is_rtl:
+            for tbl in soup.find_all("w:tbl"):
+                self.set_rtl_orientation_tables(tbl, soup)
 
         docx.set_document(six.text_type(soup))
         docx.set_document_rels(six.text_type(rels_soup))

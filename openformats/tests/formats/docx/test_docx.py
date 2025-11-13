@@ -946,3 +946,42 @@ class DocxTestCase(unittest.TestCase):
             self.assertEqual(len(rPr.findChildren("w:rtl")), 1)
             for rtl in rPr.findChildren("w:rtl"):
                 self.assertEqual(rtl["w:val"], "1")
+
+    def test_rtl_tables_bidi_visual(self):
+        content = self.get_content('complex.docx')
+        template, stringset = self.handler.parse(content)
+
+        translated_stringset = [
+            OpenString(s.key, s.key, order=i + 1)
+            for i, s in enumerate(stringset)
+        ]
+
+        content = self.handler.compile(
+            template,
+            translated_stringset,
+            is_rtl=True
+        )
+
+        docx = DocxFile(content)
+        soup = BeautifulSoup(docx.get_document(), 'xml')
+
+        tables = soup.find_all('w:tbl')
+        self.assertTrue(
+            len(tables) > 0,
+            "Expected at least one table in complex.docx"
+        )
+
+        # Each table must have <w:tblPr> and exactly one <w:bidiVisual/>
+        for tbl in tables:
+            tblPr = tbl.find('w:tblPr')
+            self.assertIsNotNone(
+                tblPr,
+                "w:tblPr missing on a table under RTL export"
+            )
+
+            bidi_visual_nodes = tblPr.find_all('w:bidiVisual')
+            self.assertEqual(
+                len(bidi_visual_nodes), 1,
+                "Each table should contain exactly one <w:bidiVisual/>"
+                "under <w:tblPr> when is_rtl=True"
+            )
