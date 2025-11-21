@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+from typing import List
 
 import csv
 import json
@@ -231,31 +232,43 @@ class JsonHandler(Handler):
         key = key.replace(".", "".join([DumbJson.BACKSLASH, "."]))
         return key
 
-    def compile(self, template, stringset, **kwargs):
-        # Lets play on the template first, we need it to not include the hashes
-        # that aren't in the stringset. For that we will create a new stringset
-        # which will have the hashes themselves as strings and compile against
-        # that. The compilation process will remove any string sections that
-        # are absent from the stringset. Next we will call `_clean_empties`
-        # from the template to clear out any `...,  ,...` or `...{ ,...`
-        # sequences left. The result will be used as the actual template for
-        # the compilation process
-
+    def sync_template(
+        self,
+        template: str,
+        stringset: List[OpenString],
+    ) -> str:
+        """
+        Sync the template with the stringset.
+        This function will delete strings from the template that are not
+        in the stringset and add strings to the template that exist in the
+        stringset but not in the template currently.
+        The result will be the original and updated template.
+        """
         stringset = list(stringset)
 
-        fake_stringset = [
-            OpenString(
-                openstring.key,
-                openstring.template_replacement,
-                order=openstring.order,
-                pluralized=openstring.pluralized,
-            )
-            for openstring in stringset
-        ]
-        new_template = self._replace_translations(template, fake_stringset, False)
-        new_template = self._clean_empties(new_template)
+        # Step 1: Delete strings from the template that are not in the stringset
+        updated_template = self._remove_strings_from_template(
+            template,
+            stringset,
+        )
 
-        return self._replace_translations(new_template, stringset, True)
+        # Step 2: Add strings to the template that are exist in the stringset
+        # but not in the template curretly
+        remaining = self.stringset[self.stringset_index :] # type: ignore
+        if remaining:
+            updated_template = self._add_strings_to_template(
+                updated_template,
+                remaining,
+            )
+        return updated_template
+
+    def compile(self, template, stringset, **kwargs):
+        stringset = list(stringset)
+        return self._replace_translations(
+            template,
+            stringset,
+            is_real_stringset=True,
+        )
 
     def _replace_translations(self, template, stringset, is_real_stringset):
         self.transcriber = Transcriber(template)
@@ -271,6 +284,116 @@ class JsonHandler(Handler):
 
         self.transcriber.copy_until(len(template))
         return self.transcriber.get_destination()
+
+    def _remove_strings_from_template(self, template, stringset):
+        """
+        Remove strings from the template that are not in the stringset.
+        """
+        fake_stringset = [
+            OpenString(
+                openstring.key,
+                openstring.template_replacement,
+                order=openstring.order, # type: ignore
+                pluralized=openstring.pluralized,
+            )
+            for openstring in stringset
+        ]
+        updated_template = self._replace_translations(
+            template,
+            fake_stringset,
+            is_real_stringset=False,
+        )
+        return self._clean_empties(updated_template)
+
+
+    def _add_strings_to_template(self, template, added_strings):
+        """
+        Add new entries with minimal conditional logic.
+        """
+        added_strings = list(added_strings or [])
+        if not added_strings:
+            return template
+
+        transcriber = Transcriber(template)
+        source = transcriber.source
+        parsed = DumbJson(source)
+
+        container, container_type = self._get_root(parsed)
+        items = list(container)
+        had_items = bool(items)
+
+        # Detect style
+        multiline = "\n" in source[container.start : container.end + 1]
+
+        # Find insertion point
+        insertion_point = container.end
+        if multiline:
+            # Insert before last newline if present
+            i = insertion_point - 1
+            while i >= 0 and source[i] in (" ", "\t"):
+                i -= 1
+            if i >= 0 and source[i] == "\n":
+                insertion_point = i
+
+        # Build entries
+        entries = []
+        for os in added_strings:
+            if container_type == dict:
+                entries.append(self._make_added_entry(os))
+            else:
+                entries.append(json.dumps(
+                    {os.key: os.template_replacement},
+                    ensure_ascii=False,
+                ))
+
+        # Format insertion based on style
+        if multiline:
+            joined = ",\n  ".join(entries)
+            if had_items:
+                insertion = f",\n  {joined}"
+            else:
+                insertion = f"\n  {joined}"
+        else:
+            joined = ", ".join(entries)
+            if had_items:
+                insertion = f", {joined}"
+            else:
+                insertion = f" {joined} "
+
+        # Insert
+        transcriber.copy_until(insertion_point)
+        transcriber.add(insertion)
+        transcriber.copy_to_end()
+
+        return transcriber.get_destination()
+
+
+    def _get_root(self, parsed):
+        """
+        Decide which DumbJson object we are going to append entries into.
+
+        - If root is a dict: use root.
+        - If root is a list with a single dict element: use that dict.
+        - Otherwise: use root as-is (append list items).
+        """
+        if parsed.type == dict:
+            return parsed, dict
+
+        if parsed.type == list:
+            return parsed, list
+
+        raise ParseError("Template must be a JSON object or array")
+
+
+    def _make_added_entry(self, os):
+        """
+        Build the JSON snippet for a *single* added OpenString at top level.
+
+        Subclasses can override this to change the structure of the value.
+        """
+        key_literal = json.dumps(os.key, ensure_ascii=False)
+        value_literal = json.dumps(os.template_replacement, ensure_ascii=False)
+        return f"{key_literal}: {value_literal}"
 
     def _insert(self, parsed, is_real_stringset):
         if parsed.type == dict:
@@ -613,18 +736,7 @@ class ArbHandler(JsonHandler):
         self.keep_sections = kwargs.get("keep_sections", True)
 
         stringset = list(stringset)
-
-        fake_stringset = [
-            OpenString(
-                openstring.key,
-                openstring.template_replacement,
-                order=openstring.order,
-                pluralized=openstring.pluralized,
-            )
-            for openstring in stringset
-        ]
-        new_template = self._replace_translations(template, fake_stringset, False)
-        new_template = self._clean_empties(new_template)
+        new_template = self._remove_strings_from_template(template, stringset)
 
         if language_info is not None:
             match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", new_template)
