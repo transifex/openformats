@@ -3,6 +3,7 @@
 import unittest
 
 import six
+import json
 
 from openformats.exceptions import ParseError
 from openformats.formats.json import JsonHandler
@@ -118,7 +119,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1])
+        updated_template = self.handler.sync_template(template, [openstring1])
+        compiled = self.handler.compile(updated_template, [openstring1])
 
         self.assertEqual(template, '{"a": "%s", "b": "%s"}' % (hash1, hash2))
         self.assertEqual(len(stringset), 2)
@@ -137,7 +139,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '["%s", "%s"]' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1])
+        updated_template = self.handler.sync_template(template, [openstring1])
+        compiled = self.handler.compile(updated_template, [openstring1])
 
         self.assertEqual(template, '["%s", "%s"]' % (hash1, hash2))
         self.assertEqual(len(stringset), 2)
@@ -156,7 +159,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '["%s", {"a": "%s"}]' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1])
+        updated_template = self.handler.sync_template(template, [openstring1])
+        compiled = self.handler.compile(updated_template, [openstring1])
 
         self.assertEqual(template, '["%s", {"a": "%s"}]' % (hash1, hash2))
         self.assertEqual(len(stringset), 2)
@@ -175,7 +179,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "%s", "b": ["%s"]}' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1])
+        updated_template = self.handler.sync_template(template, [openstring1])
+        compiled = self.handler.compile(updated_template, [openstring1])
 
         self.assertEqual(template,
                          '{"a": "%s", "b": ["%s"]}' % (hash1, hash2))
@@ -192,7 +197,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": [null, "%s"]}' % random_string
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [])
+        updated_template = self.handler.sync_template(template, [])
+        compiled = self.handler.compile(updated_template, [])
 
         self.assertEqual(template, '{"a": [null, "%s"]}' % random_hash)
         self.assertEqual(len(stringset), 1)
@@ -216,7 +222,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "%s", "b": null}' % random_string
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [])
+        updated_template = self.handler.sync_template(template, [])
+        compiled = self.handler.compile(updated_template, [])
 
         self.assertEqual(template, '{"a": "%s", "b": null}' % random_hash)
         self.assertEqual(len(stringset), 1)
@@ -231,7 +238,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring2])
+        updated_template = self.handler.sync_template(template, [openstring2])
+        compiled = self.handler.compile(updated_template, [openstring2])
 
         self.assertEqual(compiled, '{ "b": "%s"}' % string2)
 
@@ -243,7 +251,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1])
+        updated_template = self.handler.sync_template(template, [openstring1])
+        compiled = self.handler.compile(updated_template, [openstring1])
 
         self.assertEqual(compiled, '{"a": "%s"}' % string1)
 
@@ -258,7 +267,13 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                                                         string3)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1, openstring3])
+        updated_template = self.handler.sync_template(
+            template, [openstring1, openstring3]
+        )
+        compiled = self.handler.compile(
+            updated_template,
+            [openstring1, openstring3]
+        )
 
         self.assertEqual(compiled, '{"a": "%s", "c": "%s"}' % (string1,
                                                                string3))
@@ -270,7 +285,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '["%s", "%s"]' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [stringset[1]])
+        updated_template = self.handler.sync_template(template, [stringset[1]])
+        compiled = self.handler.compile(updated_template, [stringset[1]])
 
         self.assertEqual(compiled, '[ "%s"]' % string2)
 
@@ -292,7 +308,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '["%s", "%s"]' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1])
+        updated_template = self.handler.sync_template(template, [openstring1])
+        compiled = self.handler.compile(updated_template, [openstring1])
 
         self.assertEqual(compiled, '["%s"]' % string1)
 
@@ -306,7 +323,14 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '["%s", "%s", "%s"]' % (string1, string2, string3)
 
         template, stringset = self.handler.parse(source)
-        compiled = self.handler.compile(template, [openstring1, openstring3])
+        updated_template = self.handler.sync_template(
+            template,
+            [openstring1, openstring3]
+        )
+        compiled = self.handler.compile(
+            updated_template,
+            [openstring1, openstring3]
+        )
 
         self.assertEqual(compiled, '["%s", "%s"]' % (string1, string3))
 
@@ -559,3 +583,420 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 translations_by_rule[rule_int],
                 stringset[0].string[rule_int]
             )
+
+
+    def test_sync_template_adds_missing_dict_key(self):
+        string1 = self.random_string
+        string2 = generate_random_string()
+
+        source = '{"a": "%s"}' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]
+
+        new = OpenString("b", string2, order=existing.order + 1)
+
+        updated_template = self.handler.sync_template(template, [existing, new])
+
+        compiled = self.handler.compile(updated_template, [existing, new])
+
+        data = json.loads(compiled)
+        self.assertEqual(data["a"], string1)
+        self.assertEqual(data["b"], string2)
+        self.assertEqual(set(data.keys()), {"a", "b"})
+
+
+    def test_sync_template_adds_to_empty_dict(self):
+        string1 = self.random_string
+        openstring = OpenString("a", string1, order=0)
+
+        source = "{}"
+        # Directly call sync_template (no strings in template)
+        updated_template = self.handler.sync_template(source, [openstring])
+        compiled = self.handler.compile(updated_template, [openstring])
+
+        data = json.loads(compiled)
+        self.assertEqual(data, {"a": string1})
+
+
+    def test_sync_template_adds_missing_dict_key_multiline(self):
+        string1 = self.random_string
+        string2 = generate_random_string()
+
+        source = '{\n  "a": "%s"\n}' % string1
+        template, stringset = self.handler.parse(source)
+        existing = stringset[0]
+        new = OpenString("b", string2, order=existing.order + 1)
+
+        updated_template = self.handler.sync_template(template, [existing, new])
+        compiled = self.handler.compile(updated_template, [existing, new])
+
+        data = json.loads(compiled)
+        self.assertEqual(data["a"], string1)
+        self.assertEqual(data["b"], string2)
+
+
+    def test_sync_template_adds_missing_list_item_root(self):
+        string1 = self.random_string
+        string2 = generate_random_string()
+
+        source = '["%s"]' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]
+        new = OpenString("..1..", string2, order=existing.order + 1)
+
+        updated_template = self.handler.sync_template(template, [existing, new])
+        compiled = self.handler.compile(updated_template, [existing, new])
+
+        data = json.loads(compiled)
+        # First element should still be simple string
+        self.assertEqual(data[0], string1)
+        # Second element is whatever _add_strings_to_template produced;
+        # we only assert that our new string is present somewhere in it.
+        # For list root, it is a dict { "..1..": "<string>" }.
+        self.assertIsInstance(data[1], dict)
+        self.assertIn("..1..", data[1])
+        self.assertEqual(data[1]["..1.."], string2)
+
+
+    def test_sync_template_adds_to_empty_list(self):
+        string1 = self.random_string
+        openstring = OpenString("..0..", string1, order=0)
+
+        source = "[]"
+        updated_template = self.handler.sync_template(source, [openstring])
+        compiled = self.handler.compile(updated_template, [openstring])
+
+        data = json.loads(compiled)
+        self.assertEqual(len(data), 1)
+        self.assertIsInstance(data[0], dict)
+        self.assertIn("..0..", data[0])
+        self.assertEqual(data[0]["..0.."], string1)
+
+
+    def test_sync_template_adds_and_removes_dict_keys(self):
+        string1 = self.random_string      # for "a"
+        string2 = generate_random_string()  # for "b"
+        string3 = generate_random_string()  # for "c"
+
+        source = '{"a": "%s", "b": "%s"}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # We want to keep "b" and add "c", drop "a"
+        keep_b = [s for s in stringset if s.key == "b"][0]
+        new_c = OpenString("c", string3, order=keep_b.order + 1)
+
+        updated_template = self.handler.sync_template(template, [keep_b, new_c])
+        compiled = self.handler.compile(updated_template, [keep_b, new_c])
+
+        data = json.loads(compiled)
+        self.assertEqual(set(data.keys()), {"b", "c"})
+        self.assertEqual(data["b"], string2)
+        self.assertEqual(data["c"], string3)
+
+
+    def test_escaped_key_with_dot_roundtrip(self):
+        string = self.random_string
+        source = '{"a.b": "%s"}' % string
+
+        template, stringset = self.handler.parse(source)
+        # Key inside OpenString should be escaped (a\.b)
+        self.assertEqual(stringset[0].key, "a\\.b")
+
+        # Sync with same stringset should not change anything
+        updated_template = self.handler.sync_template(template, stringset)
+        compiled = self.handler.compile(updated_template, stringset)
+
+        data = json.loads(compiled)
+        # Original JSON key must be preserved on output
+        self.assertEqual(data, {"a.b": string})
+
+
+    def test_sync_template_adds_nested_list_item_as_new_key(self):
+        string1 = self.random_string
+        string2 = generate_random_string()
+
+        source = '{"a": ["%s"]}' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]               # key "a..0.."
+        new = OpenString("a..1..", string2, order=existing.order + 1)
+
+        updated_template = self.handler.sync_template(template, [existing, new])
+        compiled = self.handler.compile(updated_template, [existing, new])
+
+        data = json.loads(compiled)
+        # "a" list remains as-is
+        self.assertEqual(data["a"], [string1])
+        # New key "a..1.." is added at top level
+        self.assertIn("a..1..", data)
+        self.assertEqual(data["a..1.."], string2)
+
+
+    def test_sync_template_removes_all_strings_from_dict(self):
+        """Test removing all strings from a dict"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+
+        source = '{"a": "%s", "b": "%s"}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # Sync with empty stringset to remove all strings
+        updated_template = self.handler.sync_template(template, [])
+        compiled = self.handler.compile(updated_template, [])
+
+        self.assertEqual(compiled, '{ }')
+
+    def test_sync_template_removes_all_strings_from_list(self):
+        """Test removing all strings from a list"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+
+        source = '["%s", "%s"]' % (string1, string2)
+        template, _ = self.handler.parse(source)
+
+        updated_template = self.handler.sync_template(template, [])
+        compiled = self.handler.compile(updated_template, [])
+
+        self.assertEqual(compiled, '[ ]')
+
+    def test_sync_template_removes_middle_strings_from_dict(self):
+        """Test removing only middle strings from dict"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+        string3 = generate_random_string()
+
+        source = '{"a": "%s", "b": "%s", "c": "%s"}' % (string1, string2, string3)
+        template, stringset = self.handler.parse(source)
+
+        # Keep only first and last
+        keep = [s for s in stringset if s.key in ("a", "c")]
+        updated_template = self.handler.sync_template(template, keep)
+        compiled = self.handler.compile(updated_template, keep)
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(set(data.keys()), {"a", "c"})
+        self.assertEqual(data["a"], string1)
+        self.assertEqual(data["c"], string3)
+
+
+    def test_sync_template_removes_first_string_from_dict(self):
+        """Test removing only the first string from dict"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+
+        source = '{"a": "%s", "b": "%s"}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # Keep only "b"
+        keep_b = [s for s in stringset if s.key == "b"]
+        updated_template = self.handler.sync_template(template, keep_b)
+        compiled = self.handler.compile(updated_template, keep_b)
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(data, {"b": string2})
+
+    def test_sync_template_removes_last_string_from_dict(self):
+        """Test removing only the last string from dict"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+
+        source = '{"a": "%s", "b": "%s"}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # Keep only "a"
+        keep_a = [s for s in stringset if s.key == "a"]
+        updated_template = self.handler.sync_template(template, keep_a)
+        compiled = self.handler.compile(updated_template, keep_a)
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(data, {"a": string1})
+
+    def test_sync_template_adds_pluralized_string(self):
+        """Test adding a pluralized string via sync_template"""
+        string1 = generate_random_string()
+
+        source = '{"a": "%s"}' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]
+
+        plural_string = OpenString(
+            "b",
+            {1: "one file", 5: "{count} files"},
+            order=existing.order + 1,
+            pluralized=True
+        )
+
+        updated_template = self.handler.sync_template(template, [existing, plural_string])
+        compiled = self.handler.compile(updated_template, [existing, plural_string])
+
+        data = json.loads(compiled)
+        self.assertIn("a", data)
+        self.assertIn("b", data)
+
+
+    def test_sync_template_removes_pluralized_string(self):
+        """Test removing a pluralized string"""
+        source = '{"a": "{cnt, plural, one {file} other {{count} files}}"}'
+        template, stringset = self.handler.parse(source)
+
+        # Remove the pluralized string
+        updated_template = self.handler.sync_template(template, [])
+        compiled = self.handler.compile(updated_template, [])
+
+        self.assertEqual(compiled, '{}')
+
+    def test_sync_template_deeply_nested_dict_add(self):
+        """Test adding to deeply nested dict structure"""
+        string1 = generate_random_string()
+        source = '{"a": {"b": {"c": "%s"}}}' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]
+        string2 = generate_random_string()
+        new = OpenString("a.b.d", string2, order=existing.order + 1)
+
+        updated_template = self.handler.sync_template(template, [existing, new])
+        compiled = self.handler.compile(updated_template, [existing, new])
+
+        data = json.loads(compiled)
+        self.assertEqual(data["a"]["b"]["c"], string1)
+        self.assertEqual(data["a.b.d"], string2)
+
+    def test_sync_template_deeply_nested_dict_remove(self):
+        """Test removing from deeply nested dict"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+        source = '{"a": {"b": {"c": "%s", "d": "%s"}}}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # Keep only "a.b.c"
+        keep = [s for s in stringset if s.key == "a.b.c"]
+        updated_template = self.handler.sync_template(template, keep)
+        compiled = self.handler.compile(updated_template, keep)
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(data["a"]["b"]["c"], string1)
+        self.assertNotIn("d", data["a"]["b"])
+
+    def test_sync_template_mixed_nested_structures(self):
+        """Test dict inside list inside dict"""
+        string1 = generate_random_string()
+        source = '{"a": [{"b": "%s"}]}' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]
+        string2 = generate_random_string()
+        new = OpenString("c", string2, order=existing.order + 1)
+
+        updated_template = self.handler.sync_template(template, [existing, new])
+        compiled = self.handler.compile(updated_template, [existing, new])
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(data["a"][0]["b"], string1)
+        self.assertEqual(data["c"], string2)
+
+    def test_sync_template_remove_entire_nested_branch(self):
+        """Test removing all strings from a nested branch"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+        source = '{"a": {"b": "%s"}, "c": "%s"}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # Keep only "c", which should remove entire "a" branch
+        keep_c = [s for s in stringset if s.key == "c"]
+        updated_template = self.handler.sync_template(template, keep_c)
+        compiled = self.handler.compile(updated_template, keep_c)
+
+        import json
+        data = json.loads(compiled)
+        self.assertNotIn("a", data)
+        self.assertEqual(data["c"], string2)
+
+    def test_sync_template_multiple_additions_single_call(self):
+        """Test adding multiple strings in one sync call"""
+        string1 = generate_random_string()
+        source = '{"a": "%s"}' % string1
+        template, stringset = self.handler.parse(source)
+
+        existing = stringset[0]
+        string2 = generate_random_string()
+        string3 = generate_random_string()
+        string4 = generate_random_string()
+
+        new2 = OpenString("b", string2, order=existing.order + 1)
+        new3 = OpenString("c", string3, order=existing.order + 2)
+        new4 = OpenString("d", string4, order=existing.order + 3)
+
+        updated_template = self.handler.sync_template(
+            template, [existing, new2, new3, new4]
+        )
+        compiled = self.handler.compile(
+            updated_template, [existing, new2, new3, new4]
+        )
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(len(data), 4)
+        self.assertEqual(data["a"], string1)
+        self.assertEqual(data["b"], string2)
+        self.assertEqual(data["c"], string3)
+        self.assertEqual(data["d"], string4)
+
+    def test_sync_template_completely_different_stringset(self):
+        """Test syncing with completely different keys"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+        source = '{"a": "%s", "b": "%s"}' % (string1, string2)
+        template, stringset = self.handler.parse(source)
+
+        # Completely new strings
+        string3 = generate_random_string()
+        string4 = generate_random_string()
+        new1 = OpenString("x", string3, order=0)
+        new2 = OpenString("y", string4, order=1)
+
+        updated_template = self.handler.sync_template(template, [new1, new2])
+        compiled = self.handler.compile(updated_template, [new1, new2])
+
+        import json
+        data = json.loads(compiled)
+        self.assertEqual(set(data.keys()), {"x", "y"})
+        self.assertEqual(data["x"], string3)
+        self.assertEqual(data["y"], string4)
+
+    def test_sync_template_maintains_key_order(self):
+        """Test that key order is maintained during sync"""
+        string1 = generate_random_string()
+        string2 = generate_random_string()
+        string3 = generate_random_string()
+
+        source = '{"a": "%s", "b": "%s", "c": "%s"}' % (string1, string2, string3)
+        template, stringset = self.handler.parse(source)
+
+        # Remove middle, add new at end
+        keep = [s for s in stringset if s.key in ("a", "c")]
+        string4 = generate_random_string()
+        new = OpenString("d", string4, order=10)
+
+        updated_template = self.handler.sync_template(template, keep + [new])
+        compiled = self.handler.compile(updated_template, keep + [new])
+
+        # Parse to verify structure
+        import json
+        data = json.loads(compiled)
+        keys = list(data.keys())
+
+        # Should have a, c, d (in that order for dicts that preserve
+        # insertion order)
+        self.assertIn("a", keys)
+        self.assertIn("c", keys)
+        self.assertIn("d", keys)
+        self.assertNotIn("b", keys)
