@@ -254,7 +254,7 @@ class JsonHandler(Handler):
 
         # Step 2: Add strings to the template that are exist in the stringset
         # but not in the template curretly
-        remaining = self.stringset[self.stringset_index :] # type: ignore
+        remaining = self.stringset[self.stringset_index :]  # type: ignore
         if remaining:
             updated_template = self._add_strings_to_template(
                 updated_template,
@@ -293,7 +293,7 @@ class JsonHandler(Handler):
             OpenString(
                 openstring.key,
                 openstring.template_replacement,
-                order=openstring.order, # type: ignore
+                order=openstring.order,  # type: ignore
                 pluralized=openstring.pluralized,
             )
             for openstring in stringset
@@ -304,7 +304,6 @@ class JsonHandler(Handler):
             is_real_stringset=False,
         )
         return self._clean_empties(updated_template)
-
 
     def _add_strings_to_template(self, template, added_strings):
         """
@@ -364,7 +363,6 @@ class JsonHandler(Handler):
 
         return transcriber.get_destination()
 
-
     def _get_root(self, parsed):
         """
         Determine which DumbJson node (dict or list) should receive new entries.
@@ -378,7 +376,6 @@ class JsonHandler(Handler):
 
         raise ParseError("Template must be a JSON object or array")
 
-
     def _make_added_entry_for_dict(self, os):
         """
         Build the JSON snippet for a *single* added OpenString at top level.
@@ -390,7 +387,7 @@ class JsonHandler(Handler):
         return f"{key_literal}: {value_literal}"
 
     def _make_added_entry_for_list(self, os):
-        return  json.dumps(
+        return json.dumps(
             {os.key: os.template_replacement},
             ensure_ascii=False,
         )
