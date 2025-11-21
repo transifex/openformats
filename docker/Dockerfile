@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1.0.2-experimental
 ARG PY_VERSION=3.9
 
-FROM python:${PY_VERSION}-slim-buster as builder
+FROM python:${PY_VERSION}-slim-bullseye as builder
 
 
 ENV PKGS='\
