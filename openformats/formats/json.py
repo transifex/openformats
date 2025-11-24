@@ -242,7 +242,7 @@ class JsonHandler(Handler):
         This function will delete strings from the template that are not
         in the stringset and add strings to the template that exist in the
         stringset but not in the template currently.
-        The result will be the original and updated template.
+        The result will be the updated template.
         """
         stringset = list(stringset)
 
@@ -370,11 +370,8 @@ class JsonHandler(Handler):
 
     def _get_root(self, parsed):
         """
-        Decide which DumbJson object we are going to append entries into.
-
-        - If root is a dict: use root.
-        - If root is a list with a single dict element: use that dict.
-        - Otherwise: use root as-is (append list items).
+        Determine which DumbJson node (dict or list) should receive new entries.
+        Returns the container node and its type.
         """
         if parsed.type == dict:
             return parsed, dict

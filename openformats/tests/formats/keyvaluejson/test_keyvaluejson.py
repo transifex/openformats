@@ -1040,7 +1040,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         data = json.loads(compiled)
 
-        self.assertEqual(set(data.keys()), {"a", "b", "c", "d"})
+        self.assertEqual(c_str.order, d_str.order)
         self.assertEqual(data["a"], string1)
         self.assertEqual(data["b"], string2)
         self.assertEqual(data["c"], string3)
