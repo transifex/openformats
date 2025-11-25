@@ -318,15 +318,15 @@ class JsonHandler(Handler):
         source = transcriber.source
         parsed = DumbJson(source)
 
-        container, container_type = self._get_root(parsed)
-        items = list(container)
+        container_type = self._get_root(parsed)
+        items = list(parsed)
         had_items = bool(items)
 
         # Detect style
-        multiline = "\n" in source[container.start : container.end + 1]
+        multiline = "\n" in source[parsed.start : parsed.end + 1]
 
         # Find insertion point
-        insertion_point = container.end
+        insertion_point = parsed.end
         if multiline:
             # Insert before last newline if present
             i = insertion_point - 1
@@ -339,12 +339,9 @@ class JsonHandler(Handler):
         entries = []
         for os in added_strings:
             if container_type == dict:
-                entries.append(self._make_added_entry(os))
+                entries.append(self._make_added_entry_for_dict(os))
             else:
-                entries.append(json.dumps(
-                    {os.key: os.template_replacement},
-                    ensure_ascii=False,
-                ))
+                entries.append(self._make_added_entry_for_list(os))
 
         # Format insertion based on style
         if multiline:
@@ -374,15 +371,15 @@ class JsonHandler(Handler):
         Returns the container node and its type.
         """
         if parsed.type == dict:
-            return parsed, dict
+            return dict
 
         if parsed.type == list:
-            return parsed, list
+            return list
 
         raise ParseError("Template must be a JSON object or array")
 
 
-    def _make_added_entry(self, os):
+    def _make_added_entry_for_dict(self, os):
         """
         Build the JSON snippet for a *single* added OpenString at top level.
 
@@ -391,6 +388,12 @@ class JsonHandler(Handler):
         key_literal = json.dumps(os.key, ensure_ascii=False)
         value_literal = json.dumps(os.template_replacement, ensure_ascii=False)
         return f"{key_literal}: {value_literal}"
+
+    def _make_added_entry_for_list(self, os):
+        return  json.dumps(
+            {os.key: os.template_replacement},
+            ensure_ascii=False,
+        )
 
     def _insert(self, parsed, is_real_stringset):
         if parsed.type == dict:
