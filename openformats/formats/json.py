@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from typing import List
+from typing import List, Tuple
 
 import csv
 import json
@@ -804,6 +804,29 @@ class StructuredJsonHandler(JsonHandler):
     CHARACTER_LIMIT_KEY = "character_limit"
     STRUCTURE_FIELDS = {CONTEXT_KEY, DEVELOPER_COMMENT_KEY, CHARACTER_LIMIT_KEY}
 
+    def sync_template(self, template, stringset):
+        stringset = list(stringset)
+
+        # Step 1: remove entries whose hashed "string" is not in stringset
+        updated = self._remove_strings_from_template(template, stringset)
+
+        # _remove_strings_from_template fills _seen_hashes with the hashes
+        # that were actually found & kept in the template.
+        seen_hashes = getattr(self, "_seen_hashes", set())
+
+        # Step 2: add those whose hash is not present in the template
+        to_add = [
+            s for s in stringset
+            if s.template_replacement not in seen_hashes
+        ]
+        if to_add:
+            updated = self._add_strings_to_template(
+                updated,
+                to_add,
+            )
+
+        return updated
+
     def compile(self, template, translations, **kwargs):
         self.translations = iter(translations)
         self.transcriber = Transcriber(template)
@@ -1147,6 +1170,204 @@ class StructuredJsonHandler(JsonHandler):
         self.transcriber.mark_section_end()
         # Unlike the JSON format, do not remove the remaining section of the
         # template
+
+    def _remove_strings_from_template(self, template, stringset):
+        """
+        Remove structured-json entries whose hashed 'string' content does not
+        match the ordered stringset, similar to JsonHandler behavior, but:
+
+        - We match by OpenString.template_replacement (hash), not by key.
+        - For dict roots: walk nested dicts and drop leaf objects with
+          mismatching "string".
+        - For list roots: treat each list item as a dict-root, dropping
+          items that end up with no kept leaves.
+        """
+        self.stringset = list(stringset)
+        self.stringset_index = 0
+        self._seen_hashes = set()
+
+        transcriber = Transcriber(template)
+        source = transcriber.source
+        parsed = DumbJson(source)
+
+        def next_string():
+            try:
+                return self.stringset[self.stringset_index]
+            except IndexError:
+                return None
+
+        def walk_dict(node):
+            """
+            Recursively traverse a DumbJson dict node.
+
+            Returns True if this node (or any of its descendants) contains at
+            least one *kept* leaf. Otherwise returns False so the caller can
+            prune the whole section.
+            """
+            if node.type != dict:
+                return False
+
+            has_kept_leaf = False
+
+            for _, key_pos, value, _ in node:
+                if not (isinstance(value, DumbJson) and value.type == dict):
+                    continue
+
+                # Decide if this object is a *leaf* (direct "string" field)
+                is_leaf = any(
+                    child_key == self.STRING_KEY
+                    for child_key, _, _, _ in value
+                )
+
+                transcriber.copy_until(key_pos - 1)
+                transcriber.mark_section_start()
+
+                if is_leaf:
+                    ((string_value, _),) = value.find_children(self.STRING_KEY)
+
+                    current = next_string()
+                    keep = False
+
+                    if current is not None:
+                        templ = current.template_replacement
+
+                        if current.pluralized:
+                            # hash embedded inside ICU plural string
+                            if templ in string_value:
+                                keep = True
+                        else:
+                            # plain hash
+                            if string_value == templ:
+                                keep = True
+
+                    transcriber.copy_until(value.end + 1)
+                    transcriber.mark_section_end()
+
+                    if keep:
+                        has_kept_leaf = True
+                        self._seen_hashes.add(current.template_replacement)
+                        self.stringset_index += 1
+                    else:
+                        transcriber.remove_section()
+                else:
+                    # Nested dict – recurse
+                    child_has_kept = walk_dict(value)
+
+                    transcriber.copy_until(value.end + 1)
+                    transcriber.mark_section_end()
+
+                    if child_has_kept:
+                        has_kept_leaf = True
+                    else:
+                        transcriber.remove_section()
+
+            return has_kept_leaf
+
+        if parsed.type == dict:
+            walk_dict(parsed)
+        elif parsed.type == list:
+            # List-root: each item is a dict-root
+            for value, _ in parsed:
+                if not isinstance(value, DumbJson) or value.type != dict:
+                    continue
+
+                transcriber.copy_until(value.start)
+                transcriber.mark_section_start()
+
+                has_kept = walk_dict(value)
+
+                transcriber.copy_until(value.end + 1)
+                transcriber.mark_section_end()
+
+                if not has_kept:
+                    transcriber.remove_section()
+
+        transcriber.copy_until(len(source))
+        compiled = transcriber.get_destination()
+        return self._clean_empties(compiled)
+
+
+    def _build_structured_payload(self, os) -> dict:
+        """
+        Build the inner payload dict for a structured-json entry:
+
+            {
+              "string": "<hash>",
+              "context": "...",
+              "developer_comment": "...",
+              "character_limit": 100
+            }
+        """
+        payload = {
+            self.STRING_KEY: os.template_replacement,
+        }
+
+        # Optional metadata – only add if present
+        if getattr(os, "context", None):
+            payload[self.CONTEXT_KEY] = self.escape(os.context)
+        if getattr(os, "developer_comment", None):
+            payload[self.DEVELOPER_COMMENT_KEY] = self.escape(
+                os.developer_comment
+            )
+        if getattr(os, "character_limit", None) is not None:
+            payload[self.CHARACTER_LIMIT_KEY] = os.character_limit
+
+        return payload
+
+    def _build_structured_json_entry(self, os) -> Tuple[str, str]:
+        """
+        Build the JSON snippet for a structured-json entry for dict roots:
+
+            "key": {
+              "string": "<hash>",
+              "context": "...",
+              "developer_comment": "...",
+              "character_limit": 100
+            }
+        """
+        key_literal = json.dumps(os.key, ensure_ascii=False)
+        payload = self._build_structured_payload(os)
+
+        value_literal = json.dumps(payload, ensure_ascii=False, indent=2)
+
+        # Optional cosmetic tab indent after the first line
+        lines = value_literal.splitlines()
+        if len(lines) > 1:
+            lines = [lines[0]] + ["\t" + line for line in lines[1:]]
+        value_literal = "\n".join(lines)
+
+        return key_literal, value_literal
+
+    def _make_added_entry_for_dict(self, os) -> str:
+        key_literal, value_literal = self._build_structured_json_entry(os)
+        return f"{key_literal}: {value_literal}"
+
+    def _make_added_entry_for_list(self, os) -> str:
+        """
+        For list-root STRUCTURED_JSON, each added item is a *separate object*
+        in the root list, with a single top-level key.
+
+        The key is taken *as-is* from os.key (no '..0..' stripping, no
+        special dot handling):
+
+            os.key = "batmobil"
+
+        Resulting list item:
+
+            {
+              "batmobil": {
+                "string": "<hash>",
+                "context": "...",
+                "developer_comment": "...",
+                "character_limit": 100
+              }
+            }
+        """
+        container = {
+            os.key: self._build_structured_payload(os)
+        }
+
+        return json.dumps(container, ensure_ascii=False, indent=2)
 
 
 class ChromeI18nHandler(JsonHandler):
