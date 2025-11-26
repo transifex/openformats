@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from typing import List
 
 import csv
 import json
@@ -232,36 +231,6 @@ class JsonHandler(Handler):
         key = key.replace(".", "".join([DumbJson.BACKSLASH, "."]))
         return key
 
-    def sync_template(
-        self,
-        template: str,
-        stringset: List[OpenString],
-    ) -> str:
-        """
-        Sync the template with the stringset.
-        This function will delete strings from the template that are not
-        in the stringset and add strings to the template that exist in the
-        stringset but not in the template currently.
-        The result will be the updated template.
-        """
-        stringset = list(stringset)
-
-        # Step 1: Delete strings from the template that are not in the stringset
-        updated_template = self._remove_strings_from_template(
-            template,
-            stringset,
-        )
-
-        # Step 2: Add strings to the template that are exist in the stringset
-        # but not in the template curretly
-        remaining = self.stringset[self.stringset_index :]  # type: ignore
-        if remaining:
-            updated_template = self._add_strings_to_template(
-                updated_template,
-                remaining,
-            )
-        return updated_template
-
     def compile(self, template, stringset, **kwargs):
         stringset = list(stringset)
         return self._replace_translations(
@@ -285,7 +254,7 @@ class JsonHandler(Handler):
         self.transcriber.copy_until(len(template))
         return self.transcriber.get_destination()
 
-    def _remove_strings_from_template(self, template, stringset):
+    def remove_strings_from_template(self, template, stringset):
         """
         Remove strings from the template that are not in the stringset.
         """
@@ -305,13 +274,15 @@ class JsonHandler(Handler):
         )
         return self._clean_empties(updated_template)
 
-    def _add_strings_to_template(self, template, added_strings):
+    def add_strings_to_template(self, template, stringset):
         """
-        Add new entries with minimal conditional logic.
+        Add entries that do not exist in the template with minimal conditional logic.
         """
-        added_strings = list(added_strings or [])
-        if not added_strings:
+        remaining = stringset[self.stringset_index :]  # type: ignore
+        if not remaining:
             return template
+
+        strings_to_add = list(remaining)
 
         transcriber = Transcriber(template)
         source = transcriber.source
@@ -336,7 +307,7 @@ class JsonHandler(Handler):
 
         # Build entries
         entries = []
-        for os in added_strings:
+        for os in strings_to_add:
             if container_type == dict:
                 entries.append(self._make_added_entry_for_dict(os))
             else:
@@ -733,7 +704,7 @@ class ArbHandler(JsonHandler):
         self.keep_sections = kwargs.get("keep_sections", True)
 
         stringset = list(stringset)
-        new_template = self._remove_strings_from_template(template, stringset)
+        new_template = self.remove_strings_from_template(template, stringset)
 
         if language_info is not None:
             match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", new_template)
