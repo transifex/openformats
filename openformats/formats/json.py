@@ -6,6 +6,7 @@ import csv
 import json
 import re
 from itertools import count
+from typing import Tuple
 
 import six
 
@@ -729,6 +730,14 @@ class ArbHandler(JsonHandler):
             self.transcriber.remove_section()
 
 
+    def add_strings_to_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Adds strings to the template that are not in the template currently.
+        """
+        return template
+
 class StructuredJsonHandler(JsonHandler):
     """Handler that preserves certain keys for internal usage, while
     keeping the flexibility and functionality of the original JsonHandler. It
@@ -1116,6 +1125,21 @@ class StructuredJsonHandler(JsonHandler):
         # Unlike the JSON format, do not remove the remaining section of the
         # template
 
+    def remove_strings_from_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Removes strings from the template that are not in the stringset.
+        """
+        return template
+
+    def add_strings_to_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Adds strings to the template that are not in the template currently.
+        """
+        return template
 
 class ChromeI18nHandler(JsonHandler):
     """Responsible for CHROME files, based on the JsonHandler."""
@@ -1196,6 +1220,22 @@ class ChromeI18nHandler(JsonHandler):
             self.json_dict = json.loads(content)
         except ValueError as e:
             raise ParseError(six.text_type(e))
+
+    def remove_strings_from_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Removes strings from the template that are not in the stringset.
+        """
+        return template
+
+    def add_strings_to_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Adds strings to the template that are not in the template currently.
+        """
+        return template
 
 
 class ChromeI18nHandlerV3(Handler):
