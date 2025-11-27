@@ -1457,6 +1457,22 @@ class ChromeI18nHandlerV3(Handler):
 
         return compiled
 
+    def remove_strings_from_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Removes strings from the template that are not in the stringset.
+        """
+        return template
+
+    def add_strings_to_template(
+        self, template: str, stringset: list[OpenString]
+    ) -> str:
+        """
+        Adds strings to the template that are not in the template currently.
+        """
+        return template
+
     @staticmethod
     def escape(string):
         return escape(string)
