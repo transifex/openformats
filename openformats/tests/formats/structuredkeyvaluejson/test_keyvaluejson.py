@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import json
 import six
 
 from openformats.formats.json import StructuredJsonHandler
 
 from openformats.exceptions import ParseError
 from openformats.strings import OpenString
-
+from openformats.utils.json import DumbJson
 from openformats.tests.formats.common import CommonFormatTestMixin
 from openformats.tests.utils.strings import (generate_random_string,
                                              bytes_to_string)
@@ -837,3 +838,314 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         compiled = self.handler.compile(template, expected)
         self.assertEqual(compiled, expected_compilation)
+
+    def test_sync_template_keeps_all_when_strings_match(self):
+        # Template with two strings
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = '{"a": {"string": "%s"}, "b": {"string": "%s"}}' % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+
+        # Sanity: template now has hashes
+        hash1 = stringset[0].template_replacement
+        hash2 = stringset[1].template_replacement
+        self.assertIn(hash1, template)
+        self.assertIn(hash2, template)
+
+        # If we pass back the same stringset, sync_template should be a no-op
+        updated = self.handler.sync_template(template, stringset)
+
+        self.assertEqual(updated, template)
+
+    def test_sync_template_removes_missing_string_for_dict_root(self):
+        # Two strings, but we "forget" one in stringset -> should be removed
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = '{"a": {"string": "%s"}, "b": {"string": "%s"}}' % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+        _, os_b = stringset
+
+        # Keep only b
+        new_stringset = [os_b]
+        updated = self.handler.sync_template(template, new_stringset)
+
+        # Updated template should only contain "b" with its hash
+        hash_b = os_b.template_replacement
+        data = json.loads(updated)
+        self.assertEqual(set(data.keys()), {"b"})
+        self.assertEqual(data["b"]["string"], hash_b)
+
+    def test_sync_template_adds_new_string_for_dict_root(self):
+        # Start with only "a" in template; add "b" via sync_template
+        s1 = generate_random_string()
+        source = '{"a": {"string": "%s"}}' % s1
+
+        template, stringset = self.handler.parse(source)
+        os_a = stringset[0]
+
+        # Create a new OpenString "b" that does not exist in template
+        s2 = generate_random_string()
+        os_b = OpenString("b", s2, order=1)
+        hash_b = os_b.template_replacement
+
+        updated = self.handler.sync_template(template, [os_a, os_b])
+
+        data = json.loads(updated)
+        # Both keys should be present
+        self.assertEqual(set(data.keys()), {"a", "b"})
+        # "b" should be a structured entry with "string" == hash
+        self.assertIsInstance(data["b"], dict)
+        self.assertEqual(data["b"]["string"], hash_b)
+
+    def test_sync_template_list_root_remove(self):
+        # Root is a list; inner object is the structured container
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = '[{"a": {"string": "%s"}, "b": {"string": "%s"}}]' % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+        os_a, _ = stringset
+
+        # Keep only "a"
+        updated = self.handler.sync_template(template, [os_a])
+
+        data = json.loads(updated)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        inner = data[0]
+        self.assertEqual(set(inner.keys()), {"a"})
+        self.assertEqual(inner["a"]["string"], os_a.template_replacement)
+
+
+    def test_get_root_for_dict_and_list(self):
+        # Dict root
+        s = generate_random_string()
+        source_dict = '{"a": {"string": "%s"}}' % s
+        parsed_dict = DumbJson(source_dict)
+        root_type_dict = self.handler._get_root(parsed_dict)
+        self.assertEqual(root_type_dict, dict)
+
+        # List root with inner dict
+        source_list = '[{"a": {"string": "%s"}}]' % s
+        parsed_list = DumbJson(source_list)
+        root_type_list = self.handler._get_root(parsed_list)
+        self.assertEqual(root_type_list, list)
+
+        # List root with no dict elements -> should return list, list
+        parsed_list2 = DumbJson('[1, 2, 3]')
+        root_type2 = self.handler._get_root(parsed_list2)
+        self.assertEqual(root_type2, list)
+
+    def test_make_added_entry_structure(self):
+        os = OpenString(
+            "new_key",
+            "dummy",
+            order=0,
+            context="ctx",
+            developer_comment="dev_comment",
+            character_limit=42,
+        )
+        entry = self.handler._make_added_entry_for_dict(os)
+
+        # Wrap in braces so json.loads can parse it as a dict
+        wrapped = "{%s}" % entry
+        data = json.loads(wrapped)
+
+        self.assertIn("new_key", data)
+        payload = data["new_key"]
+        self.assertEqual(payload["string"], os.template_replacement)
+        self.assertEqual(payload["context"], "ctx")
+        self.assertEqual(payload["developer_comment"], "dev_comment")
+        self.assertEqual(payload["character_limit"], 42)
+
+    def test_sync_template_keeps_non_structured_values_and_lists(self):
+        # a, b are structured; c is primitive; d is list
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = """
+        {
+            "a": { "string": "%s" },
+            "b": { "string": "%s" },
+            "c": 123,
+            "d": [1, 2, 3]
+        }
+        """ % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+        os_a, os_b = stringset
+
+        # Keep only "a" -> "b" should be removed, "c" and "d" should remain
+        updated = self.handler.sync_template(template, [os_a])
+
+        data = json.loads(updated)
+        self.assertEqual(set(data.keys()), {"a", "c", "d"})
+        self.assertEqual(data["c"], 123)
+        self.assertEqual(data["d"], [1, 2, 3])
+        self.assertEqual(data["a"]["string"], os_a.template_replacement)
+
+    def test_sync_template_prunes_empty_nested_containers(self):
+        # a.x and a.y are structured; b.z is structured
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        s3 = generate_random_string()
+        source = """
+        {
+            "a": {
+                "x": { "string": "%s" },
+                "y": { "string": "%s" }
+            },
+            "b": {
+                "z": { "string": "%s" }
+            }
+        }
+        """ % (s1, s2, s3)
+
+        template, stringset = self.handler.parse(source)
+        os_ax, os_ay, os_bz = stringset
+
+        # Keep only "b.z" -> "a" should be completely pruned
+        updated = self.handler.sync_template(template, [os_bz])
+
+        data = json.loads(updated)
+        self.assertEqual(set(data.keys()), {"b"})
+        self.assertIn("z", data["b"])
+        self.assertEqual(data["b"]["z"]["string"], os_bz.template_replacement)
+
+    def test_sync_template_keeps_container_if_any_child_kept(self):
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = """
+        {
+            "group": {
+                "keep_me":   { "string": "%s" },
+                "drop_me":   { "string": "%s" }
+            }
+        }
+        """ % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+        os_keep, _ = stringset
+
+        updated = self.handler.sync_template(template, [os_keep])
+
+        data = json.loads(updated)
+        self.assertEqual(set(data.keys()), {"group"})
+        group = data["group"]
+        self.assertEqual(set(group.keys()), {"keep_me"})
+        self.assertEqual(
+            group["keep_me"]["string"],
+            os_keep.template_replacement,
+        )
+
+    def test_sync_template_plural_hash_matching(self):
+        plural_source = '{ cnt, plural, one {one} other {many} }'
+        source = '{"k": {"string": "%s"}}' % plural_source
+
+        template, stringset = self.handler.parse(source)
+        os = stringset[0]
+        hash_val = os.template_replacement
+
+        # Sanity: template should contain the hash inside the ICU string
+        self.assertIn(hash_val, template)
+
+        # Keeping the same OpenString should keep the entry
+        updated = self.handler.sync_template(template, [os])
+        data = json.loads(updated)
+        self.assertIn("k", data)
+        self.assertIn(hash_val, data["k"]["string"])
+
+    def test_sync_template_list_root_with_non_dict_siblings(self):
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+
+        source = """
+        [
+            {
+                "a": { "string": "%s" },
+                "b": { "string": "%s" }
+            },
+            123,
+            456
+        ]
+        """ % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+        os_a, os_b = stringset
+
+        # Keep only "a"
+        updated = self.handler.sync_template(template, [os_a])
+
+        data = json.loads(updated)
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 3)
+
+        inner = data[0]
+        self.assertEqual(set(inner.keys()), {"a"})
+        self.assertEqual(inner["a"]["string"], os_a.template_replacement)
+
+        # non-dict siblings unchanged
+        self.assertEqual(data[1], 123)
+        self.assertEqual(data[2], 456)
+
+    def test_sync_template_with_empty_stringset_removes_all_structured_entries(self):
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = """
+        {
+            "a": { "string": "%s" },
+            "b": { "string": "%s" },
+            "meta": "keep_me"
+        }
+        """ % (s1, s2)
+
+        template, _ = self.handler.parse(source)
+
+        updated = self.handler.sync_template(template, [])
+
+        data = json.loads(updated)
+        # Only non-structured stuff should remain
+        self.assertEqual(set(data.keys()), {"meta"})
+        self.assertEqual(data["meta"], "keep_me")
+
+    def test_sync_template_seen_keys_matches_kept_entries(self):
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        source = '{"a": {"string": "%s"}, "b": {"string": "%s"}}' % (s1, s2)
+
+        template, stringset = self.handler.parse(source)
+        os_a, _ = stringset
+
+        updated = self.handler.sync_template(template, [os_a])
+
+        data = json.loads(updated)
+        self.assertEqual(set(data.keys()), {"a"})
+
+    def test_sync_template_replaces_d_with_c(self):
+        s1 = generate_random_string()
+        s2 = generate_random_string()
+        s3 = generate_random_string()
+
+        source = json.dumps({
+            "a": {"string": s1},
+            "b": {"string": s2},
+            "d": {"string": "old_d"},
+        })
+        template, stringset = self.handler.parse(source)
+
+        # stringset contains a, b, d — now replace the last with c
+        os_a, os_b, os_d = stringset
+        os_c = OpenString("c", s3, order=os_d.order)
+
+        updated = self.handler.sync_template(
+            template,
+            [os_a, os_b, os_c, os_d],
+        )
+        data = json.loads(updated)
+
+        self.assertEqual(set(data.keys()), {"a", "b", "c", "d"})
+        self.assertEqual(data["a"]["string"], os_a.template_replacement)
+        self.assertEqual(data["b"]["string"], os_b.template_replacement)
+        self.assertEqual(data["c"]["string"], os_c.template_replacement)
+        self.assertEqual(data["d"]["string"], os_d.template_replacement)
