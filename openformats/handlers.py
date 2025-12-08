@@ -2,7 +2,7 @@ import six
 
 from openformats.exceptions import RuleError
 from openformats.strings import OpenString
-
+from typing import Any
 
 class Handler(object):
     """
@@ -88,7 +88,12 @@ class Handler(object):
 
         raise NotImplementedError("Abstract method")  # pragma: no cover
 
-    def sync_template(self, template: str, stringset: list[OpenString]) -> str:
+    def sync_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
         """
         Syncs the template with the stringset. If not implemented, it will have
         no effect - the initial template will just be returned.
@@ -100,12 +105,15 @@ class Handler(object):
         Returns the updated template.
         """
         stringset = list(stringset)
-        template = self.remove_strings_from_template(template, stringset)
-        template = self.add_strings_to_template(template, stringset)
+        template = self.remove_strings_from_template(template, stringset, **kwargs)
+        template = self.add_strings_to_template(template, stringset, **kwargs)
         return template
 
     def remove_strings_from_template(
-        self, template: str, stringset: list[OpenString]
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
     ) -> str:
         """
         Removes strings from the template that are not in the stringset.
@@ -113,7 +121,10 @@ class Handler(object):
         return template
 
     def add_strings_to_template(
-        self, template: str, stringset: list[OpenString]
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
     ) -> str:
         """
         Adds strings to the template that are not in the template currently.

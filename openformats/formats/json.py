@@ -6,7 +6,7 @@ import csv
 import json
 import re
 from itertools import count
-from typing import Tuple
+from typing import Tuple, Any
 
 import six
 
@@ -255,7 +255,7 @@ class JsonHandler(Handler):
         self.transcriber.copy_until(len(template))
         return self.transcriber.get_destination()
 
-    def remove_strings_from_template(self, template, stringset):
+    def remove_strings_from_template(self, template, stringset, **kwargs):
         """
         Remove strings from the template that are not in the stringset.
         """
@@ -275,7 +275,7 @@ class JsonHandler(Handler):
         )
         return self._clean_empties(updated_template)
 
-    def add_strings_to_template(self, template, stringset):
+    def add_strings_to_template(self, template, stringset, **kwargs):
         """
         Add entries that do not exist in the template with minimal conditional logic.
         """
@@ -705,18 +705,28 @@ class ArbHandler(JsonHandler):
         self.keep_sections = kwargs.get("keep_sections", True)
 
         stringset = list(stringset)
-        new_template = self.remove_strings_from_template(template, stringset)
 
         if language_info is not None:
-            match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", new_template)
+            match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", template)
             if match:
-                new_template = "{}{}{}".format(
-                    new_template[: match.start(2)],
+                template = "{}{}{}".format(
+                    template[: match.start(2)],
                     language_info["code"],
-                    new_template[match.end(2) :],
+                    template[match.end(2) :],
                 )
 
-        return self._replace_translations(new_template, stringset, True)
+        return self._replace_translations(template, stringset, True)
+
+    def sync_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
+        stringset = list(stringset)
+        self.keep_sections = kwargs.get("keep_sections", True)
+        template = self.remove_strings_from_template(template, stringset, **kwargs)
+        return template
 
     def _copy_until_and_remove_section(self, pos):
         """
@@ -729,14 +739,6 @@ class ArbHandler(JsonHandler):
         if self.keep_sections == False:  # needed for a test
             self.transcriber.remove_section()
 
-
-    def add_strings_to_template(
-        self, template: str, stringset: list[OpenString]
-    ) -> str:
-        """
-        Adds strings to the template that are not in the template currently.
-        """
-        return template
 
 class StructuredJsonHandler(JsonHandler):
     """Handler that preserves certain keys for internal usage, while
@@ -1125,7 +1127,7 @@ class StructuredJsonHandler(JsonHandler):
         # Unlike the JSON format, do not remove the remaining section of the
         # template
 
-    def remove_strings_from_template(self, template, stringset):
+    def remove_strings_from_template(self, template, stringset, **kwargs):
         """
         Remove structured-json entries whose hashed 'string' content does not
         match the ordered stringset, similar to JsonHandler behavior, but:
@@ -1403,7 +1405,10 @@ class ChromeI18nHandler(JsonHandler):
             raise ParseError(six.text_type(e))
 
     def remove_strings_from_template(
-        self, template: str, stringset: list[OpenString]
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs,
     ) -> str:
         """
         Removes strings from the template that are not in the stringset.
@@ -1411,7 +1416,10 @@ class ChromeI18nHandler(JsonHandler):
         return template
 
     def add_strings_to_template(
-        self, template: str, stringset: list[OpenString]
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
     ) -> str:
         """
         Adds strings to the template that are not in the template currently.
