@@ -1,5 +1,6 @@
 import unittest
 import itertools
+import polib
 
 from openformats.exceptions import ParseError
 from openformats.formats.po import PoHandler
@@ -162,6 +163,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             )
         )
         template, stringset = self.handler.parse(source)
+        template = self.handler.sync_template(template, [string1, string3])
         compiled = self.handler.compile(template, [string1, string3])
         self.assertEqual(
             compiled,
@@ -231,6 +233,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             )
         )
         template, stringset = self.handler.parse(source)
+        template = self.handler.sync_template(template, [string1, string3])
         compiled = self.handler.compile(template, [string1, string3])
         self.assertEqual(
             compiled,
@@ -281,6 +284,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             )
         )
         template, stringset = self.handler.parse(source)
+        template = self.handler.sync_template(template, [string1])
         compiled = self.handler.compile(template, [string1])
         self.assertEqual(
             compiled,
@@ -314,6 +318,7 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
             )
         )
         template, stringset = self.handler.parse(source)
+        template = self.handler.sync_template(template, [string1])
         compiled = self.handler.compile(template, [string1])
         self.assertEqual(
             compiled,
@@ -669,3 +674,389 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(len(stringset), 2)
         self.assertEqual(stringset[0].string, "\n")
         self.assertEqual(stringset[1].string, "two")
+
+
+    def test_sync_template_adds_new_non_plural_entry(self):
+        """
+        When the template has no entries, sync_template should add all
+        OpenStrings, and compile should then fill in msgstr correctly.
+        """
+        string1 = self._create_openstring(False)
+
+        source = strip_leading_spaces(
+            """
+            msgid ""
+            msgstr ""
+            """
+        )
+        template, _ = self.handler.parse(source)
+
+        # Add string1 to an otherwise empty template
+        template = self.handler.sync_template(template, [string1])
+        compiled = self.handler.compile(template, [string1])
+
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """# \nmsgid ""
+                msgstr ""
+
+                msgid "{s1_key}"
+                msgstr "{s1_str}"
+                """.format(
+                    **{"s1_key": string1.key, "s1_str": string1.string}
+                )
+            ),
+        )
+
+    def test_sync_template_adds_new_plural_entry(self):
+        """
+        sync_template should add plural OpenStrings and compile should expand
+        msgstr_plural[0] placeholder into full plural forms.
+        """
+        string1 = self._create_openstring(True)
+        s1_key_singular, s1_key_plural = string1.key.split(":")
+
+        source = strip_leading_spaces(
+            """
+            msgid ""
+            msgstr ""
+            """
+        )
+        template, _ = self.handler.parse(source)
+
+        template = self.handler.sync_template(template, [string1])
+        compiled = self.handler.compile(template, [string1])
+
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """# \nmsgid ""
+                msgstr ""
+
+                msgid "{s1_key}"
+                msgid_plural "{s1_key_plural}"
+                msgstr[0] "{s1_str_singular}"
+                msgstr[1] "{s1_str_plural}"
+                """.format(
+                    **{
+                        "s1_key": s1_key_singular,
+                        "s1_key_plural": s1_key_plural,
+                        "s1_str_singular": string1.string[0],
+                        "s1_str_plural": string1.string[1],
+                    }
+                )
+            ),
+        )
+
+    def test_sync_template_adds_and_removes_mixed_entries(self):
+        """
+        sync_template should remove obsolete entries and add missing ones
+        in a single pass, preserving the order of the stringset.
+        """
+        string1 = self._create_openstring(False)
+        string2 = self._create_openstring(False)
+        string3 = self._create_openstring(False)
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{s1_key}"
+            msgstr "{s1_str}"
+
+            msgid "{s2_key}"
+            msgstr "{s2_str}"
+            """.format(
+                **{
+                    "s1_key": string1.key,
+                    "s1_str": string1.string,
+                    "s2_key": string2.key,
+                    "s2_str": string2.string,
+                }
+            )
+        )
+        template, _ = self.handler.parse(source)
+
+        # We want to keep string2 and add string3, removing string1
+        template = self.handler.sync_template(template, [string2, string3])
+        compiled = self.handler.compile(template, [string2, string3])
+
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """# \nmsgid ""
+                msgstr ""
+
+                msgid "{s2_key}"
+                msgstr "{s2_str}"
+
+                msgid "{s3_key}"
+                msgstr "{s3_str}"
+                """.format(
+                    **{
+                        "s2_key": string2.key,
+                        "s2_str": string2.string,
+                        "s3_key": string3.key,
+                        "s3_str": string3.string,
+                    }
+                )
+            ),
+        )
+
+
+    def test_split_key_roundtrip_with_escaping(self):
+        """
+        Keys containing ':' and '\\' must be correctly escaped in parse()
+        and unescaped by _split_key_to_msgids().
+        """
+        raw_msgid = 'foo:bar\\baz'
+        raw_msgid_plural = 'p:q\\z'  # avoid PO escape like \r
+
+        source = strip_leading_spaces(
+            r'''
+            msgid ""
+            msgstr ""
+            "Content-Type: text/plain; charset=UTF-8\n"
+            "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+            msgid "%s"
+            msgid_plural "%s"
+            msgstr[0] ""
+            msgstr[1] ""
+            ''' % (raw_msgid, raw_msgid_plural)
+        )
+        template, stringset = self.handler.parse(source, is_source=True)
+
+        # We expect a single plural OpenString
+        self.assertEqual(len(stringset), 1)
+        os = stringset[0]
+
+        # 1) Check that our key-splitting logic is the inverse of the escaping in parse()
+        msgid, msgid_plural = self.handler._split_key_to_msgids(os.key)
+        self.assertEqual(msgid, raw_msgid)
+        self.assertEqual(msgid_plural, raw_msgid_plural)
+
+        # 2) Check that sync_template + compile produce a PO file which,
+        #    when parsed again, gives us the same raw msgid/msgid_plural
+        template2, _ = self.handler.parse(
+            strip_leading_spaces(
+                """
+                msgid ""
+                msgstr ""
+                """
+            )
+        )
+        template2 = self.handler.sync_template(template2, [os])
+        compiled = self.handler.compile(template2, [os])
+
+        po_reparsed = polib.pofile(compiled)
+        # skip header entry (msgid == "")
+        entries = [e for e in po_reparsed if e.msgid]
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+
+        self.assertEqual(entry.msgid, raw_msgid)
+        self.assertEqual(entry.msgid_plural, raw_msgid_plural)
+
+    def test_make_added_entry_copies_metadata_and_flags(self):
+        """
+        _make_added_entry should correctly copy flags, occurrences and
+        developer comments from OpenString into the new POEntry.
+        """
+        key = generate_random_string()
+        os = OpenString(
+            key,
+            generate_random_string(),
+            order=0,
+            pluralized=False,
+            context="",
+            flags="f1, f2",
+            occurrences="file1.py:10, file2.py:20",
+            developer_comment="a comment",
+        )
+        os.string_hash
+
+        entry = self.handler._make_added_entry(os)
+
+        self.assertEqual(entry.msgid, key)
+        self.assertEqual(entry.msgstr, os.template_replacement)
+
+        self.assertEqual(sorted(entry.flags), ["f1", "f2"])
+
+        self.assertEqual(
+            sorted(entry.occurrences),
+            [("file1.py", "10"), ("file2.py", "20")],
+        )
+
+        self.assertEqual(entry.comment, "a comment")
+
+        os2 = OpenString(
+            key,
+            generate_random_string(),
+            order=1,
+            pluralized=False,
+            context="",
+            flags=["a", "b"],
+            occurrences=[("x.py", "1"), ("y.py", "2")],
+            developer_comment=None,
+        )
+        os2.string_hash
+
+        entry2 = self.handler._make_added_entry(os2)
+        self.assertEqual(sorted(entry2.flags), ["a", "b"])
+        self.assertEqual(sorted(entry2.occurrences), [("x.py", "1"), ("y.py", "2")])
+        self.assertEqual(entry2.comment, "")
+
+    def test_sync_template_plural_add_and_remove_combined(self):
+        """
+        Combined test for plural sync:
+        - remove obsolete plural entry
+        - keep existing matching plural entry
+        - add a new plural entry
+        """
+        s_keep = self._create_openstring(True)
+        s_obsolete = self._create_openstring(True)
+        s_new = self._create_openstring(True)
+
+        k_keep = s_keep.key.split(":")
+        k_obsolete = s_obsolete.key.split(":")
+        k_new = s_new.key.split(":")
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{k_keep_s}"
+            msgid_plural "{k_keep_p}"
+            msgstr[0] "{keep_singular}"
+            msgstr[1] "{keep_plural}"
+
+            msgid "{k_obsolete_s}"
+            msgid_plural "{k_obsolete_p}"
+            msgstr[0] "{obsolete_singular}"
+            msgstr[1] "{obsolete_plural}"
+            """.format(
+                **{
+                    "k_keep_s": k_keep[0],
+                    "k_keep_p": k_keep[1],
+                    "keep_singular": s_keep.string[0],
+                    "keep_plural": s_keep.string[1],
+                    "k_obsolete_s": k_obsolete[0],
+                    "k_obsolete_p": k_obsolete[1],
+                    "obsolete_singular": s_obsolete.string[0],
+                    "obsolete_plural": s_obsolete.string[1],
+                }
+            )
+        )
+        template, _ = self.handler.parse(source)
+
+        template = self.handler.sync_template(template, [s_keep, s_new])
+        compiled = self.handler.compile(template, [s_keep, s_new])
+
+        self.assertEqual(
+            compiled,
+            strip_leading_spaces(
+                """# \nmsgid ""
+                msgstr ""
+
+                msgid "{k_keep_s}"
+                msgid_plural "{k_keep_p}"
+                msgstr[0] "{keep_singular}"
+                msgstr[1] "{keep_plural}"
+
+                msgid "{k_new_s}"
+                msgid_plural "{k_new_p}"
+                msgstr[0] "{new_singular}"
+                msgstr[1] "{new_plural}"
+                """.format(
+                    **{
+                        "k_keep_s": k_keep[0],
+                        "k_keep_p": k_keep[1],
+                        "keep_singular": s_keep.string[0],
+                        "keep_plural": s_keep.string[1],
+                        "k_new_s": k_new[0],
+                        "k_new_p": k_new[1],
+                        "new_singular": s_new.string[0],
+                        "new_plural": s_new.string[1],
+                    }
+                )
+            ),
+        )
+
+    def test_sync_template_adds_entry_with_context(self):
+        """
+        sync_template should correctly add entries with msgctxt (context).
+        """
+        key = generate_random_string()
+        context = "menu_item"
+        string_value = generate_random_string()
+
+        os = OpenString(
+            key,
+            string_value,
+            order=0,
+            pluralized=False,
+            context=context,
+        )
+        os.string_hash
+
+        source = strip_leading_spaces(
+            """
+            msgid ""
+            msgstr ""
+            """
+        )
+        template, _ = self.handler.parse(source)
+
+        template = self.handler.sync_template(template, [os])
+        compiled = self.handler.compile(template, [os])
+
+        # Verify the compiled output contains msgctxt
+        self.assertIn('msgctxt "menu_item"', compiled)
+        self.assertIn(f'msgid "{key}"', compiled)
+        self.assertIn(f'msgstr "{string_value}"', compiled)
+
+    def test_sync_template_adds_plural_entry_with_context(self):
+        """
+        sync_template should correctly add pluralized entries with msgctxt.
+        """
+        msgid = generate_random_string()
+        msgid_plural = generate_random_string()
+        key = f"{msgid}:{msgid_plural}"
+        context = "notification"
+        singular = generate_random_string()
+        plural = generate_random_string()
+
+        os = OpenString(
+            key,
+            {0: singular, 1: plural},
+            order=0,
+            pluralized=True,
+            context=context,
+        )
+        os.string_hash
+
+        source = strip_leading_spaces(
+            """
+            msgid ""
+            msgstr ""
+            """
+        )
+        template, _ = self.handler.parse(source)
+
+        template = self.handler.sync_template(template, [os])
+        compiled = self.handler.compile(template, [os])
+
+        # Verify the compiled output contains msgctxt and plural forms
+        self.assertIn('msgctxt "notification"', compiled)
+        self.assertIn(f'msgid "{msgid}"', compiled)
+        self.assertIn(f'msgid_plural "{msgid_plural}"', compiled)
+        self.assertIn(f'msgstr[0] "{singular}"', compiled)
+        self.assertIn(f'msgstr[1] "{plural}"', compiled)
