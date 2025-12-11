@@ -300,10 +300,12 @@ class JsonHandler(Handler):
         insertion_point = parsed.end
         if multiline:
             # Insert before last newline if present
-            i = insertion_point - 1
-            while i >= 0 and source[i] in (" ", "\t"):
+            i = parsed.end - 1
+            while i >= parsed.start and source[i] in (" ", "\t", "}", "]"):
                 i -= 1
-            if i >= 0 and source[i] == "\n":
+            while i >= parsed.start and source[i] not in ("\n", "\r"):
+                i -= 1
+            if i >= parsed.start:
                 insertion_point = i
 
         # Build entries
@@ -354,15 +356,10 @@ class JsonHandler(Handler):
 
         Subclasses can override this to change the structure of the value.
         """
-        key_literal = json.dumps(os.key, ensure_ascii=False)
-        value_literal = json.dumps(os.template_replacement, ensure_ascii=False)
-        return f"{key_literal}: {value_literal}"
+        return f"\"{os.key}\": \"{os.template_replacement}\""
 
     def _make_added_entry_for_list(self, os):
-        return json.dumps(
-            {os.key: os.template_replacement},
-            ensure_ascii=False,
-        )
+        return f'{{"{os.key}": "{os.template_replacement}"}}'
 
     def _insert(self, parsed, is_real_stringset):
         if parsed.type == dict:
@@ -428,6 +425,8 @@ class JsonHandler(Handler):
         at_least_one = not bool(list(parsed))
 
         for key, key_position, value, value_position in parsed:
+            print("insert from dict")
+            print(value)
             if (
                 key.startswith("@")
                 and key != ("@@locale")
@@ -1279,22 +1278,19 @@ class StructuredJsonHandler(JsonHandler):
               "character_limit": 100
             }
         """
-        key_literal = json.dumps(os.key, ensure_ascii=False)
         payload = self._build_structured_payload(os)
 
         value_literal = json.dumps(payload, ensure_ascii=False, indent=2)
-
-        # Optional cosmetic tab indent after the first line
         lines = value_literal.splitlines()
         if len(lines) > 1:
             lines = [lines[0]] + ["\t" + line for line in lines[1:]]
         value_literal = "\n".join(lines)
 
-        return key_literal, value_literal
+        return os.key, value_literal
 
     def _make_added_entry_for_dict(self, os) -> str:
-        key_literal, value_literal = self._build_structured_json_entry(os)
-        return f"{key_literal}: {value_literal}"
+        key, value = self._build_structured_json_entry(os)
+        return f"\"{key}\": {value}"
 
     def _make_added_entry_for_list(self, os) -> str:
         """
