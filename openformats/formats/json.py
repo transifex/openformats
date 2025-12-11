@@ -6,6 +6,7 @@ import csv
 import json
 import re
 from itertools import count
+from typing import Tuple, Any
 
 import six
 
@@ -232,30 +233,12 @@ class JsonHandler(Handler):
         return key
 
     def compile(self, template, stringset, **kwargs):
-        # Lets play on the template first, we need it to not include the hashes
-        # that aren't in the stringset. For that we will create a new stringset
-        # which will have the hashes themselves as strings and compile against
-        # that. The compilation process will remove any string sections that
-        # are absent from the stringset. Next we will call `_clean_empties`
-        # from the template to clear out any `...,  ,...` or `...{ ,...`
-        # sequences left. The result will be used as the actual template for
-        # the compilation process
-
         stringset = list(stringset)
-
-        fake_stringset = [
-            OpenString(
-                openstring.key,
-                openstring.template_replacement,
-                order=openstring.order,
-                pluralized=openstring.pluralized,
-            )
-            for openstring in stringset
-        ]
-        new_template = self._replace_translations(template, fake_stringset, False)
-        new_template = self._clean_empties(new_template)
-
-        return self._replace_translations(new_template, stringset, True)
+        return self._replace_translations(
+            template,
+            stringset,
+            is_real_stringset=True,
+        )
 
     def _replace_translations(self, template, stringset, is_real_stringset):
         self.transcriber = Transcriber(template)
@@ -271,6 +254,115 @@ class JsonHandler(Handler):
 
         self.transcriber.copy_until(len(template))
         return self.transcriber.get_destination()
+
+    def remove_strings_from_template(self, template, stringset, **kwargs):
+        """
+        Remove strings from the template that are not in the stringset.
+        """
+        fake_stringset = [
+            OpenString(
+                openstring.key,
+                openstring.template_replacement,
+                order=openstring.order,  # type: ignore
+                pluralized=openstring.pluralized,
+            )
+            for openstring in stringset
+        ]
+        updated_template = self._replace_translations(
+            template,
+            fake_stringset,
+            is_real_stringset=False,
+        )
+        return self._clean_empties(updated_template)
+
+    def add_strings_to_template(self, template, stringset, **kwargs):
+        """
+        Add entries that do not exist in the template with minimal conditional logic.
+        """
+        remaining = stringset[self.stringset_index :]  # type: ignore
+        if not remaining:
+            return template
+
+        strings_to_add = list(remaining)
+
+        transcriber = Transcriber(template)
+        source = transcriber.source
+        parsed = DumbJson(source)
+
+        container_type = self._get_root(parsed)
+        items = list(parsed)
+        had_items = bool(items)
+
+        # Detect style
+        multiline = "\n" in source[parsed.start : parsed.end + 1]
+
+        # Find insertion point
+        insertion_point = parsed.end
+        if multiline:
+            # Insert before last newline if present
+            i = insertion_point - 1
+            while i >= 0 and source[i] in (" ", "\t"):
+                i -= 1
+            if i >= 0 and source[i] == "\n":
+                insertion_point = i
+
+        # Build entries
+        entries = []
+        for os in strings_to_add:
+            if container_type == dict:
+                entries.append(self._make_added_entry_for_dict(os))
+            else:
+                entries.append(self._make_added_entry_for_list(os))
+
+        # Format insertion based on style
+        if multiline:
+            joined = ",\n  ".join(entries)
+            if had_items:
+                insertion = f",\n  {joined}"
+            else:
+                insertion = f"\n  {joined}"
+        else:
+            joined = ", ".join(entries)
+            if had_items:
+                insertion = f", {joined}"
+            else:
+                insertion = f" {joined} "
+
+        # Insert
+        transcriber.copy_until(insertion_point)
+        transcriber.add(insertion)
+        transcriber.copy_to_end()
+
+        return transcriber.get_destination()
+
+    def _get_root(self, parsed):
+        """
+        Determine which DumbJson node (dict or list) should receive new entries.
+        Returns the container node and its type.
+        """
+        if parsed.type == dict:
+            return dict
+
+        if parsed.type == list:
+            return list
+
+        raise ParseError("Template must be a JSON object or array")
+
+    def _make_added_entry_for_dict(self, os):
+        """
+        Build the JSON snippet for a *single* added OpenString at top level.
+
+        Subclasses can override this to change the structure of the value.
+        """
+        key_literal = json.dumps(os.key, ensure_ascii=False)
+        value_literal = json.dumps(os.template_replacement, ensure_ascii=False)
+        return f"{key_literal}: {value_literal}"
+
+    def _make_added_entry_for_list(self, os):
+        return json.dumps(
+            {os.key: os.template_replacement},
+            ensure_ascii=False,
+        )
 
     def _insert(self, parsed, is_real_stringset):
         if parsed.type == dict:
@@ -614,28 +706,27 @@ class ArbHandler(JsonHandler):
 
         stringset = list(stringset)
 
-        fake_stringset = [
-            OpenString(
-                openstring.key,
-                openstring.template_replacement,
-                order=openstring.order,
-                pluralized=openstring.pluralized,
-            )
-            for openstring in stringset
-        ]
-        new_template = self._replace_translations(template, fake_stringset, False)
-        new_template = self._clean_empties(new_template)
-
         if language_info is not None:
-            match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", new_template)
+            match = re.search(r"(\"@@locale\"\s*:\s*\")([A-Z_a-z]*)\"", template)
             if match:
-                new_template = "{}{}{}".format(
-                    new_template[: match.start(2)],
+                template = "{}{}{}".format(
+                    template[: match.start(2)],
                     language_info["code"],
-                    new_template[match.end(2) :],
+                    template[match.end(2) :],
                 )
 
-        return self._replace_translations(new_template, stringset, True)
+        return self._replace_translations(template, stringset, True)
+
+    def sync_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
+        stringset = list(stringset)
+        self.keep_sections = kwargs.get("keep_sections", True)
+        template = self.remove_strings_from_template(template, stringset, **kwargs)
+        return template
 
     def _copy_until_and_remove_section(self, pos):
         """
@@ -1036,6 +1127,202 @@ class StructuredJsonHandler(JsonHandler):
         # Unlike the JSON format, do not remove the remaining section of the
         # template
 
+    def remove_strings_from_template(self, template, stringset, **kwargs):
+        """
+        Remove structured-json entries whose hashed 'string' content does not
+        match the ordered stringset, similar to JsonHandler behavior, but:
+
+        - We match by OpenString.template_replacement (hash), not by key.
+        - For dict roots: walk nested dicts and drop leaf objects with
+          mismatching "string".
+        - For list roots: treat each list item as a dict-root, dropping
+          items that end up with no kept leaves.
+        """
+        self.stringset = list(stringset)
+        self.stringset_index = 0
+
+        transcriber = Transcriber(template)
+        source = transcriber.source
+        parsed = DumbJson(source)
+
+        def next_string():
+            try:
+                return self.stringset[self.stringset_index]
+            except IndexError:
+                return None
+
+        def walk_dict(node):
+            """
+            Recursively traverse a DumbJson dict node.
+
+            Returns True if this node (or any of its descendants) contains at
+            least one *kept* leaf. Otherwise returns False so the caller can
+            prune the whole section.
+            """
+            if node.type != dict:
+                return False
+
+            has_kept_leaf = False
+
+            for _, key_pos, value, _ in node:
+                if not (isinstance(value, DumbJson) and value.type == dict):
+                    continue
+
+                # Decide if this object is a *leaf* (direct "string" field)
+                is_leaf = any(
+                    child_key == self.STRING_KEY
+                    for child_key, _, _, _ in value
+                )
+
+                transcriber.copy_until(key_pos - 1)
+                transcriber.mark_section_start()
+
+                if is_leaf:
+                    ((string_value, _),) = value.find_children(self.STRING_KEY)
+
+                    current = next_string()
+                    keep = False
+
+                    if current is not None:
+                        templ = current.template_replacement
+
+                        if current.pluralized:
+                            # hash embedded inside ICU plural string
+                            if templ in string_value:
+                                keep = True
+                        else:
+                            # plain hash
+                            if string_value == templ:
+                                keep = True
+
+                    transcriber.copy_until(value.end + 1)
+                    transcriber.mark_section_end()
+
+                    if keep:
+                        has_kept_leaf = True
+                        self.stringset_index += 1
+                    else:
+                        transcriber.remove_section()
+                else:
+                    # Nested dict – recurse
+                    child_has_kept = walk_dict(value)
+
+                    transcriber.copy_until(value.end + 1)
+                    transcriber.mark_section_end()
+
+                    if child_has_kept:
+                        has_kept_leaf = True
+                    else:
+                        transcriber.remove_section()
+
+            return has_kept_leaf
+
+        if parsed.type == dict:
+            walk_dict(parsed)
+        elif parsed.type == list:
+            # List-root: each item is a dict-root
+            for value, _ in parsed:
+                if not isinstance(value, DumbJson) or value.type != dict:
+                    continue
+
+                transcriber.copy_until(value.start)
+                transcriber.mark_section_start()
+
+                has_kept = walk_dict(value)
+
+                transcriber.copy_until(value.end + 1)
+                transcriber.mark_section_end()
+
+                if not has_kept:
+                    transcriber.remove_section()
+
+        transcriber.copy_until(len(source))
+        compiled = transcriber.get_destination()
+        return self._clean_empties(compiled)
+
+
+    def _build_structured_payload(self, os) -> dict:
+        """
+        Build the inner payload dict for a structured-json entry:
+
+            {
+              "string": "<hash>",
+              "context": "...",
+              "developer_comment": "...",
+              "character_limit": 100
+            }
+        """
+        payload = {
+            self.STRING_KEY: os.template_replacement,
+        }
+
+        # Optional metadata – only add if present
+        if getattr(os, "context", None):
+            payload[self.CONTEXT_KEY] = self.escape(os.context)
+        if getattr(os, "developer_comment", None):
+            payload[self.DEVELOPER_COMMENT_KEY] = self.escape(
+                os.developer_comment
+            )
+        if getattr(os, "character_limit", None) is not None:
+            payload[self.CHARACTER_LIMIT_KEY] = os.character_limit
+
+        return payload
+
+    def _build_structured_json_entry(self, os) -> Tuple[str, str]:
+        """
+        Build the JSON snippet for a structured-json entry for dict roots:
+
+            "key": {
+              "string": "<hash>",
+              "context": "...",
+              "developer_comment": "...",
+              "character_limit": 100
+            }
+        """
+        key_literal = json.dumps(os.key, ensure_ascii=False)
+        payload = self._build_structured_payload(os)
+
+        value_literal = json.dumps(payload, ensure_ascii=False, indent=2)
+
+        # Optional cosmetic tab indent after the first line
+        lines = value_literal.splitlines()
+        if len(lines) > 1:
+            lines = [lines[0]] + ["\t" + line for line in lines[1:]]
+        value_literal = "\n".join(lines)
+
+        return key_literal, value_literal
+
+    def _make_added_entry_for_dict(self, os) -> str:
+        key_literal, value_literal = self._build_structured_json_entry(os)
+        return f"{key_literal}: {value_literal}"
+
+    def _make_added_entry_for_list(self, os) -> str:
+        """
+        For list-root STRUCTURED_JSON, each added item is a *separate object*
+        in the root list, with a single top-level key.
+
+        The key is taken *as-is* from os.key (no '..0..' stripping, no
+        special dot handling):
+
+            os.key = "batmobil"
+
+        Resulting list item:
+
+            {
+              "batmobil": {
+                "string": "<hash>",
+                "context": "...",
+                "developer_comment": "...",
+                "character_limit": 100
+              }
+            }
+        """
+        container = {
+            os.key: self._build_structured_payload(os)
+        }
+
+        return json.dumps(container, ensure_ascii=False, indent=2)
+
 
 class ChromeI18nHandler(JsonHandler):
     """Responsible for CHROME files, based on the JsonHandler."""
@@ -1116,6 +1403,28 @@ class ChromeI18nHandler(JsonHandler):
             self.json_dict = json.loads(content)
         except ValueError as e:
             raise ParseError(six.text_type(e))
+
+    def remove_strings_from_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs,
+    ) -> str:
+        """
+        Removes strings from the template that are not in the stringset.
+        """
+        return template
+
+    def add_strings_to_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
+        """
+        Adds strings to the template that are not in the template currently.
+        """
+        return template
 
 
 class ChromeI18nHandlerV3(Handler):
@@ -1336,6 +1645,7 @@ class ChromeI18nHandlerV3(Handler):
         compiled = re.sub(r",(\s*)}(\s*)$", r"\1}\2", compiled)
 
         return compiled
+
 
     @staticmethod
     def escape(string):

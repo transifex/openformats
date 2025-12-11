@@ -78,6 +78,11 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[0].__dict__, openstring1.__dict__)
         self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
 
+        template = self.handler.sync_template(
+            template,
+            [openstring2],
+            keep_sections=False
+        )
         compiled = self.handler.compile(template, [openstring2], keep_sections=False)
         compiled = compiled.replace("{ ", "{").replace(" }", "}")  # fix spaces inside {}
         self.assertEqual(compiled, '{"b": "%s"}' % string2)
@@ -91,6 +96,7 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[0].__dict__,
                          self.random_openstring.__dict__)
 
+        template = self.handler.sync_template(template, [self.random_openstring])
         compiled = self.handler.compile(template, [self.random_openstring],
                                         language_info={"name": "French", "code": "fr"})
         self.assertEqual(compiled,
@@ -111,6 +117,7 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(template, '{"a": "%s", "b": null}' % random_hash)
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, random_openstring.__dict__)
+        template = self.handler.sync_template(template, [], keep_sections=False)
 
         compiled = self.handler.compile(template, [], keep_sections=False)
         self.assertEqual(compiled, '{ "b": null}')
@@ -122,7 +129,11 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
         template, _ = self.handler.parse(source)
-
+        template = self.handler.sync_template(
+            template,
+            [openstring2],
+            keep_sections=False
+        )
         compiled = self.handler.compile(template, [openstring2], keep_sections=False)
         self.assertEqual(compiled, '{ "b": "%s"}' % string2)
 
@@ -133,7 +144,11 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         source = '{"a": "%s", "b": "%s"}' % (string1, string2)
         template, _ = self.handler.parse(source)
-
+        template = self.handler.sync_template(
+            template,
+            [openstring1],
+            keep_sections=False
+        )
         compiled = self.handler.compile(template, [openstring1], keep_sections=False)
         self.assertEqual(compiled, '{"a": "%s"}' % string1)
 
@@ -147,7 +162,11 @@ class ArbTestCase(CommonFormatTestMixin, unittest.TestCase):
         source = '{"a": "%s", "b": "%s", "c": "%s"}' % (string1, string2,
                                                         string3)
         template, _ = self.handler.parse(source)
-
+        template = self.handler.sync_template(
+            template,
+            [openstring1, openstring3],
+            keep_sections=False
+        )
         compiled = self.handler.compile(template, [openstring1, openstring3], keep_sections=False)
         self.assertEqual(compiled, '{"a": "%s", "c": "%s"}' % (string1,
                                                                string3))

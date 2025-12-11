@@ -1,7 +1,8 @@
 import six
 
 from openformats.exceptions import RuleError
-
+from openformats.strings import OpenString
+from typing import Any
 
 class Handler(object):
     """
@@ -12,14 +13,7 @@ class Handler(object):
     name = None
     extension = None
 
-    _RULES_ATOI = {
-        'zero': 0,
-        'one': 1,
-        'two': 2,
-        'few': 3,
-        'many': 4,
-        'other': 5
-    }
+    _RULES_ATOI = {"zero": 0, "one": 1, "two": 2, "few": 3, "many": 4, "other": 5}
 
     EXTRACTS_RAW = True
 
@@ -29,9 +23,7 @@ class Handler(object):
 
     _RULES_ITOA = {value: key for key, value in six.iteritems(_RULES_ATOI)}
 
-    _RULE_ERROR_MSG = (
-        '{attempted} is not a valid rule value. Valid choices are {valid}'
-    )
+    _RULE_ERROR_MSG = "{attempted} is not a valid rule value. Valid choices are {valid}"
 
     @classmethod
     def get_rule_number(cls, string_value):
@@ -39,8 +31,7 @@ class Handler(object):
             return cls._RULES_ATOI[string_value]
         except KeyError:
             msg = cls._RULE_ERROR_MSG.format(
-                attempted=string_value,
-                valid=list(six.iterkeys(cls._RULES_ATOI))
+                attempted=string_value, valid=list(six.iterkeys(cls._RULES_ATOI))
             )
             raise RuleError(msg)
 
@@ -50,8 +41,7 @@ class Handler(object):
             return cls._RULES_ITOA[number_value]
         except KeyError:
             msg = cls._RULE_ERROR_MSG.format(
-                attempted=number_value,
-                valid=list(six.iterkeys(cls._RULES_ITOA))
+                attempted=number_value, valid=list(six.iterkeys(cls._RULES_ITOA))
             )
             raise RuleError(msg)
 
@@ -72,7 +62,7 @@ class Handler(object):
         * Use library or own code to serialize stringset back into a template.
         """
 
-        raise NotImplementedError('Abstract method')  # pragma: no cover
+        raise NotImplementedError("Abstract method")  # pragma: no cover
 
     def compile(self, template, stringset, **kwargs):
         """
@@ -96,4 +86,47 @@ class Handler(object):
         to perform the whole compilation in a single pass.
         """
 
-        raise NotImplementedError('Abstract method')  # pragma: no cover
+        raise NotImplementedError("Abstract method")  # pragma: no cover
+
+    def sync_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
+        """
+        Syncs the template with the stringset. If not implemented, it will have
+        no effect - the initial template will just be returned.
+
+        Otherwise, it is responsible for deleting strings from the template that
+        are not in the stringset and adding strings to the template that exist in
+        the stringset but not in the template currently.
+
+        Returns the updated template.
+        """
+        stringset = list(stringset)
+        template = self.remove_strings_from_template(template, stringset, **kwargs)
+        template = self.add_strings_to_template(template, stringset, **kwargs)
+        return template
+
+    def remove_strings_from_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
+        """
+        Removes strings from the template that are not in the stringset.
+        """
+        return template
+
+    def add_strings_to_template(
+        self,
+        template: str,
+        stringset: list[OpenString],
+        **kwargs: Any
+    ) -> str:
+        """
+        Adds strings to the template that are not in the template currently.
+        """
+        return template
