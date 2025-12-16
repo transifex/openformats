@@ -353,14 +353,19 @@ class JsonHandler(Handler):
         Build the JSON snippet for a *single* added OpenString at top level.
 
         Subclasses can override this to change the structure of the value.
+
+        Note:
+        - We unescape the key to match file uploaded keys behavior. Specifically,
+        when uploading a file with a key like 'key \b', this is escaped during parse
+        and gets saved in the db as 'key \\b'. Then it gets compiled as 'key \b'.
+        In the same, when a string is added from the editor we escape the key and similarly
+        to the above logic, we need it unescaped on compile.
         """
-        key_literal = json.dumps(os.key, ensure_ascii=False)
-        value_literal = json.dumps(os.template_replacement, ensure_ascii=False)
-        return f"{key_literal}: {value_literal}"
+        return f'"{self.unescape(os.key)}": "{os.template_replacement}"'
 
     def _make_added_entry_for_list(self, os):
         return json.dumps(
-            {os.key: os.template_replacement},
+            {self.unescape(os.key): os.template_replacement},
             ensure_ascii=False,
         )
 
@@ -718,10 +723,7 @@ class ArbHandler(JsonHandler):
         return self._replace_translations(template, stringset, True)
 
     def sync_template(
-        self,
-        template: str,
-        stringset: list[OpenString],
-        **kwargs: Any
+        self, template: str, stringset: list[OpenString], **kwargs: Any
     ) -> str:
         stringset = list(stringset)
         self.keep_sections = kwargs.get("keep_sections", True)
@@ -1170,8 +1172,7 @@ class StructuredJsonHandler(JsonHandler):
 
                 # Decide if this object is a *leaf* (direct "string" field)
                 is_leaf = any(
-                    child_key == self.STRING_KEY
-                    for child_key, _, _, _ in value
+                    child_key == self.STRING_KEY for child_key, _, _, _ in value
                 )
 
                 transcriber.copy_until(key_pos - 1)
@@ -1240,7 +1241,6 @@ class StructuredJsonHandler(JsonHandler):
         compiled = transcriber.get_destination()
         return self._clean_empties(compiled)
 
-
     def _build_structured_payload(self, os) -> dict:
         """
         Build the inner payload dict for a structured-json entry:
@@ -1260,9 +1260,7 @@ class StructuredJsonHandler(JsonHandler):
         if getattr(os, "context", None):
             payload[self.CONTEXT_KEY] = self.escape(os.context)
         if getattr(os, "developer_comment", None):
-            payload[self.DEVELOPER_COMMENT_KEY] = self.escape(
-                os.developer_comment
-            )
+            payload[self.DEVELOPER_COMMENT_KEY] = self.escape(os.developer_comment)
         if getattr(os, "character_limit", None) is not None:
             payload[self.CHARACTER_LIMIT_KEY] = os.character_limit
 
@@ -1278,8 +1276,15 @@ class StructuredJsonHandler(JsonHandler):
               "developer_comment": "...",
               "character_limit": 100
             }
+
+        Note:
+        - We unescape the key to match file uploaded keys behavior. Specifically,
+        when uploading a file with a key like 'key \b', this is escaped during parse
+        and gets saved in the db as 'key \\b'. Then it gets compiled as 'key \b'.
+        In the same, when a string is added from the editor we escape the key and similarly
+        to the above logic, we need it unescaped on compile.
         """
-        key_literal = json.dumps(os.key, ensure_ascii=False)
+        key_literal = f'"{self.unescape(os.key)}"'
         payload = self._build_structured_payload(os)
 
         value_literal = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -1317,9 +1322,7 @@ class StructuredJsonHandler(JsonHandler):
               }
             }
         """
-        container = {
-            os.key: self._build_structured_payload(os)
-        }
+        container = {self.unescape(os.key): self._build_structured_payload(os)}
 
         return json.dumps(container, ensure_ascii=False, indent=2)
 
@@ -1416,10 +1419,7 @@ class ChromeI18nHandler(JsonHandler):
         return template
 
     def add_strings_to_template(
-        self,
-        template: str,
-        stringset: list[OpenString],
-        **kwargs: Any
+        self, template: str, stringset: list[OpenString], **kwargs: Any
     ) -> str:
         """
         Adds strings to the template that are not in the template currently.
@@ -1645,7 +1645,6 @@ class ChromeI18nHandlerV3(Handler):
         compiled = re.sub(r",(\s*)}(\s*)$", r"\1}\2", compiled)
 
         return compiled
-
 
     @staticmethod
     def escape(string):
