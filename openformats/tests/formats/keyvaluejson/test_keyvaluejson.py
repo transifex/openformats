@@ -718,7 +718,7 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
 
         existing = stringset[0]
-        new = OpenString(r"b \\b", string2, order=existing.order + 1)
+        new = OpenString(r"b \\b \.", string2, order=existing.order + 1)
 
         updated_template = self.handler.sync_template(template, [existing, new])
         compiled = self.handler.compile(updated_template, [existing, new])
@@ -727,8 +727,8 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # "a" string remains as-is
         self.assertEqual(data["a"], string1)
         # New key "b \b" is added at top level and unescaped
-        self.assertIn("b \b", data)
-        self.assertEqual(data["b \b"], string2)
+        self.assertIn("b \b .", data)
+        self.assertEqual(data["b \b ."], string2)
 
     def test_sync_template_removes_all_strings_from_dict(self):
         """Test removing all strings from a dict"""

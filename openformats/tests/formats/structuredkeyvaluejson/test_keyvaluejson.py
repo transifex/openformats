@@ -969,17 +969,17 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         # Create a new OpenString "b" that does not exist in template
         s2 = generate_random_string()
-        os_b = OpenString(r"b \\b", s2, order=1)
+        os_b = OpenString(r"b \\b \.", s2, order=1)
         hash_b = os_b.template_replacement
 
         updated = self.handler.sync_template(template, [os_a, os_b])
 
         data = json.loads(updated)
         # Both keys should be present
-        self.assertEqual(set(data.keys()), {"a", "b \b"})
+        self.assertEqual(set(data.keys()), {"a", "b \b ."})
         # "b" should be a structured entry with "string" == hash
-        self.assertIsInstance(data["b \b"], dict)
-        self.assertEqual(data["b \b"]["string"], hash_b)
+        self.assertIsInstance(data["b \b ."], dict)
+        self.assertEqual(data["b \b ."]["string"], hash_b)
 
     def test_sync_template_list_root_remove(self):
         # Root is a list; inner object is the structured container

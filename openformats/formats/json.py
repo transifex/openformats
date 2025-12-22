@@ -232,6 +232,12 @@ class JsonHandler(Handler):
         key = key.replace(".", "".join([DumbJson.BACKSLASH, "."]))
         return key
 
+    @staticmethod
+    def _unescape_key(key):
+        key = key.replace(DumbJson.BACKSLASH + DumbJson.BACKSLASH, DumbJson.BACKSLASH)
+        key = key.replace(DumbJson.BACKSLASH + ".", ".")
+        return key
+
     def compile(self, template, stringset, **kwargs):
         stringset = list(stringset)
         return self._replace_translations(
@@ -361,11 +367,11 @@ class JsonHandler(Handler):
         In the same, when a string is added from the editor we escape the key and similarly
         to the above logic, we need it unescaped on compile.
         """
-        return f'"{self.unescape(os.key)}": "{os.template_replacement}"'
+        return f'"{self._unescape_key(os.key)}": "{os.template_replacement}"'
 
     def _make_added_entry_for_list(self, os):
         return json.dumps(
-            {self.unescape(os.key): os.template_replacement},
+            {self._unescape_key(os.key): os.template_replacement},
             ensure_ascii=False,
         )
 
@@ -1284,7 +1290,7 @@ class StructuredJsonHandler(JsonHandler):
         In the same, when a string is added from the editor we escape the key and similarly
         to the above logic, we need it unescaped on compile.
         """
-        key_literal = f'"{self.unescape(os.key)}"'
+        key_literal = f'"{self._unescape_key(os.key)}"'
         payload = self._build_structured_payload(os)
 
         value_literal = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -1322,7 +1328,7 @@ class StructuredJsonHandler(JsonHandler):
               }
             }
         """
-        container = {self.unescape(os.key): self._build_structured_payload(os)}
+        container = {self._unescape_key(os.key): self._build_structured_payload(os)}
 
         return json.dumps(container, ensure_ascii=False, indent=2)
 
