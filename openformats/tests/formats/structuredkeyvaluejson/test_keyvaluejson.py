@@ -10,8 +10,7 @@ from openformats.exceptions import ParseError
 from openformats.strings import OpenString
 from openformats.utils.json import DumbJson
 from openformats.tests.formats.common import CommonFormatTestMixin
-from openformats.tests.utils.strings import (generate_random_string,
-                                             bytes_to_string)
+from openformats.tests.utils.strings import generate_random_string, bytes_to_string
 
 
 class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
@@ -24,66 +23,76 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         self.handler = StructuredJsonHandler()
         self.random_string = generate_random_string()
-        self.pluralized_string = "{ item_count, plural, one {You have {file_count} file.} other {You have {file_count} files.} }" # noqa
+        self.pluralized_string = "{ item_count, plural, one {You have {file_count} file.} other {You have {file_count} files.} }"  # noqa
 
-        self.random_openstring = OpenString("a",
-                                            self.random_string, order=0)
+        self.random_openstring = OpenString("a", self.random_string, order=0)
         self.random_hash = self.random_openstring.template_replacement
 
     def test_broken(self):
-        stringset = [
-            OpenString("b", "foo_tr", order=0)
-        ]
+        stringset = [OpenString("b", "foo_tr", order=0)]
         string_hash = stringset[0].template_replacement
-        template, stringset = self.handler.parse('{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}') # noqa
+        template, stringset = self.handler.parse(
+            '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}'
+        )  # noqa
         compiled = self.handler.compile(template, stringset)
-        self.assertEqual(template, '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "%s"}}' % string_hash) # noqa
-        self.assertEqual(compiled, '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}') # noqa
+        self.assertEqual(
+            template,
+            '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "%s"}}'
+            % string_hash,
+        )  # noqa
+        self.assertEqual(
+            compiled,
+            '{"a": {"string":" ", "character_limit": 1, "developer_comment": "A"}, "b": {"string": "foo"}}',
+        )  # noqa
 
     def test_simple(self):
-        template, stringset = self.handler.parse('{"a": {"string":"%s"}}' %
-                                                 self.random_string)
+        template, stringset = self.handler.parse(
+            '{"a": {"string":"%s"}}' % self.random_string
+        )
         compiled = self.handler.compile(template, [self.random_openstring])
-        self.assertEqual(template,
-                         '{"a": {"string":"%s"}}' % self.random_hash)
+        self.assertEqual(template, '{"a": {"string":"%s"}}' % self.random_hash)
         self.assertEqual(len(stringset), 1)
-        self.assertEqual(stringset[0].__dict__,
-                         self.random_openstring.__dict__)
-        self.assertEqual(compiled,
-                         '{"a": {"string":"%s"}}' % self.random_string)
+        self.assertEqual(stringset[0].__dict__, self.random_openstring.__dict__)
+        self.assertEqual(compiled, '{"a": {"string":"%s"}}' % self.random_string)
 
     def test_dots_in_key(self):
         first_level_key = "a.b"
-        source = '{"%s": {"c": {"string": "%s"}}}' % (first_level_key, self.random_string)
+        source = '{"%s": {"c": {"string": "%s"}}}' % (
+            first_level_key,
+            self.random_string,
+        )
         openstring = OpenString(
             "{}.c".format(self.handler._escape_key(first_level_key)),
-            self.random_string, order=0
+            self.random_string,
+            order=0,
         )
         random_hash = openstring.template_replacement
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
 
-        self.assertEqual(template,
-                         '{"a.b": {"c": {"string": "%s"}}}' % random_hash)
+        self.assertEqual(template, '{"a.b": {"c": {"string": "%s"}}}' % random_hash)
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, openstring.__dict__)
         self.assertEqual(compiled, source)
 
     def test_escaped_character_in_key(self):
         first_level_key = "a\/b"
-        source = '{"%s": {"c": {"string": "%s"}}}' % (first_level_key, self.random_string)
+        source = '{"%s": {"c": {"string": "%s"}}}' % (
+            first_level_key,
+            self.random_string,
+        )
         openstring = OpenString(
             "{}.c".format(self.handler._escape_key(first_level_key)),
-            self.random_string, order=0
+            self.random_string,
+            order=0,
         )
         random_hash = openstring.template_replacement
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
 
-        self.assertEqual(template,
-                         '{"a\/b": {"c": {"string": "%s"}}}' % random_hash)
+        self.assertEqual(template, '{"a\/b": {"c": {"string": "%s"}}}' % random_hash)
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, openstring.__dict__)
         self.assertEqual(compiled, source)
@@ -96,8 +105,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring])
 
-        self.assertEqual(template,
-                         '{"a": {"b": {"string": "%s"}}}' % random_hash)
+        self.assertEqual(template, '{"a": {"b": {"string": "%s"}}}' % random_hash)
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].__dict__, openstring.__dict__)
         self.assertEqual(compiled, source)
@@ -117,46 +125,51 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         hash1 = self.random_hash
         hash2 = openstring2.template_replacement
 
-        source = ('{"a": {"string":"%s"}, "b": {"string":"%s"}}' %
-                  (string1, string2))
+        source = '{"a": {"string":"%s"}, "b": {"string":"%s"}}' % (string1, string2)
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, [openstring1])
 
-        self.assertEqual(template,
-                         '{"a": {"string":"%s"}, "b": {"string":"%s"}}' %
-                         (hash1, hash2))
+        self.assertEqual(
+            template, '{"a": {"string":"%s"}, "b": {"string":"%s"}}' % (hash1, hash2)
+        )
         self.assertEqual(len(stringset), 2)
         self.assertEqual(stringset[0].__dict__, openstring1.__dict__)
         self.assertEqual(stringset[1].__dict__, openstring2.__dict__)
         self.assertEqual(
-            compiled,
-            '{"a": {"string":"%s"}, "b": {"string":"%s"}}' % (string1, hash2)
+            compiled, '{"a": {"string":"%s"}, "b": {"string":"%s"}}' % (string1, hash2)
         )
 
     def test_invalid_json(self):
         with self.assertRaises(ParseError) as context:
-            self.handler.parse(u'invalid_json')
+            self.handler.parse("invalid_json")
 
-        self.assertIn(six.text_type(context.exception),
-                      ("Expecting value: line 1 column 1 (char 0)",
-                       "No JSON object could be decoded"))
+        self.assertIn(
+            six.text_type(context.exception),
+            (
+                "Expecting value: line 1 column 1 (char 0)",
+                "No JSON object could be decoded",
+            ),
+        )
 
     def test_invalid_json_type(self):
-        self._test_parse_error('[false]', "No strings could be extracted")
+        self._test_parse_error("[false]", "No strings could be extracted")
 
         self._test_parse_error('{"false": false}', "No strings could be extracted")
 
     def test_not_json_container(self):
-        self._test_parse_error('"hello"',
-                               'Was expecting whitespace or one of `[{` on '
-                               'line 1, found `"` instead')
-        self._test_parse_error('3',
-                               "Was expecting whitespace or one of `[{` on "
-                               "line 1, found `3` instead")
-        self._test_parse_error('false',
-                               "Was expecting whitespace or one of `[{` on "
-                               "line 1, found `f` instead")
+        self._test_parse_error(
+            '"hello"',
+            "Was expecting whitespace or one of `[{` on " 'line 1, found `"` instead',
+        )
+        self._test_parse_error(
+            "3",
+            "Was expecting whitespace or one of `[{` on " "line 1, found `3` instead",
+        )
+        self._test_parse_error(
+            "false",
+            "Was expecting whitespace or one of `[{` on " "line 1, found `f` instead",
+        )
 
     def test_skipping_stuff_within_strings(self):
         source = '{"a": {"string":"b,  ,c"}}'
@@ -167,79 +180,82 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_invalid_structured_json_value(self):
         self._test_parse_error(
             '{"key": {"string": {"test": {"string": "test"}}}}',
-            "Invalid string value in line 1"
+            "Invalid string value in line 1",
         )
 
     def test_duplicate_keys(self):
-        self._test_parse_error('{"a": {"string": "hello"}, "a": {"string": "hello"}}', # noqa
-                               "Duplicate string key ('a') in line 1")
+        self._test_parse_error(
+            '{"a": {"string": "hello"}, "a": {"string": "hello"}}',  # noqa
+            "Duplicate string key ('a') in line 1",
+        )
 
     def test_display_json_errors(self):
-        self._test_parse_error('["]',
-                               "Unterminated string starting at: line 1 "
-                               "column 2 (char 1)")
+        self._test_parse_error(
+            '["]', "Unterminated string starting at: line 1 " "column 2 (char 1)"
+        )
 
     def test_unescape(self):
         cases = (
             # simple => simple
-            ([u's', u'i', u'm', u'p', u'l', u'e'],
-             [u's', u'i', u'm', u'p', u'l', u'e']),
+            (["s", "i", "m", "p", "l", "e"], ["s", "i", "m", "p", "l", "e"]),
             # hεllo => hεllo
-            ([u'h', u'ε', u'l', u'l', u'o'],
-             [u'h', u'ε', u'l', u'l', u'o']),
+            (["h", "ε", "l", "l", "o"], ["h", "ε", "l", "l", "o"]),
             # h\u03b5llo => hεllo
-            ([u'h', u'\\', u'u', u'0', u'3', u'b', u'5', u'l', u'l', u'o'],
-             [u'h', u'ε', u'l', u'l', u'o']),
+            (
+                ["h", "\\", "u", "0", "3", "b", "5", "l", "l", "o"],
+                ["h", "ε", "l", "l", "o"],
+            ),
             # a\"b => a"b
-            ([u'a', u'\\', u'"', u'b'], [u'a', u'"', u'b']),
+            (["a", "\\", '"', "b"], ["a", '"', "b"]),
             # a\/b => a/b
-            ([u'a', u'\\', u'/', u'b'], [u'a', u'/', u'b']),
+            (["a", "\\", "/", "b"], ["a", "/", "b"]),
             # a\/b => a?b, ? = BACKSPACE
-            ([u'a', u'\\', u'b', u'b'], [u'a', u'\b', u'b']),
+            (["a", "\\", "b", "b"], ["a", "\b", "b"]),
             # a\fb => a?b, ? = FORMFEED
-            ([u'a', u'\\', u'f', u'b'], [u'a', u'\f', u'b']),
+            (["a", "\\", "f", "b"], ["a", "\f", "b"]),
             # a\nb => a?b, ? = NEWLINE
-            ([u'a', u'\\', u'n', u'b'], [u'a', u'\n', u'b']),
+            (["a", "\\", "n", "b"], ["a", "\n", "b"]),
             # a\rb => a?b, ? = CARRIAGE_RETURN
-            ([u'a', u'\\', u'r', u'b'], [u'a', u'\r', u'b']),
+            (["a", "\\", "r", "b"], ["a", "\r", "b"]),
             # a\tb => a?b, ? = TAB
-            ([u'a', u'\\', u't', u'b'], [u'a', u'\t', u'b']),
+            (["a", "\\", "t", "b"], ["a", "\t", "b"]),
         )
         for raw, rich in cases:
-            self.assertEqual(StructuredJsonHandler.unescape(
-                bytes_to_string(raw)), bytes_to_string(rich)
+            self.assertEqual(
+                StructuredJsonHandler.unescape(bytes_to_string(raw)),
+                bytes_to_string(rich),
             )
 
     def test_escape(self):
         cases = (
             # simple => simple
-            ([u's', u'i', u'm', u'p', u'l', u'e'],
-             [u's', u'i', u'm', u'p', u'l', u'e']),
+            (["s", "i", "m", "p", "l", "e"], ["s", "i", "m", "p", "l", "e"]),
             # hεllo => hεllo
-            ([u'h', u'ε', u'l', u'l', u'o'],
-             [u'h', u'ε', u'l', u'l', u'o']),
+            (["h", "ε", "l", "l", "o"], ["h", "ε", "l", "l", "o"]),
             # h\u03b5llo => h\\u03b5llo
-            ([u'h', u'\\', u'u', u'0', u'3', u'b', u'5', u'l', u'l', u'o'],
-             [u'h', u'\\', u'\\', u'u', u'0', u'3', u'b', u'5', u'l', u'l',
-              u'o']),
+            (
+                ["h", "\\", "u", "0", "3", "b", "5", "l", "l", "o"],
+                ["h", "\\", "\\", "u", "0", "3", "b", "5", "l", "l", "o"],
+            ),
             # a"b =>a\"b
-            ([u'a', u'"', u'b'], [u'a', u'\\', u'"', u'b']),
+            (["a", '"', "b"], ["a", "\\", '"', "b"]),
             # a/b =>a/b
-            ([u'a', u'/', u'b'], [u'a', u'/', u'b']),
+            (["a", "/", "b"], ["a", "/", "b"]),
             # a?b =>a\/b, ? = BACKSPACE
-            ([u'a', u'\b', u'b'], [u'a', u'\\', u'b', u'b']),
+            (["a", "\b", "b"], ["a", "\\", "b", "b"]),
             # a?b =>a\fb, ? = FORMFEED
-            ([u'a', u'\f', u'b'], [u'a', u'\\', u'f', u'b']),
+            (["a", "\f", "b"], ["a", "\\", "f", "b"]),
             # a?b =>a\nb, ? = NEWLINE
-            ([u'a', u'\n', u'b'], [u'a', u'\\', u'n', u'b']),
+            (["a", "\n", "b"], ["a", "\\", "n", "b"]),
             # a?b =>a\rb, ? = CARRIAGE_RETURN
-            ([u'a', u'\r', u'b'], [u'a', u'\\', u'r', u'b']),
+            (["a", "\r", "b"], ["a", "\\", "r", "b"]),
             # a?b => a\tb, ? = TAB
-            ([u'a', u'\t', u'b'], [u'a', u'\\', u't', u'b']),
+            (["a", "\t", "b"], ["a", "\\", "t", "b"]),
         )
         for rich, raw in cases:
-            self.assertEqual(StructuredJsonHandler.escape(
-                bytes_to_string(rich)), bytes_to_string(raw)
+            self.assertEqual(
+                StructuredJsonHandler.escape(bytes_to_string(rich)),
+                bytes_to_string(raw),
             )
 
     # PLURALS
@@ -248,19 +264,19 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # Test various cases of messed-up braces
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have {file_count file.} other {You have {file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files"'
+            'Invalid format of pluralized entry with key: "total_files"',
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have file_count} file.} other {You have {file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files"'
+            'Invalid format of pluralized entry with key: "total_files"',
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have {file_count} file. other {You have {file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files"'
+            'Invalid format of pluralized entry with key: "total_files"',
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, one {You have {file_count} file}. other {You have file_count} files.} }" }}',  # noqa
-            'Invalid format of pluralized entry with key: "total_files"'
+            'Invalid format of pluralized entry with key: "total_files"',
         )
 
     def test_invalid_plural_rules(self):
@@ -269,70 +285,70 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         # Anything else, including their TX int equivalents are invalid.
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, 1 {file} 5 {{file_count} files} }" }}',  # noqa
-            'Invalid plural rule(s): "1, 5" in pluralized entry with key: total_files'  # noqa
+            'Invalid plural rule(s): "1, 5" in pluralized entry with key: total_files',  # noqa
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, once {file} mother {{file_count} files} }" }}',  # noqa
-            'Invalid plural rule(s): "once, mother" in pluralized entry with key: total_files'  # noqa
+            'Invalid plural rule(s): "once, mother" in pluralized entry with key: total_files',  # noqa
         )
         self._test_parse_error_message(
             '{ "total_files": {"string": "{ item_count, plural, =3 {file} other {{file_count} files} }" }}',  # noqa
-            'Invalid plural rule(s): "=3" in pluralized entry with key: total_files'  # noqa
+            'Invalid plural rule(s): "=3" in pluralized entry with key: total_files',  # noqa
         )
 
     def test_irrelevant_whitespace_ignored(self):
         # Whitespace between the various parts of the message format structure
         # should be ignored.
-        expected_translations = {0: 'Empty', 5: '{count} files'}
+        expected_translations = {0: "Empty", 5: "{count} files"}
 
         self._test_translations_equal(
-            '{'
-            '    "k": {"string": "{ cnt, plural, zero {Empty} other {{count} files} }"}' # noqa
-            '}',
-            expected_translations
+            "{"
+            '    "k": {"string": "{ cnt, plural, zero {Empty} other {{count} files} }"}'  # noqa
+            "}",
+            expected_translations,
         )
         self._test_translations_equal(
-            '{'
-            '    "k": {"string": "{cnt,plural,zero{Empty}other{{count} files} }"}' # noqa
-            '}',
-            expected_translations
+            "{"
+            '    "k": {"string": "{cnt,plural,zero{Empty}other{{count} files} }"}'  # noqa
+            "}",
+            expected_translations,
         )
         self._test_translations_equal(
             '{ "k": {"string": "{    cnt,  plural,     zero  {Empty} other   {{count} files} }   "     }}',  # noqa
-            expected_translations
+            expected_translations,
         )
         self._test_translations_equal(
-            '     {'
-            '    "k": {"string": "{cnt,plural,zero{Empty}other{{count} files} }"}' # noqa
-            '}  ',
-            expected_translations
+            "     {"
+            '    "k": {"string": "{cnt,plural,zero{Empty}other{{count} files} }"}'  # noqa
+            "}  ",
+            expected_translations,
         )
         self._test_translations_equal(
-            '{'
-            '    "k": {"string": "  {cnt, plural, zero {Empty} other {{count} files} }"}' # noqa
-            '}',
-            expected_translations
+            "{"
+            '    "k": {"string": "  {cnt, plural, zero {Empty} other {{count} files} }"}'  # noqa
+            "}",
+            expected_translations,
         )
         self._test_translations_equal(
-            '{'
-            '    "k": {"string": "{cnt , plural , zero {Empty} other {{count} files} }"}' # noqa
-            '}',
-            expected_translations
+            "{"
+            '    "k": {"string": "{cnt , plural , zero {Empty} other {{count} files} }"}'  # noqa
+            "}",
+            expected_translations,
         )
 
         # Escaped new lines should be allowed
         self._test_translations_equal(
-            '{'
+            "{"
             '    "k": {"string": "{cnt, plural,\\n zero {Empty} other {{count} files} \\n}"}'  # noqa
-            '}',
-            expected_translations
+            "}",
+            expected_translations,
         )
 
         # Rendering a template with escaped new lines should work. However,
         # these characters cannot be inside the pluralized string, because the
         # template would be very hard to create in that case (e.g. not allowed
         # in: 'zero {Empty} \n other {{count} files}'
-        source = '{"a": {"string": "{cnt, plural,\\n one {0} other {{count} files} \\n}"}}' # noqa
+        source = '{"a": {"string": "{cnt, plural,\\n one {0} other {{count} files} \\n}"}}'  # noqa
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
         self.assertEqual(compiled, source)
@@ -346,34 +362,33 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         self.assertEqual(
             stringset[0].string,
-            '{ gender_of_host, select, female {{host} appeared} male {{host} appeared} }' # noqa
+            "{ gender_of_host, select, female {{host} appeared} male {{host} appeared} }",  # noqa
         )
 
     def test_nesting_with_plurals(self):
-        expected_translations = {0: 'Empty', 5: '{count} files'}
+        expected_translations = {0: "Empty", 5: "{count} files"}
 
         self._test_translations_equal(
             '{ "k": { "a": {"string" :"{ cnt, plural, zero {Empty} other {{count} files} }", "b": "c" } }}',  # noqa
-            expected_translations
+            expected_translations,
         )
 
     def test_whitespace_in_translations_not_ignored(self):
         # Whitespace between the various parts of the message format structure
         # should be ignored.
         self._test_translations_equal(
-            '{"k": {"string": "{ cnt, plural, zero { Empty} other {{count} files} }"}}', # noqa
-            {0: ' Empty', 5: '{count} files'}
+            '{"k": {"string": "{ cnt, plural, zero { Empty} other {{count} files} }"}}',  # noqa
+            {0: " Empty", 5: "{count} files"},
         )
         self._test_translations_equal(
-            '{"k": {"string": "{ cnt, plural, zero { Empty  } other {{count} files } }"}}', # noqa
-            {0: ' Empty  ', 5: '{count} files '}
+            '{"k": {"string": "{ cnt, plural, zero { Empty  } other {{count} files } }"}}',  # noqa
+            {0: " Empty  ", 5: "{count} files "},
         )
 
     def test_openstring_structure(self):
         _, stringset = self.handler.parse(
             '{"a": {"string":"%s", "developer_comment": "developer_comment",'
-            '"character_limit": 150, "context": "context"}}'
-            % self.random_string
+            '"character_limit": 150, "context": "context"}}' % self.random_string
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].string, self.random_string)
@@ -383,9 +398,8 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_openstring_structure_with_nested_format(self):
         _, stringset = self.handler.parse(
-            '{"a": {"level": {"string":"%s", "developer_comment": "developer_comment",' # noqa
-            '"character_limit": 150, "context": "context"}}}'
-            % self.random_string
+            '{"a": {"level": {"string":"%s", "developer_comment": "developer_comment",'  # noqa
+            '"character_limit": 150, "context": "context"}}}' % self.random_string
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].string, self.random_string)
@@ -395,9 +409,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(stringset[0].context, "context")
 
     def test_openstring_structure_with_default_values(self):
-        _, stringset = self.handler.parse(
-            '{"a": {"string":"%s"}}' % self.random_string
-        )
+        _, stringset = self.handler.parse('{"a": {"string":"%s"}}' % self.random_string)
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].string, self.random_string)
         self.assertEqual(stringset[0].developer_comment, "")
@@ -407,8 +419,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
     def test_pluralized_openstring_structure(self):
         _, stringset = self.handler.parse(
             '{"a": {"string":"%s", "developer_comment": "developer_comment",'
-            '"character_limit": 150, "context": "context"}}'
-            % self.pluralized_string
+            '"character_limit": 150, "context": "context"}}' % self.pluralized_string
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].developer_comment, "developer_comment")
@@ -417,9 +428,8 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_pluralized_openstring_structure_with_nested_format(self):
         _, stringset = self.handler.parse(
-            '{"a": {"level": {"string":"%s", "developer_comment": "developer_comment",' # noqa
-            '"character_limit": 150, "context": "context"}}}'
-            % self.pluralized_string
+            '{"a": {"level": {"string":"%s", "developer_comment": "developer_comment",'  # noqa
+            '"character_limit": 150, "context": "context"}}}' % self.pluralized_string
         )
         self.assertEqual(len(stringset), 1)
         self.assertEqual(stringset[0].developer_comment, "developer_comment")
@@ -449,28 +459,34 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         template, stringset = self.handler.parse(source)
         for rule_int in six.iterkeys(translations_by_rule):
             self.assertEqual(
-                translations_by_rule[rule_int],
-                stringset[0].string[rule_int]
+                translations_by_rule[rule_int], stringset[0].string[rule_int]
             )
 
     def test_list_in_children_left_untouched(self):
-        source = '{"a": {"string":"%s", "developer_comment": "developer_comment",' \
-                 '"character_limit": 150, "context": "context"}, "b": [1, "a", "b"]}' % self.pluralized_string
+        source = (
+            '{"a": {"string":"%s", "developer_comment": "developer_comment",'
+            '"character_limit": 150, "context": "context"}, "b": [1, "a", "b"]}'
+            % self.pluralized_string
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
         self.assertEqual(compiled, source)
 
     def test_compile_when_root_is_list(self):
-        source = '[{"a": {"string":"%s", "developer_comment": "developer_comment",' \
-                 '"character_limit": 150, "context": "context"}, "b": [1, "a", "b"]}]' % self.pluralized_string
+        source = (
+            '[{"a": {"string":"%s", "developer_comment": "developer_comment",'
+            '"character_limit": 150, "context": "context"}, "b": [1, "a", "b"]}]'
+            % self.pluralized_string
+        )
 
         template, stringset = self.handler.parse(source)
         compiled = self.handler.compile(template, stringset)
         self.assertEqual(compiled, source)
 
     def test_template_with_existing_values(self):
-        source = """
+        source = (
+            """
         {
             "a": {
                 "character_limit":150,
@@ -479,9 +495,12 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "context": "contexttt"
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
 
-        expected_compilation = """
+        expected_compilation = (
+            """
         {
             "a": {
                 "character_limit":49,
@@ -490,7 +509,9 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "context": "context_changed"
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
 
         template, stringset = self.handler.parse(source)
 
@@ -508,15 +529,19 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_template_with_values_defined_after_template(self):
-        source = """
+        source = (
+            """
         {
             "a": {
                 "string": "%s"
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
 
-        expected_compilation = """
+        expected_compilation = (
+            """
         {
             "a": {
                 "string": "%s",
@@ -525,7 +550,9 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "developer_comment": "the_comment"
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
         template, stringset = self.handler.parse(source)
 
         updated_strings = [
@@ -542,7 +569,8 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_template_with_values_removed_after_template(self):
-        source = """
+        source = (
+            """
         {
             "a": {
                 "string":"%s",
@@ -551,9 +579,12 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "context":"contexttt"
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
 
-        expected_compilation = """
+        expected_compilation = (
+            """
         {
             "a": {
                 "string":"%s",
@@ -562,15 +593,17 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "context":""
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
         template, stringset = self.handler.parse(source)
 
         updated_strings = [
             OpenString(
                 key=stringset[0].key,
                 string_or_strings=stringset[0].strings,
-                context='',
-                developer_comment='',
+                context="",
+                developer_comment="",
                 character_limit=None,
             )
         ]
@@ -580,7 +613,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
     def test_template_separators(self):
         source = '{"a": {\n    "string": "%s"}}' % self.random_string
-        expected_compilation = '{"a": {\n    "string": "%s",\n    "character_limit": 153}}' % self.random_string
+        expected_compilation = (
+            '{"a": {\n    "string": "%s",\n    "character_limit": 153}}'
+            % self.random_string
+        )
         template, stringset = self.handler.parse(source)
 
         with_updated_char_limit = [
@@ -597,16 +633,19 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_unicode(self):
-        source = u"""
+        source = (
+            """
         {
             "a": {
                 "string": "%s",
                 "something_else": "\xa0"
             }
         }
-        """ % self.random_string
+        """
+            % self.random_string
+        )
 
-        expected_compilation = u"""
+        expected_compilation = """
         {
             "a": {
                 "string": "\xa0",
@@ -619,7 +658,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         with_updated_char_limit = [
             OpenString(
                 key=stringset[0].key,
-                string_or_strings=u"\xa0",
+                string_or_strings="\xa0",
                 context=stringset[0].context,
                 developer_comment=stringset[0].developer_comment,
                 character_limit=stringset[0].character_limit,
@@ -630,7 +669,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_unescaped(self):
-        source = u"""
+        source = """
         {
             "a": {
                 "string": "testtest",
@@ -643,7 +682,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         }
         """
 
-        expected_compilation = u"""
+        expected_compilation = """
         {
             "a": {
                 "string": "testtest",
@@ -663,17 +702,17 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             OpenString(
                 key=stringset[0].key,
                 string_or_strings=stringset[0].string,
-                context=u'other " context',
-                developer_comment=u'other " comment',
+                context='other " context',
+                developer_comment='other " comment',
                 character_limit=stringset[0].character_limit,
             ),
             OpenString(
                 key=stringset[1].key,
                 string_or_strings=stringset[1].string,
-                context=u'other " context',
-                developer_comment=u'other " comment',
+                context='other " context',
+                developer_comment='other " comment',
                 character_limit=stringset[1].character_limit,
-            )
+            ),
         ]
 
         compiled = self.handler.compile(template, unescaped)
@@ -681,7 +720,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_empty_strings(self):
-        source = u"""
+        source = """
         {
             "a": {
                 "string": ""
@@ -692,13 +731,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             }
         }
         """
-        self._test_parse_error(
-            source,
-            "No strings could be extracted"
-        )
+        self._test_parse_error(source, "No strings could be extracted")
 
     def test_empty_values_with_null_template_value(self):
-        source = u"""
+        source = """
         {
             "a" : {
                 "developer_comment" : null,
@@ -708,7 +744,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         }
         """
 
-        expected_compilation = u"""
+        expected_compilation = """
         {
             "a" : {
                 "developer_comment" : null,
@@ -734,7 +770,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_empty_values_with_empty_template_value(self):
-        source = u"""
+        source = """
         {
             "a" : {
                 "developer_comment" : "",
@@ -744,7 +780,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         }
         """
 
-        expected_compilation = u"""
+        expected_compilation = """
         {
             "a" : {
                 "developer_comment" : "",
@@ -770,7 +806,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_non_empty_values_with_null_template_value(self):
-        source = u"""
+        source = """
         {
             "a" : {
                 "developer_comment" : null,
@@ -780,7 +816,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         }
         """
 
-        expected_compilation = u"""
+        expected_compilation = """
         {
             "a" : {
                 "developer_comment" : "some_comment",
@@ -806,7 +842,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(compiled, expected_compilation)
 
     def test_non_empty_values_with_non_existing_template_value(self):
-        source = u"""
+        source = """
         {
             "a" : {
                 "string" : "str"
@@ -814,7 +850,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         }
         """
 
-        expected_compilation = u"""
+        expected_compilation = """
         {
             "a" : {
                 "string" : "str",
@@ -865,7 +901,6 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         data = json.loads(updated)
         self.assertEqual(data, [])
-
 
     def test_sync_template_keeps_all_when_strings_match(self):
         s1 = generate_random_string()
@@ -924,6 +959,28 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertIsInstance(data["b"], dict)
         self.assertEqual(data["b"]["string"], hash_b)
 
+    def test_sync_template_adds_new_string_for_dict_root_key_unescaped(self):
+        # Start with only "a" in template; add "b" via sync_template
+        s1 = generate_random_string()
+        source = '{"a": {"string": "%s"}}' % s1
+
+        template, stringset = self.handler.parse(source)
+        os_a = stringset[0]
+
+        # Create a new OpenString "b" that does not exist in template
+        s2 = generate_random_string()
+        os_b = OpenString(r"b \\b \.", s2, order=1)
+        hash_b = os_b.template_replacement
+
+        updated = self.handler.sync_template(template, [os_a, os_b])
+
+        data = json.loads(updated)
+        # Both keys should be present
+        self.assertEqual(set(data.keys()), {"a", "b \b ."})
+        # "b" should be a structured entry with "string" == hash
+        self.assertIsInstance(data["b \b ."], dict)
+        self.assertEqual(data["b \b ."]["string"], hash_b)
+
     def test_sync_template_list_root_remove(self):
         # Root is a list; inner object is the structured container
         s1 = generate_random_string()
@@ -943,7 +1000,6 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(set(inner.keys()), {"a"})
         self.assertEqual(inner["a"]["string"], os_a.template_replacement)
 
-
     def test_get_root_for_dict_and_list(self):
         # Dict root
         s = generate_random_string()
@@ -959,7 +1015,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(root_type_list, list)
 
         # List root with no dict elements -> should return list, list
-        parsed_list2 = DumbJson('[1, 2, 3]')
+        parsed_list2 = DumbJson("[1, 2, 3]")
         root_type2 = self.handler._get_root(parsed_list2)
         self.assertEqual(root_type2, list)
 
@@ -996,7 +1052,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             "c": 123,
             "d": [1, 2, 3]
         }
-        """ % (s1, s2)
+        """ % (
+            s1,
+            s2,
+        )
 
         template, stringset = self.handler.parse(source)
         os_a, os_b = stringset
@@ -1025,7 +1084,11 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "z": { "string": "%s" }
             }
         }
-        """ % (s1, s2, s3)
+        """ % (
+            s1,
+            s2,
+            s3,
+        )
 
         template, stringset = self.handler.parse(source)
         os_ax, os_ay, os_bz = stringset
@@ -1048,7 +1111,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
                 "drop_me":   { "string": "%s" }
             }
         }
-        """ % (s1, s2)
+        """ % (
+            s1,
+            s2,
+        )
 
         template, stringset = self.handler.parse(source)
         os_keep, _ = stringset
@@ -1065,7 +1131,7 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         )
 
     def test_sync_template_plural_hash_matching(self):
-        plural_source = '{ cnt, plural, one {one} other {many} }'
+        plural_source = "{ cnt, plural, one {one} other {many} }"
         source = '{"k": {"string": "%s"}}' % plural_source
 
         template, stringset = self.handler.parse(source)
@@ -1094,7 +1160,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             123,
             456
         ]
-        """ % (s1, s2)
+        """ % (
+            s1,
+            s2,
+        )
 
         template, stringset = self.handler.parse(source)
         os_a, os_b = stringset
@@ -1123,7 +1192,10 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
             "b": { "string": "%s" },
             "meta": "keep_me"
         }
-        """ % (s1, s2)
+        """ % (
+            s1,
+            s2,
+        )
 
         template, _ = self.handler.parse(source)
 
@@ -1152,11 +1224,13 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         s2 = generate_random_string()
         s3 = generate_random_string()
 
-        source = json.dumps({
-            "a": {"string": s1},
-            "b": {"string": s2},
-            "d": {"string": "old_d"},
-        })
+        source = json.dumps(
+            {
+                "a": {"string": s1},
+                "b": {"string": s2},
+                "d": {"string": "old_d"},
+            }
+        )
         template, stringset = self.handler.parse(source)
 
         # stringset contains a, b, d — now replace the last with c
