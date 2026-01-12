@@ -1050,3 +1050,22 @@ class JsonTestCase(CommonFormatTestMixin, unittest.TestCase):
 
         keys = list(data.keys())
         self.assertEqual(keys, ["a", "b", "c", "d"])
+
+
+    def test_sync_template_adds_to_empty_dict_beautified_template(self):
+        string1 = self.random_string
+        openstring = OpenString("a", string1, order=0)
+
+        source = "{}"
+
+        updated_template = self.handler.sync_template(source, [openstring])
+
+        expected_template = (
+            "{\n"
+            f'  "a": "{openstring.template_replacement}"\n'
+            "}\n"
+        )
+        self.assertEqual(updated_template, expected_template)
+
+        compiled = self.handler.compile(updated_template, [openstring])
+        self.assertEqual(json.loads(compiled), {"a": string1})

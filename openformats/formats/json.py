@@ -299,6 +299,9 @@ class JsonHandler(Handler):
         items = list(parsed)
         had_items = bool(items)
 
+        if not had_items and container_type == dict:
+            return self._compile_empty_template(stringset)
+
         # Detect style
         multiline = "\n" in source[parsed.start : parsed.end + 1]
 
@@ -353,6 +356,19 @@ class JsonHandler(Handler):
             return list
 
         raise ParseError("Template must be a JSON object or array")
+
+    def _compile_empty_template(self, stringset):
+        """
+        Beautify an empty templates.
+        """
+        lines = []
+        print(len(stringset))
+        for os in stringset[self.stringset_index:]:
+            k = self._unescape_key(os.key)
+            v = os.template_replacement
+            lines.append(f'  "{k}": "{v}"')
+        print(lines)
+        return "{\n" + ",\n".join(lines) + "\n}\n"
 
     def _make_added_entry_for_dict(self, os):
         """
@@ -1134,6 +1150,17 @@ class StructuredJsonHandler(JsonHandler):
         self.transcriber.mark_section_end()
         # Unlike the JSON format, do not remove the remaining section of the
         # template
+
+    def _compile_empty_template(self, stringset):
+        """
+        Beautify an empty STRUCTURED_JSON template.
+        """
+        lines = []
+        for os in stringset[self.stringset_index:]:
+            key_literal, value_literal = self._build_structured_json_entry(os)
+            lines.append(f"  {key_literal}: {value_literal}")
+
+        return "{\n" + ",\n".join(lines) + "\n}\n"
 
     def remove_strings_from_template(self, template, stringset, **kwargs):
         """

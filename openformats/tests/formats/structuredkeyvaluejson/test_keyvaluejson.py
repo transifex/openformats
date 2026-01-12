@@ -1248,3 +1248,20 @@ class StructuredJsonTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertEqual(data["b"]["string"], os_b.template_replacement)
         self.assertEqual(data["c"]["string"], os_c.template_replacement)
         self.assertEqual(data["d"]["string"], os_d.template_replacement)
+
+
+    def test_sync_template_adds_to_empty_dict_beautified_template(self):
+        s1 = generate_random_string()
+        os_a = OpenString("a", s1, order=0)
+
+        source = "{}"
+        updated = self.handler.sync_template(source, [os_a])
+
+        data = json.loads(updated)
+        self.assertEqual(set(data.keys()), {"a"})
+        self.assertIsInstance(data["a"], dict)
+        self.assertEqual(data["a"]["string"], os_a.template_replacement)
+
+        self.assertIn('\n', updated)          # multiline
+        self.assertTrue(updated.strip().startswith("{"))
+        self.assertTrue(updated.strip().endswith("}"))
