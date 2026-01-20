@@ -3,7 +3,7 @@
     "string": "ab2800d7ccb83ba2d643174531d08e36_tr"
   },
   "total_files": {
-    "string": "{ item_count, plural, 4d0dfbc44762841c0cec988d1e18b4a6_pl }",
+    "string": "{ file_count, plural, 4d0dfbc44762841c0cec988d1e18b4a6_pl }",
     "context": "Noun"
   },
   "special_chars": {
@@ -11,7 +11,7 @@
     "developer_comment": "This is a string with special characters"
   },
   "gold_coins": {
-    "string": "{ count, plural,\n 8060865280cf7fc9e80b79145208a825_pl \n}",
+    "string": "{ cnt, plural,\n 8060865280cf7fc9e80b79145208a825_pl \n}",
     "character_limit": 150
   },
   "something": {
