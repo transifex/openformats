@@ -1060,3 +1060,266 @@ class PoTestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertIn(f'msgid_plural "{msgid_plural}"', compiled)
         self.assertIn(f'msgstr[0] "{singular}"', compiled)
         self.assertIn(f'msgstr[1] "{plural}"', compiled)
+
+    def test_make_added_entry_empty_context_does_not_produce_msgctxt(self):
+        """
+        When context is an empty string, _make_added_entry should not
+        produce a 'msgctxt ""' line in the PO output.
+        """
+        key = generate_random_string()
+        string_value = generate_random_string()
+
+        os = OpenString(
+            key,
+            string_value,
+            order=0,
+            pluralized=False,
+            context="",
+        )
+        os.string_hash
+
+        entry = self.handler._make_added_entry(os)
+
+        # An empty context should result in msgctxt being None (no msgctxt
+        # line in the PO file), not an empty string which would produce
+        # 'msgctxt ""'
+        self.assertIsNone(entry.msgctxt)
+
+        source = strip_leading_spaces(
+            """
+            msgid ""
+            msgstr ""
+            """
+        )
+        template, _ = self.handler.parse(source)
+        template = self.handler.sync_template(template, [os])
+        compiled = self.handler.compile(template, [os])
+
+        self.assertNotIn('msgctxt ""', compiled)
+        self.assertIn(f'msgid "{key}"', compiled)
+        self.assertIn(f'msgstr "{string_value}"', compiled)
+
+    def test_remove_strings_from_template_non_pluralized(self):
+        """
+        remove_strings_from_template should remove entries not in the
+        stringset and keep entries that are in the stringset.
+        """
+        string1 = self._create_openstring(False)
+        string2 = self._create_openstring(False)
+        string3 = self._create_openstring(False)
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{s1_key}"
+            msgstr "{s1_str}"
+
+            msgid "{s2_key}"
+            msgstr "{s2_str}"
+
+            msgid "{s3_key}"
+            msgstr "{s3_str}"
+        """.format(
+                **{
+                    "s1_key": string1.key,
+                    "s1_str": string1.string,
+                    "s2_key": string2.key,
+                    "s2_str": string2.string,
+                    "s3_key": string3.key,
+                    "s3_str": string3.string,
+                }
+            )
+        )
+        template, _ = self.handler.parse(source)
+
+        # Keep only string1 and string3, removing string2
+        result = self.handler.remove_strings_from_template(
+            template, [string1, string3]
+        )
+
+        self.assertIn(string1.template_replacement, result)
+        self.assertNotIn(string2.template_replacement, result)
+        self.assertIn(string3.template_replacement, result)
+        self.assertEqual(self.handler.stringset_index, 2)
+
+    def test_remove_strings_from_template_pluralized(self):
+        """
+        remove_strings_from_template should correctly handle pluralized
+        entries, matching on msgstr_plural["0"].
+        """
+        string1 = self._create_openstring(True)
+        keys1 = string1.key.split(":")
+        string2 = self._create_openstring(True)
+        keys2 = string2.key.split(":")
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{s1_key}"
+            msgid_plural "{s1_key_plural}"
+            msgstr[0] "{s1_str_singular}"
+            msgstr[1] "{s1_str_plural}"
+
+            msgid "{s2_key}"
+            msgid_plural "{s2_key_plural}"
+            msgstr[0] "{s2_str_singular}"
+            msgstr[1] "{s2_str_plural}"
+        """.format(
+                **{
+                    "s1_key": keys1[0],
+                    "s1_key_plural": keys1[1],
+                    "s1_str_singular": string1.string[0],
+                    "s1_str_plural": string1.string[1],
+                    "s2_key": keys2[0],
+                    "s2_key_plural": keys2[1],
+                    "s2_str_singular": string2.string[0],
+                    "s2_str_plural": string2.string[1],
+                }
+            )
+        )
+        template, stringset = self.handler.parse(source)
+
+        # Keep only string1, removing string2
+        result = self.handler.remove_strings_from_template(
+            template, [string1]
+        )
+
+        self.assertIn(string1.template_replacement, result)
+        self.assertNotIn(string2.template_replacement, result)
+        self.assertEqual(self.handler.stringset_index, 1)
+
+    def test_remove_strings_from_template_mixed_plural_and_non_plural(self):
+        """
+        remove_strings_from_template should handle a mix of pluralized
+        and non-pluralized entries correctly.
+        """
+        string_non_plural = self._create_openstring(False)
+        string_plural = self._create_openstring(True)
+        keys_plural = string_plural.key.split(":")
+        string_to_remove = self._create_openstring(False)
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{np_key}"
+            msgstr "{np_str}"
+
+            msgid "{p_key}"
+            msgid_plural "{p_key_plural}"
+            msgstr[0] "{p_str_singular}"
+            msgstr[1] "{p_str_plural}"
+
+            msgid "{rem_key}"
+            msgstr "{rem_str}"
+        """.format(
+                **{
+                    "np_key": string_non_plural.key,
+                    "np_str": string_non_plural.string,
+                    "p_key": keys_plural[0],
+                    "p_key_plural": keys_plural[1],
+                    "p_str_singular": string_plural.string[0],
+                    "p_str_plural": string_plural.string[1],
+                    "rem_key": string_to_remove.key,
+                    "rem_str": string_to_remove.string,
+                }
+            )
+        )
+        template, stringset = self.handler.parse(source)
+
+        # Keep non-plural and plural, remove the last one
+        result = self.handler.remove_strings_from_template(
+            template, [string_non_plural, string_plural]
+        )
+
+        self.assertIn(string_non_plural.template_replacement, result)
+        self.assertIn(string_plural.template_replacement, result)
+        self.assertNotIn(string_to_remove.template_replacement, result)
+        self.assertEqual(self.handler.stringset_index, 2)
+
+    def test_remove_strings_from_template_empty_stringset_removes_all(self):
+        """
+        When given an empty stringset, all entries should be removed.
+        """
+        string1 = self._create_openstring(False)
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{s1_key}"
+            msgstr "{s1_str}"
+        """.format(
+                **{
+                    "s1_key": string1.key,
+                    "s1_str": string1.string,
+                }
+            )
+        )
+        template, stringset = self.handler.parse(source)
+
+        result = self.handler.remove_strings_from_template(template, [])
+
+        self.assertNotIn(string1.template_replacement, result)
+        self.assertEqual(self.handler.stringset_index, 0)
+
+    def test_remove_strings_sets_stringset_index_for_add(self):
+        """
+        remove_strings_from_template sets stringset_index which is used
+        by add_strings_to_template to know where new strings start.
+        This verifies the full remove+add flow works together.
+        """
+        string1 = self._create_openstring(False)
+        string2 = self._create_openstring(False)
+        string_new = self._create_openstring(False)
+
+        source = strip_leading_spaces(
+            """
+            #
+
+            msgid ""
+            msgstr ""
+
+            msgid "{s1_key}"
+            msgstr "{s1_str}"
+
+            msgid "{s2_key}"
+            msgstr "{s2_str}"
+        """.format(
+                **{
+                    "s1_key": string1.key,
+                    "s1_str": string1.string,
+                    "s2_key": string2.key,
+                    "s2_str": string2.string,
+                }
+            )
+        )
+        template, stringset = self.handler.parse(source)
+
+        # Keep string1, remove string2, add string_new
+        full_stringset = [string1, string_new]
+        result = self.handler.remove_strings_from_template(
+            template, full_stringset
+        )
+        result = self.handler.add_strings_to_template(
+            result, full_stringset
+        )
+
+        # string1 kept, string2 removed, string_new added
+        self.assertIn(string1.key, result)
+        self.assertNotIn(string2.key, result)
+        self.assertIn(string_new.key, result)

@@ -48,10 +48,10 @@ class PoHandler(Handler):
         string_data_list = []
         string_types = set()  # choices: EMPTY, SPACES, NOT_EMPTY
         for entry in po:
-            msgid = self._escape_key_part(entry.msgid)
+            msgid = self._escape_key(entry.msgid)
             if not msgid:
                 raise ParseError("Found empty msgid.")
-            msgid_plural = self._escape_key_part(entry.msgid_plural)
+            msgid_plural = self._escape_key(entry.msgid_plural)
 
             pluralized = bool(msgid_plural)
             if pluralized:
@@ -309,20 +309,13 @@ class PoHandler(Handler):
         for i, entry in enumerate(po):
             if next_string is not None:
                 is_plural = True if entry.msgid_plural.strip() else False
-                if is_plural:
-                    if (
-                        entry.msgstr_plural.get("0") ==
-                        next_string.template_replacement
-                    ):
-                        matched_count += 1
-                        next_string = next(iterator, None)
-                        continue
-                else:
-                    if entry.msgstr == next_string.template_replacement:
-                        matched_count += 1
-                        next_string = next(iterator, None)
-                        continue
-
+                if (
+                    (is_plural and entry.msgstr_plural.get("0") == next_string.template_replacement)
+                    or entry.msgstr == next_string.template_replacement
+                ):
+                    matched_count += 1
+                    next_string = next(iterator, None)
+                    continue
             indexes_to_remove.append(i)
 
         self._smart_remove(po, indexes_to_remove)
@@ -353,35 +346,35 @@ class PoHandler(Handler):
         return PoHandler.pofile_to_str(po)
 
     @staticmethod
-    def _escape_key_part(part: str) -> str:
+    def _escape_key(part: str) -> str:
         return part.replace("\\", "\\\\").replace(":", "\\:")
 
     @staticmethod
-    def _unescape_key_part(part: str) -> str:
+    def _unescape_key(part: str) -> str:
         return part.replace("\\:", ":").replace("\\\\", "\\")
 
-    def _split_key_to_msgids(self, key):
+    def _split_key_to_msgids(self, key) -> tuple[str, str]:
         """
         Inverse of key building in `parse()`:
         - key is "<msgid-escaped>" or "<msgid-escaped>:<msgid_plural-escaped>"
         """
         # find first *unescaped* colon
-        sep_index = None
+        separation_index = None
         for i, ch in enumerate(key):
             if ch == ":" and (i == 0 or key[i - 1] != "\\"):
-                sep_index = i
+                separation_index = i
                 break
 
-        if sep_index is None:
+        if separation_index is None:
             msgid_escaped = key
             msgid_plural_escaped = ""
         else:
-            msgid_escaped = key[:sep_index]
-            msgid_plural_escaped = key[sep_index + 1 :]
+            msgid_escaped = key[:separation_index]
+            msgid_plural_escaped = key[separation_index + 1 :]
 
-        msgid = self._unescape_key_part(msgid_escaped)
+        msgid = self._unescape_key(msgid_escaped)
         msgid_plural = (
-            self._unescape_key_part(msgid_plural_escaped)
+            self._unescape_key(msgid_plural_escaped)
             if msgid_plural_escaped else ""
         )
 
@@ -396,7 +389,7 @@ class PoHandler(Handler):
         (e.g. special flags, comments, etc.).
         """
         msgid, msgid_plural = self._split_key_to_msgids(os.key)
-        msgctxt = getattr(os, "context", "") or None
+        msgctxt = getattr(os, "context", None) or None
 
         entry = polib.POEntry(
             msgid=msgid,
