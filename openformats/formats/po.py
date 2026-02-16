@@ -27,6 +27,12 @@ class PoHandler(Handler):
         r"(?:\.\d+)?(hh\|h\|l\|ll|j|z|t|L)?(?P<type>[diufFeEgGxXaAoscpn%])))"
     )
 
+    def __init__(self, *args, **kwargs):
+        super(PoHandler, self).__init__(*args, **kwargs)
+        self.stringset = []
+        self.stringset_index = 0
+
+
     def parse(self, source, is_source=False):
         try:
             po = polib.pofile(source)
@@ -42,10 +48,10 @@ class PoHandler(Handler):
         string_data_list = []
         string_types = set()  # choices: EMPTY, SPACES, NOT_EMPTY
         for entry in po:
-            msgid = entry.msgid.replace("\\", "\\\\").replace(":", "\\:")
+            msgid = self._escape_key(entry.msgid)
             if not msgid:
                 raise ParseError("Found empty msgid.")
-            msgid_plural = entry.msgid_plural.replace("\\", "\\\\").replace(":", "\\:")
+            msgid_plural = self._escape_key(entry.msgid_plural)
 
             pluralized = bool(msgid_plural)
             if pluralized:
@@ -266,7 +272,6 @@ class PoHandler(Handler):
         else:
             po = polib.pofile(template)
 
-        indexes_to_remove = []
         for i, entry in enumerate(po):
             if next_string is not None:
                 is_plural = True if entry.msgid_plural.strip() else False
@@ -277,10 +282,154 @@ class PoHandler(Handler):
                 if compiled:
                     next_string = next(stringset, None)
                     continue
-            indexes_to_remove.append(i)
-        self._smart_remove(po, indexes_to_remove)
 
         return PoHandler.pofile_to_str(po)
+
+    def remove_strings_from_template(self, template, stringset, **kwargs):
+        """
+        Remove PO entries that don't correspond to the given stringset.
+
+        we walk the PO and the stringset when the entry's
+        msgstr/msgstr_plural["0"] matches next_string.template_replacement
+        we keep it otherwise we mark it for removal.
+        """
+        stringset = list(stringset)
+
+        iterator = iter(stringset)
+        next_string = next(iterator, None)
+
+        if isinstance(template, polib.POFile):
+            po = template
+        else:
+            po = polib.pofile(template)
+
+        indexes_to_remove = []
+        matched_count = 0
+
+        for i, entry in enumerate(po):
+            if next_string is not None:
+                is_plural = True if entry.msgid_plural.strip() else False
+                if (
+                    (is_plural and entry.msgstr_plural.get("0") == next_string.template_replacement)
+                    or entry.msgstr == next_string.template_replacement
+                ):
+                    matched_count += 1
+                    next_string = next(iterator, None)
+                    continue
+            indexes_to_remove.append(i)
+
+        self._smart_remove(po, indexes_to_remove)
+
+        self.stringset_index = matched_count
+
+        return PoHandler.pofile_to_str(po)
+
+    def add_strings_to_template(self, template, stringset, **kwargs):
+        """
+        Add entries that do not exist in the template, using the remaining part
+        of the stringset (starting at self.stringset_index) just like JsonHandler.
+        """
+        stringset = list(stringset)
+        remaining = stringset[self.stringset_index:]
+        if not remaining:
+            return template
+
+        if isinstance(template, polib.POFile):
+            po = template
+        else:
+            po = polib.pofile(template)
+
+        for os in remaining:
+            entry = self._make_added_entry(os)
+            po.append(entry)
+
+        return PoHandler.pofile_to_str(po)
+
+    @staticmethod
+    def _escape_key(part: str) -> str:
+        return part.replace("\\", "\\\\").replace(":", "\\:")
+
+    @staticmethod
+    def _unescape_key(part: str) -> str:
+        return part.replace("\\:", ":").replace("\\\\", "\\")
+
+    def _split_key_to_msgids(self, key) -> tuple[str, str]:
+        """
+        Inverse of key building in `parse()`:
+        - key is "<msgid-escaped>" or "<msgid-escaped>:<msgid_plural-escaped>"
+        """
+        # find first *unescaped* colon
+        separation_index = None
+        for i, ch in enumerate(key):
+            if ch == ":" and (i == 0 or key[i - 1] != "\\"):
+                separation_index = i
+                break
+
+        if separation_index is None:
+            msgid_escaped = key
+            msgid_plural_escaped = ""
+        else:
+            msgid_escaped = key[:separation_index]
+            msgid_plural_escaped = key[separation_index + 1 :]
+
+        msgid = self._unescape_key(msgid_escaped)
+        msgid_plural = (
+            self._unescape_key(msgid_plural_escaped)
+            if msgid_plural_escaped else ""
+        )
+
+        return msgid, msgid_plural
+
+
+    def _make_added_entry(self, os):
+        """
+        Build a POEntry for a single added OpenString.
+
+        Subclasses can override this to change how new entries are formed
+        (e.g. special flags, comments, etc.).
+        """
+        msgid, msgid_plural = self._split_key_to_msgids(os.key)
+        msgctxt = getattr(os, "context", None) or None
+
+        entry = polib.POEntry(
+            msgid=msgid,
+            msgctxt=msgctxt,
+        )
+
+        if os.pluralized:
+            entry.msgid_plural = msgid_plural
+            # We still store the template placeholder as msgstr_plural["0"];
+            # compile() will later fill in the real plural strings.
+            entry.msgstr_plural = {"0": os.template_replacement}
+        else:
+            entry.msgstr = os.template_replacement
+
+        if getattr(os, "flags", None):
+            if isinstance(os.flags, six.string_types):
+                entry.flags = [
+                    flag.strip()
+                    for flag in os.flags.split(",")
+                    if flag.strip()
+                ]
+            else:
+                entry.flags = list(os.flags)
+
+        if getattr(os, "occurrences", None):
+            occs = []
+            if isinstance(os.occurrences, six.text_type):
+                for occ in os.occurrences.split(", "):
+                    if ":" in occ:
+                        filename, lineno = occ.split(":", 1)
+                        occs.append((filename, lineno))
+            else:
+                occs = os.occurrences
+            entry.occurrences = occs
+
+        if getattr(os, "developer_comment", None):
+            entry.comment = os.developer_comment
+
+        return entry
+
 
     def _compile_entry(self, entry, next_string):
         """Compiles the current non pluralized entry.
