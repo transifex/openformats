@@ -362,12 +362,10 @@ class JsonHandler(Handler):
         Beautify an empty templates.
         """
         lines = []
-        print(len(stringset))
         for os in stringset[self.stringset_index:]:
             k = self._unescape_key(os.key)
             v = os.template_replacement
             lines.append(f'  "{k}": "{v}"')
-        print(lines)
         return "{\n" + ",\n".join(lines) + "\n}\n"
 
     def _make_added_entry_for_dict(self, os):
