@@ -1,0 +1,34 @@
+el:import { Alert, Button } from './components'
+
+# el:Welcome to My MDX Page 🎉
+
+el:This is a regular Markdown heading. Below is a list:
+
+- el:Works with **Markdown**
+- el:Supports _emphasis_, **bold**, and `inline code`
+- el:Lets you embed components 👇
+
+el:---
+
+## el:🚀 Interactive Component
+
+el:<Alert type="success">
+  ✅ Success! You can render React components inside Markdown.
+</Alert>
+
+el:---
+
+## el:📦 Props in Components
+
+el:You can pass props like this:
+
+el:<Button onClick={() => alert('You clicked the button!')}>
+  Click Me
+</Button>
+
+el:---
+
+## el:📜 Code Block
+
+el:```js
+console.log('MDX supports code highlighting too!');
