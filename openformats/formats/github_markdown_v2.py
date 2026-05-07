@@ -101,7 +101,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
 
         md_template = md_content
 
-        block = TxBlockLexer()
+        block = self._get_block_lexer()
         markdown = Markdown(block=block)
 
         # Making sure stringset is empty because of recursive inside `markdown`
@@ -159,7 +159,7 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
 
         template = yaml_template + seperator + md_template
         return force_newline_type(template, newline_type), stringset
-    
+
     def find_fuzzy_substring(self, pattern, text, pos=0):
         # Split pattern into non-whitespace tokens
         tokens = re.findall(r'\S+', pattern)
@@ -386,3 +386,6 @@ class GithubMarkdownHandlerV2(OrderedCompilerMixin, Handler):
             return True, self.DOUBLE_QUOTES
 
         return False, None
+
+    def _get_block_lexer(self):
+        return TxBlockLexer()
