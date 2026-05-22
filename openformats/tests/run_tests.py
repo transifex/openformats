@@ -8,6 +8,8 @@ def run_all(args=None):
         or [
             "openformats/tests",
             "-v",
+            "--junitxml=junit.xml",
+            "--log-cli-level=DEBUG",
             "--cov=openformats",
             "--cov-report=xml",
             "--cov-report=term",

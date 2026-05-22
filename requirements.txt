@@ -4,11 +4,10 @@ mistune==0.8.1
 polib==1.0.3
 pyparsing==3.0.9
 six
-lxml==4.9.4
+lxml==5.0.0
 beautifulsoup4==4.9.3
 pytest
 pytest-cov
-mock
 
 # InDesign
 git+https://github.com/kbairak/ucflib@py3_compatibility
