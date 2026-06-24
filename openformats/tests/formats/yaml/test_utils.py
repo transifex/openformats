@@ -1,9 +1,9 @@
 import unittest
 from collections import OrderedDict
+from unittest.mock import MagicMock
 
 import six
 
-from mock import MagicMock
 from openformats.formats.yaml.utils import YamlGenerator
 from openformats.formats.yaml.yaml_representee_classes import (BlockList,
                                                                FlowList,

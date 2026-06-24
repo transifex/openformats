@@ -1,13 +1,13 @@
-PyYAML==5.4.1
-django==1.11.29
+PyYAML==6.0.2
+django==4.2.26
 mistune==0.8.1
 polib==1.0.3
-pyparsing==2.2.0
+pyparsing==3.0.9
 six
-lxml==4.6.5
+lxml==5.0.0
 beautifulsoup4==4.9.3
 pytest
-mock
+pytest-cov
 
 # InDesign
 git+https://github.com/kbairak/ucflib@py3_compatibility

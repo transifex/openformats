@@ -5,7 +5,7 @@ run:
 	docker compose up
 
 test:
-	docker compose run --rm --entrypoint='python /app/setup.py' app test
+	docker compose run --rm --entrypoint='pytest' app
 
 shell:
 	docker compose run --rm app shell

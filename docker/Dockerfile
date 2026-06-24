@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.0.2-experimental
-ARG PY_VERSION=3.9
+ARG PY_VERSION=3.11
 
 FROM python:${PY_VERSION}-slim-bullseye as builder
 

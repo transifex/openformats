@@ -1,23 +1,28 @@
-from os.path import abspath, dirname
 import sys
-
-import nose
+import pytest
 
 
 def run_all(args=None):
-    if not args:
-        args = [
-            'nosetests', '--with-xunit', '--with-xcoverage',
-            '--cover-package=openformats', '--cover-erase',
-            '--logging-filter=openformats', '--logging-level=DEBUG',
-            '--verbose',
+    return pytest.main(
+        args
+        or [
+            "openformats/tests",
+            "-v",
+            "--junitxml=junit.xml",
+            "--log-cli-level=DEBUG",
+            "--cov=openformats",
+            "--cov-report=xml",
+            "--cov-report=term",
         ]
-
-    nose.run_exit(
-        argv=args,
-        defaultTest=abspath(dirname(__file__))
     )
+    # """Run the openformats test suite.
+
+    # All default options (test path, coverage, JUnit XML, log level) are
+    # declared in ``pytest.ini`` so this entry point, the ``Makefile``
+    # target, and a bare ``pytest`` invocation all behave identically.
+    # """
+    # return pytest.main(list(args) if args else [])
 
 
-if __name__ == '__main__':
-    run_all(sys.argv)
+if __name__ == "__main__":
+    sys.exit(run_all(sys.argv[1:]) or 0)
