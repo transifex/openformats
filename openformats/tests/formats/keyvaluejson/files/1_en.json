@@ -1,8 +1,8 @@
 {
   "singular_key": "This is a regular string.",
-  "total_files": "{ item_count, plural, one {You have {file_count} file.} other {You have {file_count} files.} }",
+  "total_files": "{ file_count, plural, one {You have {file_count} file.} other {You have {file_count} files.} }",
   "special_chars": "{ cnt, plural, one {This is Sam's book.} other {These are Sam's books.} }",
-  "gold_coins": "{ count, plural,\n zero {The chest is empty.} one {You have one gold coin.} other {You have {cnt} gold coins.} \n}",
+  "gold_coins": "{ cnt, plural,\n zero {The chest is empty.} one {You have one gold coin.} other {You have {cnt} gold coins.} \n}",
   "something": {
     "else": "Something else",
     "is": {

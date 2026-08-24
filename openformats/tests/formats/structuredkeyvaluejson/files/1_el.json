@@ -3,7 +3,7 @@
     "string": "el:This is a regular string."
   },
   "total_files": {
-    "string": "{ item_count, plural, one {el:You have {file_count} file.} other {el:You have {file_count} files.} }",
+    "string": "{ file_count, plural, one {el:You have {file_count} file.} other {el:You have {file_count} files.} }",
     "context": "Noun"
   },
   "special_chars": {
@@ -11,7 +11,7 @@
     "developer_comment": "This is a string with special characters"
   },
   "gold_coins": {
-    "string": "{ count, plural,\n zero {el:The chest is empty.} one {el:You have one gold coin.} other {el:You have {cnt} gold coins.} \n}",
+    "string": "{ cnt, plural,\n zero {el:The chest is empty.} one {el:You have one gold coin.} other {el:You have {cnt} gold coins.} \n}",
     "character_limit": 150
   },
   "something": {
