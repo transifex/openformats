@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns:slr="urn:oasis:names:tc:xliff:sizerestriction:2.0" version="2.0" srcLang="en">
+  <file id="f1">
+    <unit id="greeting" slr:sizeRestriction="30">
+      <notes>
+        <note category="developer">Shown on the login screen</note>
+      </notes>
+      <mda:metadata>
+        <mda:metaGroup category="location">
+          <mda:meta type="sourcefile">login.py</mda:meta>
+          <mda:meta type="linenumber">42</mda:meta>
+        </mda:metaGroup>
+      </mda:metadata>
+      <segment>
+        <source>Confirm email address</source>
+        <target>86633a9bae771396457bf797cc12a00d_tr</target>
+      </segment>
+    </unit>
+    <unit id="farewell">
+      <segment>
+        <source>See you soon, traveller</source>
+        <target>aa31273b57e721d13611ac58a53a00c1_tr</target>
+      </segment>
+    </unit>
+    <unit id="formatted">
+      <segment>
+        <source>Welcome <pc id="1">back</pc>, click <ph id="2"/> to continue &amp; enjoy</source>
+        <target>5a9eec315e58020711d0603a136ea2d8_tr</target>
+      </segment>
+    </unit>
+    <group id="g1">
+      <unit id="items">
+        <segment>
+          <source>{count, plural, one {You have # unread notification} other {You have # unread notifications}}</source>
+          <target>{count, plural, 8ca77bbe787e19ba36a14ae49006b12d_pl}</target>
+        </segment>
+      </unit>
+    </group>
+  </file>
+</xliff>
