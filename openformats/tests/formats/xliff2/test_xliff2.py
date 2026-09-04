@@ -217,6 +217,103 @@ class Xliff2TestCase(CommonFormatTestMixin, unittest.TestCase):
         self.assertIn("<source>Bye</source>", compiled)
         self.assertNotIn("<target>Bye</target>", compiled)
 
+    def test_pseudo_download_writes_injected_targets(self):
+        # A pseudo download runs on the source language (is_source=True) but must
+        # emit a <target> with the pseudo text even for source-only units.
+        content = _wrap(
+            u'<unit id="only"><segment><source>Hello</source></segment></unit>'
+        )
+        template, stringset = self.handler.parse(content, is_source=True)
+        _set_string(stringset[0], "[Ĥéļļö]")
+        compiled = self.handler.compile(
+            template, stringset, is_source=True, pseudo=True
+        )
+        self.assertIn("<source>Hello</source>", compiled)
+        self.assertIn("<target>[Ĥéļļö]</target>", compiled)
+        self.assertNotIn(self.handler.INJECTED_MARKER_ATTR, compiled)
+
+    # -- compile-mode removal ("remove" strategy) --------------------------
+
+    def test_removed_string_drops_segment_keeps_unit(self):
+        # A dropped string removes only its <segment> when the <unit> has other
+        # segments left.
+        content = _wrap(
+            u'<unit id="u1">'
+            u'<segment id="s1"><source>First</source></segment>'
+            u'<segment id="s2"><source>Second</source></segment>'
+            u'</unit>'
+        )
+        template, stringset = self.handler.parse(content, is_source=True)
+        # Emulate a compile mode that drops the first segment's string.
+        kept = [s for s in stringset if s.key.endswith("[s2]")]
+        _set_string(kept[0], "Deux")
+        compiled = self.handler.compile(template, kept)
+        self.assertNotIn("First", compiled)
+        self.assertIn("<source>Second</source>", compiled)
+        self.assertIn("<target>Deux</target>", compiled)
+        # The unit survives because a segment remains.
+        self.assertIn('<unit id="u1">', compiled)
+        ET.fromstring(compiled)
+
+    def test_removed_string_drops_whole_unit_when_empty(self):
+        # A dropped string removes the whole <unit> when no segment is left.
+        content = _wrap(
+            u'<unit id="keep"><segment><source>Keep me</source></segment></unit>'
+            u'<unit id="drop"><segment><source>Drop me</source></segment></unit>'
+        )
+        template, stringset = self.handler.parse(content, is_source=True)
+        kept = [s for s in stringset if s.key == "keep"]
+        _set_string(kept[0], "Gardez")
+        compiled = self.handler.compile(template, kept)
+        self.assertIn('<unit id="keep">', compiled)
+        self.assertIn("<target>Gardez</target>", compiled)
+        # The dropped unit is gone entirely — no leftover source-only unit.
+        self.assertNotIn('<unit id="drop">', compiled)
+        self.assertNotIn("Drop me", compiled)
+        ET.fromstring(compiled)
+
+    def test_untranslated_mode_drops_translated_keeps_untranslated(self):
+        # Mirrors UNTRANSLATED: translated entries are absent from the stringset
+        # (removed), untranslated ones are present but empty. Translated units
+        # are dropped entirely; untranslated ones stay as source-only.
+        content = _wrap(
+            u'<unit id="translated">'
+            u'<segment><source>Hello</source></segment></unit>'
+            u'<unit id="untranslated">'
+            u'<segment><source>World</source></segment></unit>'
+        )
+        template, stringset = self.handler.parse(content, is_source=True)
+        by_key = {s.key: s for s in stringset}
+        _set_string(by_key["untranslated"], "")
+        compiled = self.handler.compile(template, [by_key["untranslated"]])
+        # Translated unit removed entirely.
+        self.assertNotIn('<unit id="translated">', compiled)
+        self.assertNotIn("Hello", compiled)
+        # Untranslated unit kept, source-only (no <target>).
+        self.assertIn('<unit id="untranslated">', compiled)
+        self.assertIn("<source>World</source>", compiled)
+        self.assertNotIn("<target", compiled)
+        ET.fromstring(compiled)
+
+    def test_empty_plural_translation_drops_target(self):
+        # An all-blank plural translation must drop the <target>, not emit an
+        # empty ICU wrapper (e.g. {n, plural, one {} other {}}).
+        content = _wrap(
+            u'<unit id="p1"><segment>'
+            u'<source>{n, plural, one {# thing} other {# things}}</source>'
+            u'</segment></unit>'
+        )
+        template, stringset = self.handler.parse(content, is_source=True)
+        _set_string(stringset[0], "")
+        compiled = self.handler.compile(template, stringset)
+        self.assertIn(
+            "<source>{n, plural, one {# thing} other {# things}}</source>",
+            compiled,
+        )
+        self.assertNotIn("<target", compiled)
+        self.assertNotIn("plural, one {} other {}", compiled)
+        ET.fromstring(compiled)
+
     # -- translation upload (is_source=False) ------------------------------
 
     def test_translation_upload_extracts_target(self):

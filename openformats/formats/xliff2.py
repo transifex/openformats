@@ -24,7 +24,7 @@ class Xliff2Handler(Handler):
     Additional features:
     - developer comments <- ``<unit><notes><note>``
     - character limit <- Size and Length Restriction ``slr:sizeRestriction``
-    - occurrences <- Metadata module ``<mda:meta type="location">``
+    - occurrences <- Metadata module ``<mda:metaGroup purpose="location">``
 
     Content is handled in raw mode (``EXTRACTS_RAW = True``): the inner text of
     ``<source>``/``<target>`` is stored and re-emitted verbatim, so entities stay
@@ -67,6 +67,7 @@ class Xliff2Handler(Handler):
         self.stringset = None
         self.next_string = None
         self.is_source = False
+        self.pseudo = False
 
 
     @reraise_syntax_as_parse_errors
@@ -255,15 +256,11 @@ class Xliff2Handler(Handler):
         return prefix + openstring.template_replacement + suffix
 
     def _template_replace_target(self, target_node, target_inner):
-        if target_node.text_position is not None:
-            self.transcriber.copy_until(target_node.text_position)
-            self.transcriber.add(target_inner)
-            self.transcriber.skip_until(target_node.content_end)
-        else:
-            # Self-closing <target/>: expand it to hold the placeholder
-            self.transcriber.copy_until(target_node.position)
-            self.transcriber.add("<target>{}</target>".format(target_inner))
-            self.transcriber.skip_until(target_node.tail_position)
+        # Only non-empty targets reach here (empty and self-closing ones route
+        # to _template_replace_empty_target), so text_position is always set.
+        self.transcriber.copy_until(target_node.text_position)
+        self.transcriber.add(target_inner)
+        self.transcriber.skip_until(target_node.content_end)
 
     def _template_replace_empty_target(self, target_node, target_inner):
         # Replace an empty author <target> (``<target></target>`` or
@@ -297,8 +294,6 @@ class Xliff2Handler(Handler):
             text = (note.content or "").strip()
             if not text:
                 continue
-            # Notes are developer comments shown in the UI and never written
-            # back into the XML, so fully decode entities for readability.
             parts.append(saxutils.unescape(text))
         return "\n".join(parts)
 
@@ -350,26 +345,66 @@ class Xliff2Handler(Handler):
         self.stringset = iter(stringset)
         self.next_string = self._get_next_string()
         self.is_source = is_source
+        self.pseudo = bool(kwargs.get("pseudo"))
 
-        for target in root.find_descendants("target"):
-            self._compile_target(target)
+        for unit in root.find_descendants("unit"):
+            self._compile_unit(unit)
 
         self.transcriber.copy_to_end()
         return prefix + self.transcriber.get_destination()
 
-    def _compile_target(self, target):
+    def _compile_unit(self, unit):
+        """Apply the compile plan to a <unit>.
+
+        A <segment> whose string was dropped by the compile mode (e.g. the
+        translated entries under UNTRANSLATED mode) is removed outright. The
+        enclosing <unit> is removed only when that leaves it with no <segment>
+        children; otherwise just the dropped segment(s) go.
+        """
+        plans = []
+        removed = 0
+        for segment in unit.find_children("segment"):
+            plan = self._plan_segment(segment)
+            plans.append((segment,) + plan)
+            if plan[0] == "remove":
+                removed += 1
+
+        if plans and removed == len(plans):
+            self._remove_element(unit)
+            return
+
+        for segment, action, target, new_inner, injected in plans:
+            if action == "remove":
+                self._remove_element(segment)
+            elif action == "write":
+                self._write_target(target, new_inner, injected)
+            elif action == "strip":
+                self._remove_element(target)
+
+    def _plan_segment(self, segment):
+        """Decide what to do with a <segment>, advancing the stringset cursor.
+
+        Returns ``(action, target, new_inner, injected)`` where action is one of:
+        ``write`` (emit the translation), ``strip`` (drop just the <target>,
+        keeping a source-only segment), ``remove`` (drop the whole segment), or
+        ``untouched`` (leave it verbatim, e.g. a translate="no" unit).
+        """
+        target = next(iter(segment.find_children("target")), None)
+        if target is None:
+            return ("untouched", None, None, False)
         inner = target.content
         if inner is None:
-            return
+            return ("untouched", target, None, False)
         match = self.PLACEHOLDER_RE.search(inner)
         if match is None:
             # A target without a placeholder (e.g. a translate="no" unit or a
             # pre-existing translation) is left untouched.
-            return
+            return ("untouched", target, None, False)
 
         injected = target.attrib.get(self.INJECTED_MARKER_ATTR) == "1"
         token = match.group(0)
-        if self.next_string is not None and token == self.next_string.template_replacement:
+        if self.next_string is not None and \
+                token == self.next_string.template_replacement:
             if self.next_string.pluralized:
                 rendered = ICUCompiler().serialize_strings(
                     {
@@ -379,24 +414,30 @@ class Xliff2Handler(Handler):
                     delimiter=" ",
                 )
                 new_inner = inner.replace(token, rendered)
+                # The ICU wrapper keeps new_inner non-empty even when every
+                # plural form is blank, so judge emptiness on the form values.
+                has_content = any(
+                    value and value.strip()
+                    for value in self.next_string.string.values()
+                )
             else:
                 new_inner = self.escape(self.next_string.string)
+                has_content = bool(new_inner)
             self.next_string = self._get_next_string()
-            if self.is_source and injected:
-                # Source download: a synthetic target (the source had no
-                # <target>, or an empty one) must not echo the source; drop it
-                # so source-only units stay source-only.
-                self._remove_target(target)
-            elif new_inner:
-                self._write_target(target, new_inner, injected)
-            else:
-                # No value: drop the <target> (an untranslated unit on a
-                # translation download, or an emptied one).
-                self._remove_target(target)
-        else:
-            # No matching translation (dropped by the compile mode): remove the
-            # target element.
-            self._remove_target(target)
+            if self.is_source and injected and not self.pseudo:
+                # Real source download: a synthetic target (the source had no
+                # <target>, or an empty one) must not echo the source; keep the
+                # segment source-only. Pseudo downloads are exempt.
+                return ("strip", target, None, injected)
+            if has_content:
+                return ("write", target, new_inner, injected)
+            # Present but empty (e.g. UNTRANSLATED missing_strategy=empty, or an
+            # all-blank plural): keep the segment, dropping just the <target>.
+            return ("strip", target, None, injected)
+
+        # No matching translation (dropped by the compile mode): remove the whole
+        # segment; the unit goes too if it has no segments left.
+        return ("remove", target, None, injected)
 
     def _write_target(self, target, new_inner, injected):
         if injected:
@@ -410,15 +451,16 @@ class Xliff2Handler(Handler):
             self.transcriber.add(new_inner)
             self.transcriber.skip_until(target.content_end)
 
-    def _remove_target(self, target):
-        """Remove the whole <target> element, along with the indentation
-        whitespace that precedes it, so no blank line is left behind."""
+    def _remove_element(self, element):
+        """Remove the whole element (<target>, <segment> or <unit>), along with
+        the indentation whitespace that precedes it, so no blank line is left
+        behind."""
         source = self.transcriber.source
-        start = target.position
+        start = element.position
         while start > 0 and source[start - 1].isspace():
             start -= 1
         self.transcriber.copy_until(start)
-        self.transcriber.skip_until(target.tail_position)
+        self.transcriber.skip_until(element.tail_position)
 
     def _set_target_language(self, body, code):
         def add_attr(match):
