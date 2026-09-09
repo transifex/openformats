@@ -521,14 +521,94 @@ class Xliff2TestCase(CommonFormatTestMixin, unittest.TestCase):
             self.handler.parse(content, is_source=True)
         self.assertIn("<unit> element is missing", six.text_type(ctx.exception))
 
-    def test_duplicate_unit_id_raises(self):
+    def test_duplicate_unit_id_keeps_the_first(self):
+        """A repeated unit id is ignored, keeping the first occurrence.
+
+        Mirrors the XLIFF 1.2 handler, which skips a <trans-unit> whose id it
+        has already seen in the current <file> instead of failing the upload.
+        """
+        content = (
+            u'<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" '
+            u'xmlns:slr="urn:oasis:names:tc:xliff:sizerestriction:2.0" '
+            u'version="2.0" srcLang="en">'
+            u'<file id="f1">'
+            u'<unit id="dup" slr:sizeRestriction="10">'
+            u'<notes><note>First note</note></notes>'
+            u'<segment><source>Hi</source></segment>'
+            u'</unit>'
+            u'<unit id="dup" slr:sizeRestriction="99">'
+            u'<notes><note>Second note</note></notes>'
+            u'<segment><source>Bye</source></segment>'
+            u'</unit>'
+            u'<unit id="after"><segment><source>Tail</source></segment></unit>'
+            u'</file></xliff>'
+        )
+        template, stringset = self.handler.parse(content, is_source=True)
+        self.assertEqual([s.key for s in stringset], ["dup", "after"])
+        # The first occurrence wins outright: source, notes and metadata.
+        self.assertEqual(stringset[0].string, "Hi")
+        self.assertEqual(stringset[0].developer_comment, "First note")
+        self.assertEqual(stringset[0].character_limit, 10)
+        # The skipped unit contributes no placeholder and does not consume an
+        # order, so the following unit keeps its position.
+        self.assertEqual([s.order for s in stringset], [0, 1])
+        self.assertEqual(
+            template.count(stringset[0].template_replacement), 1
+        )
+        # It survives verbatim in the template, with no <target> injected.
+        self.assertIn(u'<source>Bye</source>', template)
+        self.assertNotIn(u'>Bye</target>', template)
+
+    def test_duplicate_unit_id_compiles(self):
+        """The skipped duplicate must not desync the compile cursor."""
         content = _wrap(
             u'<unit id="dup"><segment><source>Hi</source></segment></unit>'
             u'<unit id="dup"><segment><source>Bye</source></segment></unit>'
+            u'<unit id="after"><segment><source>Tail</source></segment></unit>'
         )
-        with self.assertRaises(ParseError) as ctx:
-            self.handler.parse(content, is_source=True)
-        self.assertIn("Duplicate unit id 'dup'", six.text_type(ctx.exception))
+        template, stringset = self.handler.parse(content, is_source=True)
+        compiled = self.handler.compile(
+            template, _translate(stringset, u"XX")
+        )
+        targets = ET.fromstring(compiled.encode("utf-8")).findall(
+            ".//{urn:oasis:names:tc:xliff:document:2.0}target"
+        )
+        self.assertEqual([t.text for t in targets], ["XX", "XX"])
+        # The duplicate keeps its source and stays target-less.
+        self.assertIn(u'<source>Bye</source>', compiled)
+
+    def test_duplicate_unit_id_across_files_is_kept(self):
+        """unit/@id only has to be unique within its <file> (XLIFF 2.0 spec),
+        so the same id in another <file> is a distinct string."""
+        content = (
+            u'<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" '
+            u'version="2.0" srcLang="en">'
+            u'<file id="f1">'
+            u'<unit id="dup"><segment><source>Hi</source></segment></unit>'
+            u'</file>'
+            u'<file id="f2">'
+            u'<unit id="dup"><segment><source>Bye</source></segment></unit>'
+            u'</file></xliff>'
+        )
+        _, stringset = self.handler.parse(content, is_source=True)
+        self.assertEqual(
+            [(s.key, s.context, s.string) for s in stringset],
+            [("dup", "f1", "Hi"), ("dup", "f2", "Bye")],
+        )
+
+    def test_duplicate_unit_id_on_translation_upload_keeps_the_first(self):
+        content = _wrap(
+            u'<unit id="dup">'
+            u'<segment><source>Hi</source><target>Geia</target></segment>'
+            u'</unit>'
+            u'<unit id="dup">'
+            u'<segment><source>Bye</source><target>Adio</target></segment>'
+            u'</unit>'
+        )
+        _, stringset = self.handler.parse(content, is_source=False)
+        self.assertEqual(
+            [(s.key, s.string) for s in stringset], [("dup", "Geia")]
+        )
 
     def test_segment_without_source_raises(self):
         content = _wrap(

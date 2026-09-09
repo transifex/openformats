@@ -139,7 +139,8 @@ class Xliff2Handler(Handler):
             if multiple:
                 segment_id = segment.attrib.get("id")
                 segment_key = "{}[{}]".format(key, segment_id or index)
-            self._register_key(seen_keys, file_id, segment_key)
+            if not self._claim_key(seen_keys, file_id, segment_key):
+                continue
             self._parse_segment(
                 segment,
                 segment_key,
@@ -151,14 +152,23 @@ class Xliff2Handler(Handler):
                 stringset,
             )
 
-    def _register_key(self, seen_keys, context, key):
-        """Enforce id uniqueness within a <file> (context is the file id)."""
+    def _claim_key(self, seen_keys, context, key):
+        """Claim a key for the first unit that uses it, within a <file>.
+
+        A string's identity is ``(key, context)`` -- here the unit id and the
+        file id -- so a repeated id is the same string however much else about
+        the unit differs (source text, notes, size restriction, metadata).
+        Rather than reject the file, the first occurrence wins and later ones
+        are ignored, matching the XLIFF 1.2 handler (which skips a
+        <trans-unit> whose id it has already seen in the current <file>).
+
+        Returns False when the key was already taken, meaning "skip this one".
+        """
         identifier = (context, key)
         if identifier in seen_keys:
-            raise ParseError(
-                "Duplicate unit id '{}' found in file '{}'".format(key, context)
-            )
+            return False
         seen_keys.add(identifier)
+        return True
 
     def _parse_segment(
         self,
